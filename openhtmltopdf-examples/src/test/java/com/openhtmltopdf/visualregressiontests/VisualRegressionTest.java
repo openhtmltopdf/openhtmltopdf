@@ -1126,15 +1126,16 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("issue-399-table-header-with-no-rows"));    
     }
     
-
     /**
-     * Tests that justified text with non-justified content (br) nested inside it
-     * will not throw a NPE.
-     * https://github.com/danfickle/openhtmltopdf/issues/420
+     * Tests that a paginated table pushed to the next page does not have too
+     * much height in the first body row and the thead section is not orphaned on
+     * the first page.
+     * https://github.com/danfickle/openhtmltopdf/issues/202
      */
     @Test
-    public void testIssue420JustifyTextNullPointerException() throws IOException {
-        assertTrue(vt.runTest("issue-420-justify-text-null-pointer-exception"));
+    @Ignore // First td has too much height, thead is orphaned on first page.
+    public void testIssue202PaginatedTableAtStartOfNewPage() throws IOException {
+        assertTrue(vt.runTest("issue-202-paginated-table-start-page"));
     }
     
     /**
