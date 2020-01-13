@@ -1133,7 +1133,6 @@ public class VisualRegressionTest {
      * https://github.com/danfickle/openhtmltopdf/issues/202
      */
     @Test
-    @Ignore // First td has too much height, thead is orphaned on first page.
     public void testIssue202PaginatedTableAtStartOfNewPage() throws IOException {
         assertTrue(vt.runTest("issue-202-paginated-table-start-page"));
     }
