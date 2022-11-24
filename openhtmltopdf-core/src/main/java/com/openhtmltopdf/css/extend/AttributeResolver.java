@@ -129,5 +129,13 @@ public interface AttributeResolver {
      */
     public boolean isFocus(Object e);
 
+    /**
+     * Gets the marker attribute of the AttributeResolver object
+     *
+     * @param e PARAM
+     * @return The marker value
+     */
+    public boolean isMarker(Object e);
+
 }
 

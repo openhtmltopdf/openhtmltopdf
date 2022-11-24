@@ -1,0 +1,18 @@
+<html>
+<head>
+    <style>
+        ul[class="dashed"] > li::marker {
+            content: '-';
+            margin: 0 5px 0 -10px;
+        }
+    </style>
+</head>
+<body>
+<ul class="dashed">
+    <li>list marker should be a hyphen</li>
+</ul>
+<ul>
+    <li>list marker should be default bullet</li>
+</ul>
+</body>
+</html>

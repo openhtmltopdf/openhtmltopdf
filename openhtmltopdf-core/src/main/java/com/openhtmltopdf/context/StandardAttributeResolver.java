@@ -167,5 +167,15 @@ public class StandardAttributeResolver implements AttributeResolver {
     public boolean isFocus(Object e) {
         return ui.isFocus((Element) e);
     }
+
+    /**
+     * Gets the marker attribute of the StandardAttributeResolver object
+     *
+     * @param e PARAM
+     * @return The marker value
+     */
+    public boolean isMarker(Object e) {
+        return ui.isMarker((Element) e);
+    }
 }
 

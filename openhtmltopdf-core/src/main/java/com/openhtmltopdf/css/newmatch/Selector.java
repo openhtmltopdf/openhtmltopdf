@@ -64,6 +64,7 @@ public class Selector {
     public final static int HOVER_PSEUDOCLASS = 4;
     public final static int ACTIVE_PSEUDOCLASS = 8;
     public final static int FOCUS_PSEUDOCLASS = 16;
+    public final static int MARKER_PSEUDOCLASS = 32;
 
     /**
      * Give each a unique ID to be able to create a key to internalize Matcher.Mappers
@@ -135,6 +136,11 @@ public class Selector {
         }
         if (isPseudoClass(FOCUS_PSEUDOCLASS)) {
             if (attRes == null || !attRes.isFocus(e)) {
+                return false;
+            }
+        }
+        if (isPseudoClass(MARKER_PSEUDOCLASS)) {
+            if (attRes == null || !attRes.isMarker(e)) {
                 return false;
             }
         }

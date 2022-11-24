@@ -919,6 +919,11 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         public boolean isFocus(Element e) {
             return false;
         }
+
+        @Override
+        public boolean isMarker(Element e) {
+            return false;
+        }
     }
 
     public PDFCreationListener getListener() {

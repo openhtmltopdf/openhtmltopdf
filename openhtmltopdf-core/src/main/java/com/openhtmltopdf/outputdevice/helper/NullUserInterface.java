@@ -16,4 +16,7 @@ public class NullUserInterface implements UserInterface {
 	public boolean isFocus(Element e) {
 		return false;
 	}
+	public boolean isMarker(Element e) {
+		return false;
+	}
 }

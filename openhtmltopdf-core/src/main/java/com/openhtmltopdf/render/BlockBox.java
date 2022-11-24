@@ -364,7 +364,13 @@ public class BlockBox extends Box {
             imageMarker = result.getImageMarker() != null;
         }
 
-        if (listStyle != IdentValue.NONE && ! imageMarker) {
+        CascadedStyle markerStyle = c.getCss().getPseudoElementStyle(_element,"marker");
+        String markerContent = "";
+        if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
+            markerContent = markerStyle.propertyByName(CSSName.CONTENT).getValue().getCssText();
+        }
+
+        if (markerContent.isEmpty() && listStyle != IdentValue.NONE && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
                     listStyle == IdentValue.DISC) {
                 result.setGlyphMarker(makeGlyphMarker(strutMetrics));

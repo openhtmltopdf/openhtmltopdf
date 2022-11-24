@@ -54,7 +54,7 @@ import java.util.logging.Level;
 public abstract class Box implements Styleable, DisplayListItem {
     protected static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
-    private Element _element;
+    Element _element;
 
     private int _x;
     private int _y;

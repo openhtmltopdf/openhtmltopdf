@@ -57,6 +57,7 @@ public class Matcher {
     private final Set<Object> _activeElements = new HashSet<>();
     private final Set<Object> _focusElements = new HashSet<>();
     private final Set<Object> _visitElements = new HashSet<>();
+    private final Set<Object> _markerElements = new HashSet<>();
 
     private final List<PageRule> _pageRules = new ArrayList<>();
     private final List<FontFaceRule> _fontFaceRules = new ArrayList<>();
@@ -154,6 +155,10 @@ public class Matcher {
 
     public boolean isFocusStyled(Object e) {
         return _focusElements.contains(e);
+    }
+
+    public boolean isMarkerStyled(Object e) {
+        return _markerElements.contains(e);
     }
 
     protected Mapper matchElement(Object e) {
@@ -349,6 +354,9 @@ public class Matcher {
                 }
                 if (sel.isPseudoClass(Selector.FOCUS_PSEUDOCLASS)) {
                     _focusElements.add(e);
+                }
+                if (sel.isPseudoClass(Selector.MARKER_PSEUDOCLASS)) {
+                    _markerElements.add(e);
                 }
 
                 if (!sel.matchesDynamic(e, _attRes, _treeRes)) {

@@ -50,5 +50,13 @@ public interface UserInterface {
      * @return   The focus value
      */
     public boolean isFocus( org.w3c.dom.Element e );
+
+    /**
+     * Gets the marker attribute of the UserInterface object
+     *
+     * @param e  PARAM
+     * @return   The marker value
+     */
+    public boolean isMarker( org.w3c.dom.Element e );
 }
 
