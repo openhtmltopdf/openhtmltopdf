@@ -105,7 +105,7 @@ public class VisualTester {
         }
 
         if (TestcaseRunner.class.getResource(absExpPath) == null) {
-            System.err.println("When running test (" + resource + "), nothing to compare against as resource (" + absResPath + ") does not exist.");
+            System.err.println("When running test (" + resource + "), nothing to compare against as resource (" + absExpPath + ") does not exist.");
             System.err.println("Writing generated PDF to file instead in output directory (" + this.outputPath +    ")");
             File output = new File(this.outputPath, resource + ".pdf");
             Files.write(output.toPath(), actualPdfBytes);

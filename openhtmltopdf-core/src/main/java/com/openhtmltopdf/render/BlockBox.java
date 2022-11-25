@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
+import com.openhtmltopdf.css.parser.PropertyValue;
 import org.w3c.dom.Element;
 
 import com.openhtmltopdf.css.constants.CSSName;
@@ -365,12 +367,10 @@ public class BlockBox extends Box {
         }
 
         CascadedStyle markerStyle = c.getCss().getPseudoElementStyle(_element,"marker");
-        String markerContent = "";
-        if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
-            markerContent = markerStyle.propertyByName(CSSName.CONTENT).getValue().getCssText();
-        }
 
-        if (markerContent.isEmpty() && listStyle != IdentValue.NONE && ! imageMarker) {
+        if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
+            result.setTextMarker(makeTextMarker(c, markerStyle));
+        } else if (listStyle != IdentValue.NONE && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
                     listStyle == IdentValue.DISC) {
                 result.setGlyphMarker(makeGlyphMarker(strutMetrics));
@@ -410,6 +410,42 @@ public class BlockBox extends Box {
             }
         }
         return null;
+    }
+
+    private MarkerData.TextMarker makeTextMarker(LayoutContext c, CascadedStyle markerStyle) {
+        IdentValue listDirection = getParent().getStyle().getDirection();
+
+        StringBuilder sb = new StringBuilder();
+        if (listDirection == IdentValue.RTL) {
+            sb.append("  ");
+        }
+
+        List<PropertyValue> values = ((PropertyValue) markerStyle.propertyByName(CSSName.CONTENT).getValue()).getValues();
+
+        for (PropertyValue value : values) {
+            short type = value.getPrimitiveType();
+            if (type == CSSPrimitiveValue.CSS_STRING) {
+                sb.append(value.getStringValue());
+            }
+        }
+
+        if (listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO) {
+            sb.append("  ");
+        }
+
+        String text = sb.toString();
+
+        int w = c.getTextRenderer().getWidth(
+                c.getFontContext(),
+                getStyle().getFSFont(c),
+                text);
+
+        MarkerData.TextMarker result = new MarkerData.TextMarker();
+
+        result.setLayoutWidth(w);
+        result.setText(text);
+
+        return result;
     }
 
     private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle) {

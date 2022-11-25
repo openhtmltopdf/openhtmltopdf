@@ -1602,7 +1602,6 @@ public class BoxBuilder {
         CalculatedStyle parentStyle = sharedContext.getStyle(parent);
 
         insertGeneratedContent(c, parent, parentStyle, "before", children, info);
-        insertGeneratedContent(c, parent, parentStyle, "marker", children, info);
 
         if (parentStyle.isFootnote()) {
             if (c.isFootnoteAllowed() && isValidFootnote(c, parent, parentStyle)) {
