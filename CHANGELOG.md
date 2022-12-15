@@ -1,6 +1,6 @@
 ## CHANGELOG
 
-### head - 1.0.11-SNAPSHOT
+### head - 1.0.10-1.0
 + See commit log.
 
 ### 1.0.10 (2021-September-13)
