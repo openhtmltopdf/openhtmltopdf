@@ -210,6 +210,9 @@ public class PropertyValue implements CSSPrimitiveValue {
     }
     
     public List<PropertyValue> getValues() {
+        if (_values == null) {
+            return new ArrayList<>();
+        }
         return new ArrayList<>(_values);
     }
     
