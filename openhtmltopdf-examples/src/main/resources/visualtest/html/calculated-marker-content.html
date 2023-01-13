@@ -1,0 +1,35 @@
+<html>
+<head>
+    <style>
+        /* reset always required to enable a named counter */
+        ol {
+            counter-reset: item;
+        }
+
+        ol[start="5"] {
+            counter-reset: item 4;
+        }
+
+        /* custom marker content */
+        ol[class="alpha"] > li::marker {
+            content: '(' counter(item, lower-latin) ') ';
+            counter-increment: item;
+        }
+    </style>
+</head>
+<body>
+<ol class="alpha">
+    <li>
+        <p>list marker should be (a).</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce vestibulum finibus maximus. Ut laoreet ligula aliquam nibh volutpat efficitur placerat a odio. Nam non fringilla turpis. Curabitur congue sapien vitae ullamcorper aliquam. Phasellus dignissim sit amet lectus in dictum. Pellentesque vel fermentum sem. Nullam ornare sed eros ac pulvinar. Nam interdum, eros a rutrum volutpat, mi neque ultricies velit, ut cursus elit lacus a ante. Integer mi ipsum, eleifend vel nisl vel, tincidunt mollis ligula. Mauris ultricies laoreet imperdiet.</p>
+    </li>
+    <li>
+        <p>list marker should be (b). Nulla rutrum aliquet erat id condimentum. Aliquam eget felis nec magna scelerisque fringilla. In magna risus, mollis vitae tincidunt ac, tincidunt in lorem. Proin semper feugiat leo. Nunc nec tristique justo. Aenean ut quam ante. Vivamus convallis ullamcorper auctor. Suspendisse convallis in quam at ornare. Nulla efficitur velit in tellus rutrum feugiat. Praesent eu augue mi.</p>
+    </li>
+</ol>
+<ol class="alpha" start="5">
+    <li>list marker should be (e)</li>
+    <li>list marker should be (f)</li>
+</ol>
+</body>
+</html>

@@ -22,12 +22,12 @@ package com.openhtmltopdf.render;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
-import com.openhtmltopdf.css.parser.PropertyValue;
+import com.openhtmltopdf.layout.BoxBuilder.ChildBoxInfo;
 import org.w3c.dom.Element;
 
 import com.openhtmltopdf.css.constants.CSSName;
@@ -55,6 +55,8 @@ import com.openhtmltopdf.layout.PersistentBFC;
 import com.openhtmltopdf.layout.Styleable;
 import com.openhtmltopdf.newtable.TableRowBox;
 import com.openhtmltopdf.util.ThreadCtx;
+
+import static com.openhtmltopdf.layout.BoxBuilder.*;
 
 
 /**
@@ -342,8 +344,7 @@ public class BlockBox extends Box {
     }
 
     public void createMarkerData(LayoutContext c) {
-        if (getMarkerData() != null)
-        {
+        if (getMarkerData() != null) {
             return;
         }
 
@@ -366,7 +367,7 @@ public class BlockBox extends Box {
         CascadedStyle markerStyle = c.getCss().getPseudoElementStyle(_element,"marker");
 
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
-            result.setTextMarker(makeTextMarker(c, markerStyle));
+            result.setTextMarker(makeTextMarker(c));
         } else if (listStyle != IdentValue.NONE && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
                     listStyle == IdentValue.DISC) {
@@ -408,43 +409,6 @@ public class BlockBox extends Box {
         return null;
     }
 
-    private MarkerData.TextMarker makeTextMarker(LayoutContext c, CascadedStyle markerStyle) {
-        CalculatedStyle parentStyle = getParent().getStyle();
-        IdentValue listDirection = parentStyle.getDirection();
-
-        StringBuilder sb = new StringBuilder();
-        if (listDirection == IdentValue.RTL) {
-            sb.append("  ");
-        }
-
-        List<PropertyValue> values = ((PropertyValue) markerStyle.propertyByName(CSSName.CONTENT).getValue()).getValues();
-
-        for (PropertyValue value : values) {
-            short type = value.getPrimitiveType();
-            if (type == CSSPrimitiveValue.CSS_STRING) {
-                sb.append(value.getStringValue());
-            }
-        }
-
-        if (listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO) {
-            sb.append("  ");
-        }
-
-        String text = sb.toString();
-
-        int w = c.getTextRenderer().getWidth(
-                c.getFontContext(),
-                getStyle().getFSFont(c),
-                text);
-
-        MarkerData.TextMarker result = new MarkerData.TextMarker();
-
-        result.setLayoutWidth(w);
-        result.setText(text);
-
-        return result;
-    }
-
     private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle) {
         String text;
 
@@ -459,6 +423,43 @@ public class BlockBox extends Box {
             assert listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO;
             text = text.concat(".  ");
         }
+
+        int w = c.getTextRenderer().getWidth(
+                c.getFontContext(),
+                getStyle().getFSFont(c),
+                text);
+
+        MarkerData.TextMarker result = new MarkerData.TextMarker();
+
+        result.setLayoutWidth(w);
+        result.setText(text);
+
+        return result;
+    }
+
+    private MarkerData.TextMarker makeTextMarker(LayoutContext c) {
+        IdentValue listDirection = getParent().getStyle().getDirection();
+        StringBuilder sb = new StringBuilder();
+
+        if (listDirection == IdentValue.RTL) {
+            sb.append("  ");
+        }
+
+        // Generate marker content as a sequence of boxes and then extract their text.
+        // It's fairly dislikeable, but less painful than extracting the text generation elements
+        // from the insertGeneratedContent() method chain.
+        List<Styleable> markerBoxes = new ArrayList<>();
+        ChildBoxInfo info = new ChildBoxInfo();
+        insertGeneratedContent(c, _element, getStyle().getParent(), "marker", markerBoxes, info);
+        for (Styleable box : markerBoxes) {
+            sb.append(((InlineBox) box).getText());
+        }
+
+        if (listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO) {
+            sb.append("  ");
+        }
+
+        String text = sb.toString();
 
         int w = c.getTextRenderer().getWidth(
                 c.getFontContext(),
@@ -1171,7 +1172,7 @@ public class BlockBox extends Box {
             c.pushLayer(this);
             return true;
         } else if (style.requiresLayer()) {
-            // FIXME: HACK. Some boxes can be layed out many times (to satisfy page constraints for example).
+            // FIXME: HACK. Some boxes can be laid out many times (to satisfy page constraints for example).
             // If this happens we just mark our old layer for deletion and create a new layer.
             // Not sure this is right, but doesn't break any correct tests.
             //

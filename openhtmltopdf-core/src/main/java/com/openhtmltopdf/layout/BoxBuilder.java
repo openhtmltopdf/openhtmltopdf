@@ -712,7 +712,7 @@ public class BoxBuilder {
                 display == IdentValue.TABLE_FOOTER_GROUP || display == IdentValue.TABLE_ROW;
     }
 
-    private static boolean isAttrFunction(FSFunction function) {
+    public static boolean isAttrFunction(FSFunction function) {
         if (function.getName().equals("attr")) {
             List<PropertyValue> params = function.getParameters();
             if (params.size() == 1) {
@@ -744,7 +744,7 @@ public class BoxBuilder {
         return false;
     }
 
-    private static CounterFunction makeCounterFunction(
+    public static CounterFunction makeCounterFunction(
             FSFunction function, LayoutContext c, CalculatedStyle style) {
 
         if (function.getName().equals("counter")) {
@@ -996,7 +996,7 @@ public class BoxBuilder {
         return c.getRootDocumentLayer().getRunningBlock(ident, c.getPage(), position);
     }
 
-    private static void insertGeneratedContent(
+    public static void insertGeneratedContent(
             LayoutContext c, Element element, CalculatedStyle parentStyle,
             String peName, List<Styleable> children, ChildBoxInfo info) {
 
@@ -1426,6 +1426,12 @@ public class BoxBuilder {
         }
 
         if (child != null) {
+            if (style.isListItem()) {
+                // create marker data, to ensure that named counters are correctly populated
+                BlockBox block = (BlockBox) child;
+                block.setParent(blockParent);
+                block.createMarkerData(c);
+            }
             children.add(child);
         }
     }
@@ -1835,7 +1841,7 @@ public class BoxBuilder {
         }
     }
 
-    private static class ChildBoxInfo {
+    public static class ChildBoxInfo {
         private boolean _containsBlockLevelContent;
         private boolean _containsTableContent;
         private boolean _layoutRunningBlocks;
