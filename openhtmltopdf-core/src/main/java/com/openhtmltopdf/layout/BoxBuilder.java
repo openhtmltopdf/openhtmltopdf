@@ -92,7 +92,7 @@ public class BoxBuilder {
     private static final int CONTENT_LIST_MARGIN_BOX = 2;
 
     /**
-     * Split the document into paragraphs for use in analyzing bi-directional text runs.
+     * Split the document into paragraphs for use in analyzing bidirectional text runs.
      * @param c
      * @param document
      */
@@ -126,7 +126,7 @@ public class BoxBuilder {
 
     public static void createChildren(LayoutContext c, BlockBox parent) {
         if (parent.shouldBeReplaced()) {
-            // Don't create boxes for elements in a SVG element.
+            // Don't create boxes for elements in an SVG element.
             // This avoids many warnings and improves performance.
             parent.setChildrenContentType(BlockBox.ContentType.EMPTY);
             return;
@@ -250,14 +250,14 @@ public class BoxBuilder {
         int cellCount = 0;
         boolean alwaysCreate = names.length > 1 && direction == MARGIN_BOX_HORIZONTAL;
 
-        for (int i = 0; i < names.length; i++) {
-            CascadedStyle cellStyle = pageInfo.createMarginBoxStyle(names[i], alwaysCreate);
+        for (MarginBoxName name : names) {
+            CascadedStyle cellStyle = pageInfo.createMarginBoxStyle(name, alwaysCreate);
             if (cellStyle != null) {
                 TableCellBox cell = createMarginBox(c, cellStyle, alwaysCreate);
                 if (cell != null) {
                     if (direction == MARGIN_BOX_VERTICAL) {
                         CalculatedStyle tableRowStyle = pageStyle.createAnonymousStyle(IdentValue.TABLE_ROW);
-                        row = (TableRowBox)createBlockBox(tableRowStyle, info, false);
+                        row = (TableRowBox) createBlockBox(tableRowStyle, info, false);
                         row.setStyle(tableRowStyle);
                         row.setElement(source);
                         row.setAnonymous(true);
@@ -447,7 +447,7 @@ public class BoxBuilder {
 
     private static void stripAllWhitespace(List<Styleable> content) {
         int start = 0;
-        int current = 0;
+        int current;
         boolean started = false;
         for (current = 0; current < content.size(); current++) {
             Styleable styleable = content.get(current);
@@ -475,7 +475,7 @@ public class BoxBuilder {
     /**
      * Handles the situation when our current parent is table related.  If
      * everything is properly nested (e.g. a <code>tr</code> contains only
-     * <code>td</code> elements), nothing is done.  Otherwise anonymous boxes
+     * <code>td</code> elements), nothing is done.  Otherwise, anonymous boxes
      * are inserted to ensure the integrity of the table model.
      */
     private static void resolveTableContent(
@@ -730,7 +730,7 @@ public class BoxBuilder {
             if (params.size() < 1 || params.size() > 2) {
                 return false;
             }
-            boolean ok = true;
+            boolean ok;
             PropertyValue value1 = params.get(0);
             ok = value1.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT;
             if (ok && params.size() == 2) {
@@ -884,8 +884,6 @@ public class BoxBuilder {
                     if (cFunc != null) {
                         //TODO: counter functions may be called with non-ordered list-style-types, e.g. disc
                         content = cFunc.evaluate();
-                        contentFunction = null;
-                        function = null;
                     } else if (mode == CONTENT_LIST_MARGIN_BOX && isElementFunction(value.getFunction())) {
                         BlockBox target = getRunningBlock(c, value);
                         if (target != null) {
@@ -945,7 +943,7 @@ public class BoxBuilder {
 
     /**
      * Creates an element with id for the footnote-marker pseudo element
-     * so we can link to it from the footnote-call pseduo element.
+     * so we can link to it from the footnote-call pseudo element.
      * <br><br>
      * See {@link #createFootnoteCallAnchor(LayoutContext, Element)}
      */
@@ -995,8 +993,7 @@ public class BoxBuilder {
         if (position == null) {
             position = PageElementPosition.FIRST;
         }
-        BlockBox target = c.getRootDocumentLayer().getRunningBlock(ident, c.getPage(), position);
-        return target;
+        return c.getRootDocumentLayer().getRunningBlock(ident, c.getPage(), position);
     }
 
     private static void insertGeneratedContent(
@@ -1111,9 +1108,9 @@ public class BoxBuilder {
 
         if (style.isInline()) {
             // Because a content property like: content: counter(page) ". ";
-            // will generate multiple inline boxes we have to wrap them in a inline-box
+            // will generate multiple inline boxes we have to wrap them in an inline-box
             // and use a child style for the generated boxes. Otherwise, if we use the
-            // pseudo style directly and it has a border, etc we will incorrectly get a border
+            // pseudo style directly and it has a border etc, we will incorrectly get a border
             // around every content box.
 
             List<Styleable> pseudoInlines = new ArrayList<>(inlineBoxes.size() + 2);
