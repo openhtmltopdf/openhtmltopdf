@@ -1,6 +1,6 @@
 ## CHANGELOG
 
-### head - 1.0.10-1.5
+### head - 1.0.10-1.6
 + See commit log.
 
 ### 1.0.10 (2021-September-13)
