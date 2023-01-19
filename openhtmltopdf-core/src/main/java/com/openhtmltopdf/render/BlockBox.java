@@ -367,7 +367,7 @@ public class BlockBox extends Box {
         CascadedStyle markerStyle = c.getCss().getPseudoElementStyle(_element,"marker");
 
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
-            result.setTextMarker(makeTextMarker(c));
+            result.setTextMarker(makeTextMarker(c, markerStyle));
         } else if (listStyle != IdentValue.NONE && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
                     listStyle == IdentValue.DISC) {
@@ -420,7 +420,6 @@ public class BlockBox extends Box {
         if (listDirection == IdentValue.RTL) {
             text = "  .".concat(text);
         } else {
-            assert listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO;
             text = text.concat(".  ");
         }
 
@@ -431,31 +430,52 @@ public class BlockBox extends Box {
 
         MarkerData.TextMarker result = new MarkerData.TextMarker();
 
+        result.setAlignment(IdentValue.START);
         result.setLayoutWidth(w);
         result.setText(text);
 
         return result;
     }
 
-    private MarkerData.TextMarker makeTextMarker(LayoutContext c) {
+    private MarkerData.TextMarker makeTextMarker(LayoutContext c, CascadedStyle markerStyle) {
         IdentValue listDirection = getParent().getStyle().getDirection();
+        IdentValue alignment = getStyle().deriveStyle(markerStyle).getTextAlign();
+
+        // coalesce to flow-relative values, for ListItemPainter use
+        if (listDirection == IdentValue.RTL && alignment == IdentValue.LEFT) {
+            alignment = IdentValue.END;
+        } else if (alignment == IdentValue.RIGHT) {
+            alignment = IdentValue.END;
+        } else {
+            alignment = IdentValue.START;
+        }
+
         StringBuilder sb = new StringBuilder();
 
         if (listDirection == IdentValue.RTL) {
             sb.append("  ");
         }
 
-        // Generate marker content as a sequence of boxes and then extract their text.
+        // Generate marker content as a sequence of throwaway boxes and then extract their text.
         // It's fairly dislikeable, but less painful than extracting the text generation elements
         // from the insertGeneratedContent() method chain.
         List<Styleable> markerBoxes = new ArrayList<>();
         ChildBoxInfo info = new ChildBoxInfo();
         insertGeneratedContent(c, _element, getStyle().getParent(), "marker", markerBoxes, info);
         for (Styleable box : markerBoxes) {
-            sb.append(((InlineBox) box).getText());
+            CalculatedStyle style = box.getStyle();
+            if (style.isInline()) {
+                sb.append(((InlineBox) box).getText());
+            } else if (style.isBlockEquivalent()) {
+                for (Styleable ib : ((BlockBox) box).getInlineContent()) {
+                    if (ib.getStyle().isInline()) {
+                        sb.append(((InlineBox) ib).getText());
+                    }
+                }
+            }
         }
 
-        if (listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO) {
+        if (listDirection == IdentValue.LTR) {
             sb.append("  ");
         }
 
@@ -468,6 +488,9 @@ public class BlockBox extends Box {
 
         MarkerData.TextMarker result = new MarkerData.TextMarker();
 
+        if (alignment != null) {
+            result.setAlignment(alignment);
+        }
         result.setLayoutWidth(w);
         result.setText(text);
 

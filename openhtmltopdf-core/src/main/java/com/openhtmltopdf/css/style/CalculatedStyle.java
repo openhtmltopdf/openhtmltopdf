@@ -1305,6 +1305,11 @@ public class CalculatedStyle {
                         isIdent(CSSName.WHITE_SPACE, IdentValue.PRE_LINE));
     }
 
+    public IdentValue getTextAlign() {
+        return getIdent(CSSName.TEXT_ALIGN);
+    }
+
+
     public boolean isListMarkerInside() {
         return isIdent(CSSName.LIST_STYLE_POSITION, IdentValue.INSIDE);
     }
@@ -1338,7 +1343,13 @@ public class CalculatedStyle {
     }
 
 	public IdentValue getDirection() {
-		return getIdent(CSSName.DIRECTION);
+		IdentValue direction = getIdent(CSSName.DIRECTION);
+        if (direction == IdentValue.AUTO) {
+            // 'auto' has never been valid CSS for direction, so fallback to 'ltr'
+            // (it *is* a value for the 'dir' attribute on an element, but that's not CSS)
+            direction = IdentValue.LTR;
+        }
+        return direction;
 	}
 	
 	public boolean hasLetterSpacing() {

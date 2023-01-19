@@ -19,6 +19,7 @@
  */
 package com.openhtmltopdf.render;
 
+import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.extend.FSImage;
 
 /**
@@ -140,6 +141,8 @@ public class MarkerData {
     public static class TextMarker {
         private String _text;
         private int _layoutWidth;
+
+        private IdentValue _alignment;
         
         public TextMarker() {
         }
@@ -158,6 +161,14 @@ public class MarkerData {
 
         public void setLayoutWidth(int width) {
             _layoutWidth = width;
+        }
+
+        public IdentValue getAlignment() {
+            return _alignment;
+        }
+
+        public void setAlignment(IdentValue alignment) {
+            _alignment = alignment;
         }
     }    
 }

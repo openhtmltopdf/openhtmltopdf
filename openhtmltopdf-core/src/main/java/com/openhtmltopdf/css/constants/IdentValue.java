@@ -22,6 +22,7 @@ package com.openhtmltopdf.css.constants;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.FSDerivedValue;
@@ -88,6 +89,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue DOTTED = addValue("dotted");
     public final static IdentValue DOUBLE = addValue("double");
     public final static IdentValue DYNAMIC = addValue("dynamic");
+    public final static IdentValue END = addValue("end");
     public final static IdentValue FIXED = addValue("fixed");
     public final static IdentValue FONT_WEIGHT_100 = addValue("100");
     public final static IdentValue FONT_WEIGHT_200 = addValue("200");

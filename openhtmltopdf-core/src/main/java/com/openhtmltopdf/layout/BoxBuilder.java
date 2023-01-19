@@ -1427,7 +1427,7 @@ public class BoxBuilder {
 
         if (child != null) {
             if (style.isListItem()) {
-                // create marker data, to ensure that named counters are correctly populated
+                // eagerly create marker data, to ensure that named counters are correctly populated
                 BlockBox block = (BlockBox) child;
                 block.setParent(blockParent);
                 block.createMarkerData(c);

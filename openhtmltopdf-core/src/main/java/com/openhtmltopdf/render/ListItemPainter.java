@@ -52,7 +52,7 @@ public class ListItemPainter {
             if (markerData.getGlyphMarker() != null) {
                 drawGlyph(c, box, style, listStyle);
             } else if (markerData.getTextMarker() != null){
-                drawText(c, box, listStyle);
+                drawText(c, box);
             }
         }
     }
@@ -150,25 +150,31 @@ public class ListItemPainter {
                (bottomY >= pageTop && bottomY <= pageBottom);
     }
 
-    private static void drawText(RenderingContext c, BlockBox box, IdentValue listStyle) {
+    private static void drawText(RenderingContext c, BlockBox box) {
         MarkerData.TextMarker text = box.getMarkerData().getTextMarker();
         int x = getReferenceX(c, box);
         int y = getReferenceBaseline(c, box);
 
-        // calculations for numbered lists
         MarkerData markerData = box.getMarkerData();
+        IdentValue alignment = markerData.getTextMarker().getAlignment();
 
         // Chrome uses the direction determined for the ol for all list-items.
         IdentValue direction = box.getParent().getStyle().getDirection();
 
-        if (direction == IdentValue.RTL){
-            x = markerData.getReferenceLine() != null ?
-                 x + markerData.getReferenceLine().getWidth() :
-                 box.getParent().getAbsX() + box.getParent().getWidth() - (int) box.getParent().getPadding(c).right();
+        if (alignment == IdentValue.END) {
+            // same end-alignment as is default for glyph/image markers
+            if (direction == IdentValue.RTL) {
+                x = markerData.getReferenceLine() != null ?
+                        x + markerData.getReferenceLine().getWidth() :
+                        box.getParent().getAbsX() + box.getParent().getWidth() - (int) box.getParent().getPadding(c).right();
+            } else {
+                assert direction == IdentValue.LTR || direction == IdentValue.AUTO;
+                x -= text.getLayoutWidth();
+            }
         } else {
-            assert direction == IdentValue.LTR || direction == IdentValue.AUTO;
-            x += -text.getLayoutWidth();
+            x -= box.getParent().getPadding(c).left();
         }
+
 
         c.getOutputDevice().setColor(box.getStyle().getColor());
         if (c.getOutputDevice() instanceof AbstractOutputDevice) {

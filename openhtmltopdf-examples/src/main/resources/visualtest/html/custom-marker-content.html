@@ -1,17 +1,26 @@
 <html>
 <head>
     <style>
-        ul[class="dashed"] > li::marker {
+        ul.dashed > li::marker {
             content: '-';
+        }
+
+        ul.right > li::marker {
+            text-align: right;
         }
     </style>
 </head>
 <body>
-<ul class="dashed">
-    <li>list marker should be a hyphen</li>
-</ul>
-<ul>
-    <li>list marker should be default bullet</li>
-</ul>
+    <ul class="dashed">
+        <li>custom list marker should be a hyphen</li>
+    </ul>
+
+    <ul class="dashed right">
+        <li>custom list marker should be a right-aligned hyphen</li>
+    </ul>
+
+    <ul>
+        <li>list marker should be default bullet (right-aligned)</li>
+    </ul>
 </body>
 </html>
