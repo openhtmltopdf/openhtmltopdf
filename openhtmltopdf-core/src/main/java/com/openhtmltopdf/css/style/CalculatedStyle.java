@@ -1343,13 +1343,9 @@ public class CalculatedStyle {
     }
 
 	public IdentValue getDirection() {
-		IdentValue direction = getIdent(CSSName.DIRECTION);
-        if (direction == IdentValue.AUTO) {
-            // 'auto' has never been valid CSS for direction, so fallback to 'ltr'
-            // (it *is* a value for the 'dir' attribute on an element, but that's not CSS)
-            direction = IdentValue.LTR;
-        }
-        return direction;
+        // note: if a 'dir' attribute is used on an HTML element, this method will return IdentValue.AUTO for it,
+        // even though 'auto' is not a permitted value for the 'direction' CSS property.
+		return getIdent(CSSName.DIRECTION);
 	}
 	
 	public boolean hasLetterSpacing() {

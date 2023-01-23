@@ -430,7 +430,7 @@ public class BlockBox extends Box {
 
         MarkerData.TextMarker result = new MarkerData.TextMarker();
 
-        result.setAlignment(IdentValue.START);
+        result.setAlignment(IdentValue.END);
         result.setLayoutWidth(w);
         result.setText(text);
 
@@ -441,13 +441,19 @@ public class BlockBox extends Box {
         IdentValue listDirection = getParent().getStyle().getDirection();
         IdentValue alignment = getStyle().deriveStyle(markerStyle).getTextAlign();
 
-        // coalesce to flow-relative values, for ListItemPainter use
-        if (listDirection == IdentValue.RTL && alignment == IdentValue.LEFT) {
-            alignment = IdentValue.END;
-        } else if (alignment == IdentValue.RIGHT) {
-            alignment = IdentValue.END;
+        // coalesce to flow-relative values, for ListItemPainter to use
+        if (listDirection == IdentValue.RTL) {
+            if (alignment == IdentValue.LEFT) {
+                alignment = IdentValue.END;
+            } else {
+                alignment = IdentValue.START;
+            }
         } else {
-            alignment = IdentValue.START;
+            if (alignment == IdentValue.RIGHT) {
+                alignment = IdentValue.END;
+            } else {
+                alignment = IdentValue.START;
+            }
         }
 
         StringBuilder sb = new StringBuilder();
@@ -456,8 +462,8 @@ public class BlockBox extends Box {
             sb.append("  ");
         }
 
-        // Generate marker content as a sequence of throwaway boxes and then extract their text.
-        // It's fairly dislikeable, but less painful than extracting the text generation elements
+        // Generate marker content as a sequence of 'throwaway' boxes and then extract their text.
+        // It's fairly dislikeable, but less invasive than extracting the text generation elements
         // from the insertGeneratedContent() method chain.
         List<Styleable> markerBoxes = new ArrayList<>();
         ChildBoxInfo info = new ChildBoxInfo();

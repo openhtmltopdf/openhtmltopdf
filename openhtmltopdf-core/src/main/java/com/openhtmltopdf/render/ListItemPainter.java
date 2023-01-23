@@ -172,7 +172,11 @@ public class ListItemPainter {
                 x -= text.getLayoutWidth();
             }
         } else {
-            x -= box.getParent().getPadding(c).left();
+            if (direction == IdentValue.RTL) {
+                x = box.getParent().getWidth() - text.getLayoutWidth();
+            } else {
+                x -= box.getParent().getPadding(c).left();
+            }
         }
 
 
