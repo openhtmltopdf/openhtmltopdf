@@ -56,7 +56,7 @@ public class PdfBoxPerDocumentFormState {
     private PDAppearanceStream checkboxOffAppearance;
     private PDAppearanceStream radioBoxOffAppearance;
     private PDAppearanceStream radioBoxOnAppearance;
-
+private PDAppearanceStream signatureAppearance;
     // The ZapfDingbats font resource needed by checkbox and radio box appearance streams.
     private PDResources checkBoxFontResource;
 
@@ -75,7 +75,9 @@ public class PdfBoxPerDocumentFormState {
     public PDAppearanceStream getRadioOnStream() {
         return this.radioBoxOnAppearance;
     }
-
+public PDAppearanceStream getSignatureStream() {
+        return this.signatureAppearance;
+    }
     /**
      * Adds a form to a map to be used later by <code>processControls</code>.
      */
@@ -108,6 +110,11 @@ public class PdfBoxPerDocumentFormState {
         }
 
         return fontName;
+    }
+private void createSignatureAppearanceStreams(PDDocument writer) {
+
+        // this appearance is just a dummy to make the validation happy
+        signatureAppearance = PdfBoxForm.createCheckboxAppearance("q\nQ\n", writer, checkBoxFontResource);
     }
 
     private void createCheckboxAppearanceStreams(PDDocument writer, PdfBoxForm.Control ctrl) {
@@ -145,7 +152,9 @@ public class PdfBoxPerDocumentFormState {
             PdfBoxForm frm = findEnclosingForm(ctrl.box.getElement());
             String fontName = null;
 
-            if (!ArrayUtil.isOneOf(ctrl.box.getElement().getAttribute("type"), "checkbox", "radio", "hidden")) {
+            if (ctrl.box.getElement().getAttribute("type").equals("text") && ctrl.box.getElement().getAttribute("class").contains("signature")) {
+                createSignatureAppearanceStreams(writer);
+            } else if (!ArrayUtil.isOneOf(ctrl.box.getElement().getAttribute("type"), "checkbox", "radio", "hidden")) {
                 // Need to embed a font for every control other than checkbox, radio and hidden.
                 fontName = getControlFont(sharedContext, ctrl, renderingContext);
             } else if (ctrl.box.getElement().getAttribute("type").equals("checkbox")) {

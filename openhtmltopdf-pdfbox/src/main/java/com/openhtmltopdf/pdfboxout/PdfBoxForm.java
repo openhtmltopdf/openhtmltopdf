@@ -494,6 +494,7 @@ public class PdfBoxForm {
     private void processSignatureControl(ControlFontPair pair, Control ctrl, PDAcroForm acro, int i, Box root)
             throws IOException {
 
+        acro.setNeedAppearances(false);
         PDSignatureField field = new PDSignatureField(acro);
 
         setPartialNameToField(ctrl, field);
@@ -524,6 +525,10 @@ public class PdfBoxForm {
         widget.setRectangle(rect);
         widget.setPage(ctrl.page);
         widget.setPrinted(true);
+
+        PDAppearanceDictionary appearanceDict = new PDAppearanceDictionary();
+        appearanceDict.getCOSObject().setItem(COSName.N, docFormsStateContainer.getSignatureStream());
+        widget.setAppearance(appearanceDict);
 
         ctrl.page.getAnnotations().add(widget);
     }
