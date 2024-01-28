@@ -118,7 +118,7 @@ public class XMLResource extends AbstractResource {
                     "property, which is set to: " + System.getProperty("javax.xml.parsers.SAXParserFactory"));
         }
 
-        XRLog.log(Level.INFO, LogMessageId.LogMessageId1Param.LOAD_SAX_XMLREADER_IN_USE, xmlReader.getClass().getName());
+        XRLog.log(Level.FINEST, LogMessageId.LogMessageId1Param.LOAD_SAX_XMLREADER_IN_USE, xmlReader.getClass().getName());
 
         return xmlReader;
     }
@@ -274,7 +274,7 @@ public class XMLResource extends AbstractResource {
 
             target.setElapsedLoadTime(end - st);
 
-            XRLog.log(Level.INFO, LogMessageId.LogMessageId1Param.LOAD_LOADED_DOCUMENT_TIME, target.getElapsedLoadTime());
+            XRLog.log(Level.FINEST, LogMessageId.LogMessageId1Param.LOAD_LOADED_DOCUMENT_TIME, target.getElapsedLoadTime());
 
             target.setDocument((Document) output.getNode());
             return target;
