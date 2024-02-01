@@ -51,7 +51,7 @@ jobs:
           title: openhtmltopdf.dev
           prerelease: true
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         run: mvn publish -Pversion="dev.$(echo $GITHUB_SHA | cut -c 1-12).dev"
 
@@ -79,6 +79,6 @@ jobs:
         with:
           title: openhtmltopdf
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         run: mvn publish -Pversion="dev.$(echo $GITHUB_SHA | cut -c 1-12).dev"
