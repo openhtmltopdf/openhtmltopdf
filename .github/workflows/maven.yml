@@ -14,14 +14,67 @@ jobs:
         java: ['8','11','17', '21']
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK ${{matrix.java}}
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: ${{matrix.java}}
-        cache: maven
-    - name: Maven -v
-      run: mvn -v
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      - uses: actions/checkout@v4
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{matrix.java}}
+          cache: maven
+      - name: Maven -v
+        run: mvn -v
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+
+  release-dev:
+    name: Create release - dev
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    if: github.ref != 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+          cache: maven
+      - name: Create release
+        id: create_release
+        uses: elgohr/Github-Release-Action@v5
+        with:
+          title: openhtmltopdf.dev
+          prerelease: true
+      - name: Upload artifact
+        run: mvn publish -Pversion="dev.$(echo $GITHUB_SHA | cut -c 1-12).dev"
+
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 8
+          cache: maven
+      - name: Create release
+        id: create_release
+        uses: elgohr/Github-Release-Action@v5
+        with:
+          title: openhtmltopdf
+      - name: Upload artifact
+        run: mvn publish -Pversion="dev.$(echo $GITHUB_SHA | cut -c 1-12).dev"
