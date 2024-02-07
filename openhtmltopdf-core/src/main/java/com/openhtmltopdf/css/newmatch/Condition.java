@@ -394,14 +394,11 @@ abstract class Condition {
             if (idx == -1){
                 return false;
             }
-            if (idx != 0 && c.charAt(idx - 1) != ' '){
-                return false;
-            }
-            int endOfMatch = idx + _className.length();
-            if (endOfMatch == c.length()){
-                return true;
-            }
-            return endOfMatch < c.length() && c.charAt(endOfMatch) == ' ';
+            int beforeMatch = idx - 1;
+            int afterMatch = idx + _className.length();
+            boolean delimitedBefore = beforeMatch < 0 || Character.isWhitespace(c.charAt(beforeMatch));
+            boolean delimitedAfter = afterMatch == c.length() || Character.isWhitespace(c.charAt(afterMatch));
+            return delimitedBefore && delimitedAfter;
         }
 
         @Override
