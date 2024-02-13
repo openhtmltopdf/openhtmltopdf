@@ -51,11 +51,6 @@
       <id>sonatype-nexus-staging</id>
       <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</url>
     </repository>
-    <repository>
-      <id>github</id>
-      <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
-    </repository>
   </distributionManagement>
 
   <developers>
@@ -82,6 +77,26 @@
   </developers>
 
   <profiles>
+    <profile>
+      <id>github-release</id>
+      <activation>
+        <property>
+          <name>github-release</name>
+        </property>
+      </activation>
+      <distributionManagement>
+        <repository>
+          <id>github</id>
+          <name>GitHub Packages</name>
+          <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
+        </repository>
+        <snapshotRepository>
+          <id>github</id>
+          <name>GitHub Packages</name>
+          <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
+        </snapshotRepository>
+      </distributionManagement>
+    </profile>
     <profile>
       <id>doclint-java8-disable</id>
       <activation>
