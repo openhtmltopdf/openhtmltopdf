@@ -63,6 +63,11 @@
       <name>Mario Ivankovits</name>
       <email>mario@datenwort.at</email>
     </developer>
+    <developer>
+      <id>madsop-nav</id>
+      <name>Mads Opheim</name>
+      <email>mads.opheim@gmail.com</email>
+    </developer>
   </developers>
 
   <profiles>
