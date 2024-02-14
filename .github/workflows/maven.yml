@@ -42,7 +42,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 8
+          java-version: 17
           cache: maven
       - name: Upload artifact
         run: mvn -B deploy -Dgithub-release -e
@@ -71,7 +71,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 8
+          java-version: 17
           cache: maven
       - name: Upload artifact
         run: mvn -B deploy -Dgithub-release
