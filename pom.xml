@@ -82,7 +82,7 @@
         <repository>
           <id>github</id>
           <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/openhtmltopdf/openhtmltopdf</url>
+          <url>https://maven.pkg.github.com/${env.GITHUB_REPOSITORY}</url>
         </repository>
       </distributionManagement>
     </profile>
