@@ -79,11 +79,6 @@
           <name>GitHub Packages</name>
           <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
         </repository>
-        <snapshotRepository>
-          <id>github-snapshots</id>
-          <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
-        </snapshotRepository>
       </distributionManagement>
     </profile>
     <profile>
