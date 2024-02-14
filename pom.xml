@@ -36,9 +36,9 @@
   </modules>
 
   <scm>
-    <connection>scm:git:git://github.com/imario42/openhtmltopdf.git</connection>
-    <developerConnection>scm:git:https://github.com/imario42/openhtmltopdf.git</developerConnection>
-    <url>git://github.com/imario42/openhtmltopdf.git</url>
+    <connection>scm:git:git://github.com/openhtmltopdf/openhtmltopdf.git</connection>
+    <developerConnection>scm:git:https://github.com/openhtmltopdf/openhtmltopdf.git</developerConnection>
+    <url>git://github.com/openhtmltopdf/openhtmltopdf.git</url>
     <tag>openhtmltopdf-parent-1.1.4</tag>
   </scm>
 
@@ -77,7 +77,7 @@
         <repository>
           <id>github</id>
           <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
+          <url>https://maven.pkg.github.com/openhtmltopdf/openhtmltopdf</url>
         </repository>
       </distributionManagement>
     </profile>
