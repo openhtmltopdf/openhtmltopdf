@@ -48,12 +48,11 @@ jobs:
         id: create_release
         uses: elgohr/Github-Release-Action@v5
         with:
-          title: 'openhtmltopdf.dev.$(echo $GITHUB_SHA | cut -c 1-12).dev'
-          prerelease: true
+          title: openhtmltopdf.dev.$(echo $GITHUB_SHA | cut -c 1-12).dev
         env:
           GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
       - name: Upload artifact
-        run: mvn -B deploy -Dgithub-release
+        run: mvn -B deploy -Dgithub-release -e
         env:
           GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
 
