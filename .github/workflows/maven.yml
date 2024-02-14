@@ -50,11 +50,11 @@ jobs:
         with:
           title: openhtmltopdf.dev.$(echo $GITHUB_SHA | cut -c 1-12).dev
         env:
-          GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         run: mvn -B deploy -Dgithub-release -e
         env:
-          GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Create release
@@ -79,8 +79,8 @@ jobs:
         with:
           title: openhtmltopdf
         env:
-          GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         run: mvn -B deploy -Dgithub-release
         env:
-          GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
