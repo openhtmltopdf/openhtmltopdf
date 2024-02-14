@@ -54,7 +54,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         run: mvn -B deploy -Pgithub-release -DrepositoryId=github -Dversion="dev.$(echo $GITHUB_SHA | cut -c 1-12).dev"
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release:
     name: Create release
@@ -82,3 +83,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload artifact
         run: mvn -B deploy -Pgithub-release -DrepositoryId=github -Dversion="dev.$(echo $GITHUB_SHA | cut -c 1-12).dev"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
