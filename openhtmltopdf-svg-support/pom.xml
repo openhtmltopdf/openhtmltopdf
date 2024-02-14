@@ -25,39 +25,6 @@
 
   <profiles>
     <profile>
-      <id>github-release</id>
-      <activation>
-        <property>
-          <name>github-release</name>
-        </property>
-      </activation>
-      <distributionManagement>
-        <repository>
-          <id>github</id>
-          <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/madsop-nav/openhtmltopdf</url>
-        </repository>
-      </distributionManagement>
-    </profile>
-    <profile>
-      <id>maven-release</id>
-      <activation>
-        <property>
-          <name>!github-release</name>
-        </property>
-      </activation>
-      <distributionManagement>
-        <snapshotRepository>
-          <id>sonatype-nexus-snapshots</id>
-          <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-          <id>sonatype-nexus-staging</id>
-          <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
-      </distributionManagement>
-    </profile>
-    <profile>
       <id>release</id>
       <build>
         <plugins>
