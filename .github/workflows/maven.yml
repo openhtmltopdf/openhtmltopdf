@@ -32,7 +32,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
     if: github.ref != 'refs/heads/main'
     steps:
@@ -61,7 +61,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
     if: github.ref == 'refs/heads/main'
     steps:
