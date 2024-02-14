@@ -18,7 +18,7 @@ jobs:
       - name: Set up JDK ${{matrix.java}}
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: ${{matrix.java}}
           cache: maven
       - name: Maven -v
@@ -48,7 +48,7 @@ jobs:
         id: create_release
         uses: elgohr/Github-Release-Action@v5
         with:
-          title: openhtmltopdf.dev
+          title: 'openhtmltopdf.dev.$(echo $GITHUB_SHA | cut -c 1-12).dev'
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.WRITE_PACKAGE_TOKEN }}
