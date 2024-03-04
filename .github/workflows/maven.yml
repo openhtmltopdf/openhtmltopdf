@@ -45,7 +45,7 @@ jobs:
           java-version: 17
           cache: maven
       - name: Upload artifact
-        run: mvn -B deploy -Dgithub-release -e -Drevision=${{ github.sha }}
+        run: mvn -B deploy -Dgithub-release -e -Drevision=dev-${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create release
