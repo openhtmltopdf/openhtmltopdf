@@ -8,6 +8,7 @@ target
 **/*.releaseBackup
 *.releaseBackup
 release.properties
+**/.flattened-pom.xml
 */.classpath
 */.project
 */.settings
