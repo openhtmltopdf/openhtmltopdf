@@ -289,23 +289,25 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
 
     protected StylesheetInfo readLinkElement(Element link) {
         String rel = link.getAttribute("rel").toLowerCase();
-        if (rel.indexOf("alternate") != -1) {
+        if (rel.contains("alternate")) {
             return null;
         }//DON'T get alternate stylesheets
-        if (rel.indexOf("stylesheet") == -1) {
+        if (!rel.contains("stylesheet")) {
             return null;
         }
 
         String type = link.getAttribute("type");
-        if (! (type.equals("") || type.equals("text/css"))) {
+        if (!(type.isEmpty() || type.equals("text/css"))) {
             return null;
         }
 
         StylesheetInfo info = new StylesheetInfo();
 
-        if (type.equals("")) {
+        if (type.isEmpty()) {
             type = "text/css";
-        } // HACK is not entirely correct because default may be set by META tag or HTTP headers
+            // HACK: This is not entirely correct because default may be set by META tag or HTTP headers
+            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.CSS_PARSE_LINK_TYPE_UNSPECIFIED, link.getAttribute("href"));
+        }
         info.setType(type);
 
         info.setOrigin(StylesheetInfo.AUTHOR);
@@ -334,17 +336,17 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         //get the link elements
         Element html = doc.getDocumentElement();
         Element head = findFirstChild(html, "head");
-        if (head != null) {
+        if (head != null) { // March 2024: HTML spec disallows HTMLStyleElement outside HTMLHeadElement because it is "Metadata content"
             Node current = head.getFirstChild();
             while (current != null) {
                 if (current.getNodeType() == Node.ELEMENT_NODE) {
                     Element elem = (Element)current;
                     StylesheetInfo info = null;
                     String elemName = elem.getLocalName();
-                    if (elemName == null)
-                    {
+                    if (elemName == null) {
                         elemName = elem.getTagName();
                     }
+
                     if (elemName.equals("link")) {
                         info = readLinkElement(elem);
                     } else if (elemName.equals("style")) {

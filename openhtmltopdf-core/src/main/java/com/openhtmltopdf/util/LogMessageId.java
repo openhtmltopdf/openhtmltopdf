@@ -92,6 +92,7 @@ public interface LogMessageId {
     enum LogMessageId1Param implements LogMessageId {
         CSS_PARSE_REMOVING_STYLESHEET_URI_FROM_CACHE_BY_REQUEST(XRLog.CSS_PARSE, "Removing stylesheet '{}' from cache by request."),
         CSS_PARSE_REQUESTED_REMOVING_STYLESHEET_URI_NOT_IN_CACHE(XRLog.CSS_PARSE, "Requested removing stylesheet '{}', but it's not in cache."),
+        CSS_PARSE_LINK_TYPE_UNSPECIFIED(XRLog.CSS_PARSE, "Link type unspecified (href=\"{}\"). Using \"text/css\" as default."),
 
         XML_ENTITIES_SAX_FEATURE_NOT_SUPPORTED(XRLog.XML_ENTITIES, "SAX feature not supported on this XMLReader: {}"),
         XML_ENTITIES_SAX_FEATURE_NOT_RECOGNIZED(XRLog.XML_ENTITIES, "SAX feature not recognized on this XMLReader: {}. Feature may be properly named, but not recognized by this parser."),

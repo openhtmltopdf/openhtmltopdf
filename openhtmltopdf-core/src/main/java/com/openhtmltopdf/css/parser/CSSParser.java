@@ -529,14 +529,13 @@ public class CSSParser {
                 skip_whitespace();
                 t = next();
                 if (t == Token.TK_LBRACE) {
-                    LOOP:
                     while (true) {
                         skip_whitespace();
                         t = la();
                         if (t == Token.TK_RBRACE) {
                             next();
                             skip_whitespace();
-                            break LOOP;
+                            break;
                         } else if (t == Token.TK_AT_RULE) {
                             margin(stylesheet, pageRule);
                         } else {
