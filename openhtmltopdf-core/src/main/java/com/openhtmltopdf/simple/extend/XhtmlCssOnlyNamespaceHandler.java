@@ -261,9 +261,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
 
     protected StylesheetInfo readStyleElement(Element style) {
         StylesheetInfo info = new StylesheetInfo();
-        String media = style.getAttribute("media");
-
-        info.setMedia(media);
+        info.setMedia(style.getAttribute("media"));
         info.setType(style.getAttribute("type"));
         info.setTitle(style.getAttribute("title"));
         info.setOrigin(StylesheetInfo.AUTHOR);
@@ -278,13 +276,12 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         }
 
         String css = buf.toString().trim();
-        if (css.length() > 0) {
-            info.setContent(css);
-
-            return info;
-        } else {
+        if (css.isEmpty()) {
             return null;
         }
+
+        info.setContent(css);
+        return info;
     }
 
     protected StylesheetInfo readLinkElement(Element link) {
