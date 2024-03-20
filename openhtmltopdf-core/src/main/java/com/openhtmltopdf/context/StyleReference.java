@@ -112,26 +112,27 @@ public class StyleReference {
     }
 
     private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium) {
-        List<Stylesheet> result = new ArrayList<>(infos.size() + 15);
+        List<Stylesheet> result = new ArrayList<>(infos.size() * 2);
 
         for (StylesheetInfo info : infos) {
-            if (info.appliesToMedia(medium)) {
-                Stylesheet sheet = info.getStylesheet();
-
-                if (sheet == null) {
-                    sheet = _stylesheetFactory.getStylesheet(info);
-                }
-
-                if (sheet != null) {
-                    if (sheet.getImportRules().size() > 0) {
-                        result.addAll(readAndParseAll(sheet.getImportRules(), medium));
-                    }
-
-                    result.add(sheet);
-                } else {
-                    XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.LOAD_UNABLE_TO_LOAD_CSS_FROM_URI, info.getUri());
-                }
+            if (!info.appliesToMedia(medium)) {
+                continue;
             }
+
+            Stylesheet sheet = info.getStylesheet();
+            if (sheet == null) {
+                sheet = _stylesheetFactory.getStylesheet(info);
+            }
+            if (sheet == null) {
+                XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.LOAD_UNABLE_TO_LOAD_CSS_FROM_URI, info.getUri());
+                continue;
+            }
+
+            if (!sheet.getImportRules().isEmpty()) {
+                result.addAll(readAndParseAll(sheet.getImportRules(), medium));
+            }
+
+            result.add(sheet);
         }
 
         return result;
