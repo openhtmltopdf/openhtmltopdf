@@ -71,15 +71,14 @@ public class CSSParser {
         _errorHandler = errorHandler;
     }
 
-    public Stylesheet parseStylesheet(String uri, int origin, Reader reader)
-            throws IOException {
+    public Stylesheet parseStylesheet(String uri, int origin, Reader reader) throws IOException {
         _URI = uri;
         reset(reader);
 
-        Stylesheet result = new Stylesheet(uri, origin);
-        stylesheet(result);
+        Stylesheet stylesheet = new Stylesheet(uri, origin);
+        stylesheet(stylesheet);
 
-        return result;
+        return stylesheet;
     }
 
     public Ruleset parseDeclaration(int origin, String text) {

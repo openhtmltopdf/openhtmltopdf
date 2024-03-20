@@ -236,7 +236,7 @@ public class StyleReference {
                     inlineStyleCount += 1;
                     stylesheetInfo.setUri(_uac.getBaseURL() + "#inline_style_" + inlineStyleCount);
 
-                    Stylesheet sheet = _stylesheetFactory.parse(new StringReader(stylesheetInfo.getContent()), stylesheetInfo);
+                    Stylesheet sheet = _stylesheetFactory.getStylesheet(stylesheetInfo);
                     stylesheetInfo.setStylesheet(sheet);
                 } else {
                     stylesheetInfo.setUri(_uac.resolveURI(stylesheetInfo.getUri()));

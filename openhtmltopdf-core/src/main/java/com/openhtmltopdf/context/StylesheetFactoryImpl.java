@@ -21,6 +21,7 @@ package com.openhtmltopdf.context;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -109,15 +110,17 @@ public class StylesheetFactoryImpl implements StylesheetFactory {
      * Returns a sheet by its key
      * null if not able to load
      *
-     *
      * @param info The StylesheetInfo for this sheet
      * @return The stylesheet
      */
     public Stylesheet getStylesheet(StylesheetInfo info) {
+        if (info.isInline()) {
+            return parse(new StringReader(info.getContent()), info);
+        }
+
         XRLog.log(Level.INFO, LogMessageId.LogMessageId1Param.LOAD_REQUESTING_STYLESHEET_AT_URI, info.getUri());
 
         Integer includeCount = _seenStylesheetUris.get(info.getUri());
-
         if (includeCount != null && includeCount >= MAX_STYLESHEET_INCLUDES) {
             // Probably an import loop.
             XRLog.log(Level.SEVERE, LogMessageId.LogMessageId2Param.CSS_PARSE_TOO_MANY_STYLESHEET_IMPORTS, includeCount, info.getUri());
