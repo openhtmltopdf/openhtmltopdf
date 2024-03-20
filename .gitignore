@@ -3,6 +3,7 @@ build
 **/**.iml
 *.ipr
 .idea
+.DS_Store
 dist
 target
 **/*.releaseBackup
