@@ -1305,7 +1305,8 @@ public class CSSParser {
 
                     t = nextWithSave();
                     if (t == Token.TK_IMPORTANT_SYM) {
-                        prio();
+                        next();
+                        skip_whitespace();
                         important = true;
                     }
 
@@ -1343,20 +1344,6 @@ public class CSSParser {
         } catch (CSSParseException e) {
             error(e, "declaration", true);
             recover(false, true);
-        }
-    }
-
-//  prio
-//    : IMPORTANT_SYM S*
-//    ;
-    private void prio() throws IOException {
-        //System.out.println("prio()");
-        Token t = next();
-        if (t == Token.TK_IMPORTANT_SYM) {
-            skip_whitespace();
-        } else {
-            save(t);
-            throw new CSSParseException(t, Token.TK_IMPORTANT_SYM, getCurrentLine());
         }
     }
 
@@ -1977,11 +1964,8 @@ public class CSSParser {
             case Token.AT_RULE:
             case Token.IDENT:
             case Token.FUNCTION:
-                start = 0;
+                start = t.getType() == Token.AT_RULE ? 1 : 0;
                 count = _lexer.yylength();
-                if (t.getType() == Token.AT_RULE) {
-                    start++;
-                }
                 String result = processEscapes(_lexer.yytext().toCharArray(), start, count);
                 if (! literal) {
                     result = result.toLowerCase();
