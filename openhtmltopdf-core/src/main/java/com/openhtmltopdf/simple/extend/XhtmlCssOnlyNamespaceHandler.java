@@ -304,9 +304,11 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         StylesheetInfo info = new StylesheetInfo();
 
         if (type.isEmpty()) {
+            /* March 2024: https://archive.is/iuX5T
+            "given that CSS is the only stylesheet language used on the web, not only is it possible to omit the type attribute, but is actually now recommended practice"
+            We can expect "text/css" MIME type since the "stylesheet" relationship has already been established. */
             type = "text/css";
-            // HACK: This is not entirely correct because default may be set by META tag or HTTP headers
-            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.CSS_PARSE_LINK_TYPE_UNSPECIFIED, link.getAttribute("href"));
+            XRLog.log(Level.FINE, LogMessageId.LogMessageId1Param.CSS_PARSE_LINK_TYPE_UNSPECIFIED, link.getAttribute("href"));
         }
         info.setType(type);
 
