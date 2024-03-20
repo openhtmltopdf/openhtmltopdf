@@ -112,7 +112,7 @@ public class StyleReference {
     }
 
     private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium) {
-        List<Stylesheet> result = new ArrayList<>(infos.size() * 2);
+        List<Stylesheet> result = new ArrayList<>(infos.size() * 2); // Local aggregation prevents tail recursion, but it's extremely unlikely for this to become an issue.
 
         for (StylesheetInfo info : infos) {
             if (!info.appliesToMedia(medium)) {
