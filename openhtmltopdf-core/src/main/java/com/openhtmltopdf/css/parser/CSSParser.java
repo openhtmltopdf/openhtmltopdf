@@ -224,7 +224,7 @@ public class CSSParser {
                         error(new CSSParseException(
                                 "Invalid at-rule", getCurrentLine()), "at-rule", true);
                         recover(false, false);
-                        // fall through
+                        break;
                     default:
                         ruleset(stylesheet);
                 }
