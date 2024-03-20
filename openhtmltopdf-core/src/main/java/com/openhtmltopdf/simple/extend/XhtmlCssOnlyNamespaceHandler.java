@@ -52,7 +52,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
     /**
      * Description of the Field
      */
-    final static String _namespace = "http://www.w3.org/1999/xhtml";
+    private final static String XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
     private final static String PATH_TO_DEFAULT_STYLESHEET = "/resources/css/XhtmlNamespaceHandler.css";
 
     private static StylesheetInfo _defaultStylesheet;
@@ -67,7 +67,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      */
     @Override
     public String getNamespace() {
-        return _namespace;
+        return XHTML_NAMESPACE;
     }
 
     /**
@@ -373,7 +373,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
             }
 
             StylesheetInfo info = new StylesheetInfo();
-            info.setUri(getNamespace());
+            info.setUri("classpath:" + PATH_TO_DEFAULT_STYLESHEET);
             info.setOrigin(StylesheetInfo.USER_AGENT);
             info.setMedia("all");
             info.setType("text/css");
