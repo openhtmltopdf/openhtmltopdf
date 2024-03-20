@@ -145,27 +145,27 @@ public class CSSParser {
 //      [ [ ruleset | media | page | font_face ] [S|CDO|CDC]* ]*
     private void stylesheet(Stylesheet stylesheet) throws IOException {
         //System.out.println("stylesheet()");
-        Token t = la();
+        Token token = la();
         try {
-            if (t == Token.TK_CHARSET_SYM) {
+            if (token == Token.TK_CHARSET_SYM) {
                 try {
-                    t = next();
+                    token = next();
                     skip_whitespace();
-                    t = next();
-                    if (t == Token.TK_STRING) {
+                    token = next();
+                    if (token == Token.TK_STRING) {
                         /* String charset = getTokenValue(t); */
 
                         skip_whitespace();
-                        t = next();
-                        if (t != Token.TK_SEMICOLON) {
-                            save(t);
-                            throw new CSSParseException(t, Token.TK_SEMICOLON, getCurrentLine());
+                        token = next();
+                        if (token != Token.TK_SEMICOLON) {
+                            save(token);
+                            throw new CSSParseException(token, Token.TK_SEMICOLON, getCurrentLine());
                         }
 
                         // Do something
                     } else {
-                        save(t);
-                        throw new CSSParseException(t, Token.TK_STRING, getCurrentLine());
+                        save(token);
+                        throw new CSSParseException(token, Token.TK_STRING, getCurrentLine());
                     }
                 } catch (CSSParseException e) {
                     error(e, "@charset rule", true);
@@ -174,8 +174,8 @@ public class CSSParser {
             }
             skip_whitespace_and_cdocdc();
             while (true) {
-                t = la();
-                if (t == Token.TK_IMPORT_SYM) {
+                token = la();
+                if (token == Token.TK_IMPORT_SYM) {
                     import_rule(stylesheet);
                     skip_whitespace_and_cdocdc();
                 } else {
@@ -183,8 +183,8 @@ public class CSSParser {
                 }
             }
             while (true) {
-                t = la();
-                if (t == Token.TK_NAMESPACE_SYM) {
+                token = la();
+                if (token == Token.TK_NAMESPACE_SYM) {
                     namespace();
                     skip_whitespace_and_cdocdc();
                 } else {
@@ -192,11 +192,11 @@ public class CSSParser {
                 }
             }
             while (true) {
-                t = la();
-                if (t == Token.TK_EOF) {
+                token = la();
+                if (token == Token.TK_EOF) {
                     break;
                 }
-                switch (t.getType()) {
+                switch (token.getType()) {
                     case Token.PAGE_SYM:
                         page(stylesheet);
                         break;
