@@ -53,6 +53,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
      * Description of the Field
      */
     final static String _namespace = "http://www.w3.org/1999/xhtml";
+    private final static String PATH_TO_DEFAULT_STYLESHEET = "/resources/css/XhtmlNamespaceHandler.css";
 
     private static StylesheetInfo _defaultStylesheet;
     private static boolean _defaultStylesheetError = false;
@@ -377,15 +378,14 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
             info.setMedia("all");
             info.setType("text/css");
 
-            InputStream is = null;
+            InputStream inputStream = null;
             try {
-                is = getDefaultStylesheetStream();
-
+                inputStream = getDefaultStylesheetStream();
                 if (_defaultStylesheetError) {
                     return null;
                 }
 
-                try (Reader reader = new InputStreamReader(is)) {
+                try (Reader reader = new InputStreamReader(inputStream)) {
                     Stylesheet sheet = factory.parse(reader, info);
                     info.setStylesheet(sheet);
                 }
@@ -393,25 +393,20 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
                 _defaultStylesheetError = true;
                 XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_COULD_NOT_PARSE_DEFAULT_STYLESHEET, e);
             } finally {
-                OpenUtil.closeQuietly(is);
-                is = null;
+                OpenUtil.closeQuietly(inputStream);
             }
 
             _defaultStylesheet = info;
-
             return _defaultStylesheet;
         }
     }
 
     private InputStream getDefaultStylesheetStream() {
-        InputStream stream = null;
-        String defaultStyleSheet = "/resources/css/XhtmlNamespaceHandler.css";
-        stream = this.getClass().getResourceAsStream(defaultStyleSheet);
+        InputStream stream = this.getClass().getResourceAsStream(PATH_TO_DEFAULT_STYLESHEET);
         if (stream == null) {
-            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_LOAD_DEFAULT_CSS, defaultStyleSheet);
+            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_LOAD_DEFAULT_CSS, PATH_TO_DEFAULT_STYLESHEET);
             _defaultStylesheetError = true;
         }
-
         return stream;
     }
 
