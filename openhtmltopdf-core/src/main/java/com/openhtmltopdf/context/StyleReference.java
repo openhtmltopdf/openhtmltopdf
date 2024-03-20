@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 
+import com.openhtmltopdf.css.newmatch.Matcher;
 import com.openhtmltopdf.css.sheet.FontFaceRule;
 import com.openhtmltopdf.util.LogMessageId;
 import org.w3c.dom.Document;
@@ -65,10 +66,10 @@ public class StyleReference {
      * Instance of our element-styles matching class. Will be null if new rules
      * have been added since last match.
      */
-    private com.openhtmltopdf.css.newmatch.Matcher _matcher;
+    private Matcher _matcher;
 
     private UserAgentCallback _uac;
-    
+
     public StyleReference(UserAgentCallback userAgent) {
         _uac = userAgent;
         _stylesheetFactory = new StylesheetFactoryImpl(userAgent);
@@ -97,43 +98,42 @@ public class StyleReference {
         _context = context;
         _nsh = nsh;
         _doc = doc;
-        AttributeResolver attRes = new StandardAttributeResolver(_nsh, _uac, ui);
 
         List<StylesheetInfo> infos = getStylesheets();
 
-        XRLog.log(Level.INFO, LogMessageId.LogMessageId1Param.MATCH_MEDIA_IS, _context.getMedia());
-        
-        _matcher = new com.openhtmltopdf.css.newmatch.Matcher(
-                new DOMTreeResolver(), 
-                attRes, 
-                _stylesheetFactory, 
-                readAndParseAll(infos, _context.getMedia()), 
+        XRLog.log(Level.FINE, LogMessageId.LogMessageId1Param.MATCH_MEDIA_IS, _context.getMedia());
+
+        _matcher = new Matcher(
+                new DOMTreeResolver(),
+                new StandardAttributeResolver(_nsh, _uac, ui),
+                _stylesheetFactory,
+                readAndParseAll(infos, _context.getMedia()),
                 _context.getMedia());
     }
-    
+
     private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium) {
         List<Stylesheet> result = new ArrayList<>(infos.size() + 15);
-        
+
         for (StylesheetInfo info : infos) {
             if (info.appliesToMedia(medium)) {
                 Stylesheet sheet = info.getStylesheet();
-                
+
                 if (sheet == null) {
                     sheet = _stylesheetFactory.getStylesheet(info);
                 }
-                
+
                 if (sheet != null) {
                     if (sheet.getImportRules().size() > 0) {
                         result.addAll(readAndParseAll(sheet.getImportRules(), medium));
                     }
-                    
+
                     result.add(sheet);
                 } else {
                     XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.LOAD_UNABLE_TO_LOAD_CSS_FROM_URI, info.getUri());
                 }
             }
         }
-        
+
         return result;
     }
 
@@ -146,7 +146,7 @@ public class StyleReference {
      * assigned value as a SAC CSSValue instance. The properties should have
      * been matched to the element when the Context was established for this
      * StyleReference on the Document to which the Element belongs.
-     * 
+     *
      * Only used by broken DOM inspector.
      *
      * @param e The DOM Element for which to find properties
@@ -155,15 +155,15 @@ public class StyleReference {
     @Deprecated
 	public java.util.Map<String, CSSPrimitiveValue> getCascadedPropertiesMap(Element e) {
         CascadedStyle cs = _matcher.getCascadedStyle(e, false);
-        
+
 		java.util.Map<String, CSSPrimitiveValue> props = new java.util.LinkedHashMap<>();
-		
+
 		for (PropertyDeclaration pd : cs.getCascadedPropertyDeclarations()) {
             String propName = pd.getPropertyName();
             CSSName cssName = CSSName.getByPropertyName(propName);
             props.put(propName, cs.propertyByName(cssName).getValue());
         }
-		
+
         return props;
     }
 
@@ -255,12 +255,12 @@ public class StyleReference {
     public List<FontFaceRule> getFontFaceRules() {
         return _matcher.getFontFaceRules();
     }
-    
+
     public void setUserAgentCallback(UserAgentCallback userAgentCallback) {
         _uac = userAgentCallback;
         _stylesheetFactory.setUserAgentCallback(userAgentCallback);
     }
-    
+
     public void setSupportCMYKColors(boolean b) {
         _stylesheetFactory.setSupportCMYKColors(b);
     }
