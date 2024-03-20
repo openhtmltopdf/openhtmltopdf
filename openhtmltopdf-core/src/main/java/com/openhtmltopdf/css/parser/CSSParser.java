@@ -158,13 +158,13 @@ public class CSSParser {
                         skip_whitespace();
                         t = next();
                         if (t != Token.TK_SEMICOLON) {
-                            push(t);
+                            save(t);
                             throw new CSSParseException(t, Token.TK_SEMICOLON, getCurrentLine());
                         }
 
                         // Do something
                     } else {
-                        push(t);
+                        save(t);
                         throw new CSSParseException(t, Token.TK_STRING, getCurrentLine());
                     }
                 } catch (CSSParseException e) {
@@ -291,13 +291,13 @@ public class CSSParser {
                         if (t == Token.TK_SEMICOLON) {
                             skip_whitespace();
                         } else {
-                            push(t);
+                            save(t);
                             throw new CSSParseException(
                                     t, Token.TK_SEMICOLON, getCurrentLine());
                         }
                         break;
                     default:
-                        push(t);
+                        save(t);
                         throw new CSSParseException(
                             t, new Token[] { Token.TK_STRING, Token.TK_URI }, getCurrentLine());
                 }
@@ -307,7 +307,7 @@ public class CSSParser {
                 }
                 stylesheet.addImportRule(info);
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(
                         t, Token.TK_IMPORT_SYM, getCurrentLine());
             }
@@ -413,7 +413,7 @@ public class CSSParser {
                         }
                         skip_whitespace();
                     } else {
-                        push(t);
+                        save(t);
                         throw new CSSParseException(t, Token.TK_LBRACE, getCurrentLine());
                     }
                 } else {
@@ -422,7 +422,7 @@ public class CSSParser {
 
                 stylesheet.addContent(mediaRule);
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_MEDIA_SYM, getCurrentLine());
             }
         } catch (CSSParseException e) {
@@ -442,7 +442,7 @@ public class CSSParser {
             result = getTokenValue(t);
             skip_whitespace();
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
         }
         return result;
@@ -483,14 +483,14 @@ public class CSSParser {
                         }
                     }
                 } else {
-                    push(t);
+                    save(t);
                     throw new CSSParseException(t, Token.TK_LBRACE, getCurrentLine());
                 }
 
                 fontFaceRule.addContent(ruleset);
                 stylesheet.addFontFaceRule(fontFaceRule);
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_FONT_FACE_SYM, getCurrentLine());
             }
         } catch (CSSParseException e) {
@@ -542,14 +542,14 @@ public class CSSParser {
                         }
                     }
                 } else {
-                    push(t);
+                    save(t);
                     throw new CSSParseException(t, Token.TK_LBRACE, getCurrentLine());
                 }
 
                 pageRule.addContent(ruleset);
                 stylesheet.addContent(pageRule);
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_PAGE_SYM, getCurrentLine());
             }
         } catch (CSSParseException e) {
@@ -587,7 +587,7 @@ public class CSSParser {
                 declaration_list(ruleset, false, false, false);
                 t = next();
                 if (t != Token.TK_RBRACE) {
-                    push(t);
+                    save(t);
                     throw new CSSParseException(t, Token.TK_RBRACE, getCurrentLine());
                 }
 
@@ -597,7 +597,7 @@ public class CSSParser {
                     pageRule.addMarginBoxProperties(marginBoxName, ruleset.getPropertyDeclarations());
                 }
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_LBRACE, getCurrentLine());
             }
         } catch (CSSParseException e) {
@@ -622,11 +622,11 @@ public class CSSParser {
                     throw new CSSParseException("Pseudo page must be one of first, left, or right", getCurrentLine());
                 }
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
             }
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_COLON, getCurrentLine());
         }
         return result;
@@ -657,7 +657,7 @@ public class CSSParser {
         if (t == Token.TK_PLUS || t == Token.TK_GREATER) {
             skip_whitespace();
         } else if (t != Token.TK_S) {
-            push(t);
+            save(t);
             throw new CSSParseException(
                     t,
                     new Token[] { Token.TK_PLUS, Token.TK_GREATER, Token.TK_S },
@@ -673,7 +673,7 @@ public class CSSParser {
         //System.out.println("unary_operator()");
         Token t = next();
         if (! (t == Token.TK_MINUS || t == Token.TK_PLUS)) {
-            push(t);
+            save(t);
             throw new CSSParseException(
                     t, new Token[] { Token.TK_MINUS, Token.TK_PLUS}, getCurrentLine());
         }
@@ -695,7 +695,7 @@ public class CSSParser {
             result = getTokenValue(t);
             skip_whitespace();
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(
                     t, Token.TK_IDENT, getCurrentLine());
         }
@@ -766,11 +766,11 @@ public class CSSParser {
                 if (t == Token.TK_RBRACE) {
                     skip_whitespace();
                 } else {
-                    push(t);
+                    save(t);
                     throw new CSSParseException(t, Token.TK_RBRACE, getCurrentLine());
                 }
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(
                         t, new Token[] { Token.TK_COMMA, Token.TK_LBRACE }, getCurrentLine());
             }
@@ -1029,11 +1029,11 @@ public class CSSParser {
             if (t == Token.TK_IDENT) {
                 selector.addClassCondition(getTokenValue(t, true));
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
             }
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_PERIOD, getCurrentLine());
         }
     }
@@ -1113,7 +1113,7 @@ public class CSSParser {
                             }
                             skip_whitespace();
                         } else {
-                            push(t);
+                            save(t);
                             throw new CSSParseException(t,
                                     new Token[] { Token.TK_IDENT, Token.TK_STRING },
                                     getCurrentLine());
@@ -1138,7 +1138,7 @@ public class CSSParser {
                         t, new Token[] { Token.TK_IDENT, Token.TK_ASTERISK }, getCurrentLine());
             }
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_LBRACKET, getCurrentLine());
         }
     }
@@ -1183,7 +1183,7 @@ public class CSSParser {
                 skip_whitespace();
                 t = next();
             } else {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
             }
         } else if (f.equals("nth-child")) {
@@ -1196,16 +1196,16 @@ public class CSSParser {
                 selector.addNthChildCondition(number.toString());
             } catch (CSSParseException e) {
                 e.setLine(getCurrentLine());
-                push(t);
+                save(t);
                 throw e;
             }
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(f + " is not a valid function in this context", getCurrentLine());
         }
 
         if (t != Token.TK_RPAREN) {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
         }
     }
@@ -1239,12 +1239,12 @@ public class CSSParser {
                     addPseudoClassOrElementFunction(t, selector);
                     break;
                 default:
-                    push(t);
+                    save(t);
                     throw new CSSParseException(t,
                             new Token[] { Token.TK_IDENT, Token.TK_FUNCTION }, getCurrentLine());
             }
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_COLON, getCurrentLine());
         }
     }
@@ -1334,7 +1334,7 @@ public class CSSParser {
                                 ruleset.getPropertyDeclarations().size() + ruleset.getInvalidPropertyDeclarations().size()));
                     }
                 } else {
-                    push(t);
+                    save(t);
                     throw new CSSParseException(t, Token.TK_COLON, getCurrentLine());
                 }
             } else {
@@ -1355,7 +1355,7 @@ public class CSSParser {
         if (t == Token.TK_IMPORTANT_SYM) {
             skip_whitespace();
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_IMPORTANT_SYM, getCurrentLine());
         }
     }
@@ -1648,7 +1648,7 @@ public class CSSParser {
             List<PropertyValue> params = expr(false);
             t = next();
             if (t != Token.TK_RPAREN) {
-                push(t);
+                save(t);
                 throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
             }
 
@@ -1667,7 +1667,7 @@ public class CSSParser {
 
             skip_whitespace();
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_FUNCTION, getCurrentLine());
         }
 
@@ -1773,7 +1773,7 @@ public class CSSParser {
         if (t == Token.TK_HASH) {
             String s = getTokenValue(t);
             if ((s.length() != 3 && s.length() != 6) || ! isHexString(s)) {
-                push(t);
+                save(t);
                 throw new CSSParseException('#' + s + " is not a valid color definition", getCurrentLine());
             }
             FSRGBColor color = null;
@@ -1791,7 +1791,7 @@ public class CSSParser {
             result = new PropertyValue(color);
             skip_whitespace();
         } else {
-            push(t);
+            save(t);
             throw new CSSParseException(t, Token.TK_HASH, getCurrentLine());
         }
 
@@ -1829,7 +1829,7 @@ public class CSSParser {
         while ( (t = next()) == Token.TK_S) {
             // skip
         }
-        push(t);
+        save(t);
     }
 
     private void skip_whitespace_and_cdocdc() throws IOException {
@@ -1840,7 +1840,7 @@ public class CSSParser {
                 break;
             }
         }
-        push(t);
+        save(t);
     }
 
     private Token next() throws IOException {
@@ -1853,7 +1853,7 @@ public class CSSParser {
         }
     }
 
-    private void push(Token t) {
+    private void save(Token t) {
         if (_saved != null) {
             throw new RuntimeException("saved must be null");
         }
@@ -1862,7 +1862,7 @@ public class CSSParser {
 
     private Token la() throws IOException {
         Token result = next();
-        push(result);
+        save(result);
         return result;
     }
 
@@ -1894,7 +1894,7 @@ public class CSSParser {
                 case Token.RBRACE:
                     if (braces == 0) {
                         if (stopBeforeBlockClose) {
-                            push(t);
+                            save(t);
                             break LOOP;
                         }
                     } else {
