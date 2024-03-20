@@ -147,6 +147,8 @@ public class CSSParser {
         //System.out.println("stylesheet()");
         Token token = nextWithSave();
         try {
+            /* March 2024: https://archive.is/MRe2d
+            "The @charset rule must be the first element in the style sheet and not be preceded by any character" */
             if (token == Token.TK_CHARSET_SYM) {
                 try {
                     token = next();
@@ -173,8 +175,13 @@ public class CSSParser {
                 }
             }
             skip_whitespace_and_cdocdc();
+
+            /* March 2024: https://archive.ph/tMcxr
+            "An @import rule must be defined at the top of the stylesheet, before any other at-rule (except @charset and @layer) and style declarations, or it will be ignored." */
             while (true) {
                 token = nextWithSave();
+                /* todo: zach: Add awareness of @layer at-rule https://archive.is/Jy0Jp
+                @layer may appear before @import. If it does, the parser will ignore all @import rules. */
                 if (token == Token.TK_IMPORT_SYM) {
                     import_rule(stylesheet);
                     skip_whitespace_and_cdocdc();
@@ -182,8 +189,12 @@ public class CSSParser {
                     break;
                 }
             }
+
+            /* March 2024: https://archive.is/Yreun
+            "Any @namespace rules must follow all @charset and @import rules, and precede all other at-rules and style declarations in a style sheet." */
             while (true) {
                 token = nextWithSave();
+                // todo: zach: ignore @layer here too
                 if (token == Token.TK_NAMESPACE_SYM) {
                     namespace();
                     skip_whitespace_and_cdocdc();
@@ -191,6 +202,7 @@ public class CSSParser {
                     break;
                 }
             }
+
             while (true) {
                 token = nextWithSave();
                 if (token == Token.TK_EOF) {
@@ -1879,7 +1891,7 @@ public class CSSParser {
                     braces++;
                     break;
                 case Token.RBRACE:
-                    if (braces == 0) {
+                    if (braces == 0) { // todo: zach: is this condition satisfiable?
                         if (stopBeforeBlockClose) {
                             save(t);
                             break LOOP;
