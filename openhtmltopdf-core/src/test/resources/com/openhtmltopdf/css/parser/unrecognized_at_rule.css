@@ -1,0 +1,7 @@
+@invalid {
+    foo: 0;
+}
+
+@page {
+    size: letter landscape;
+}
