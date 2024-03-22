@@ -409,18 +409,16 @@ public class CSSParser {
                     t = next();
                     if (t == Token.TK_LBRACE) {
                         skip_whitespace();
-                        LOOP:
                         while (true) {
                             t = nextWithSave();
                             if (t == null) {
                                 break;
                             }
-                            switch (t.getType()) {
-                                case Token.RBRACE:
-                                    next();
-                                    break LOOP;
-                                default:
-                                    ruleset(mediaRule);
+                            if (t.getType() == Token.RBRACE) {
+                                next();
+                                break;
+                            } else {
+                                ruleset(mediaRule);
                             }
                         }
                         skip_whitespace();
@@ -480,7 +478,6 @@ public class CSSParser {
                     // Prevent runaway threads with a max loop/counter
                     int maxLoops = 1 * 1024 * 1024; // 1M is too much, 1K is probably too...
                     int i = 0;
-                    LOOP:
                     while (true) {
                         if (++i >= maxLoops)
                             throw new CSSParseException(t, Token.TK_RBRACE, getCurrentLine());
@@ -489,7 +486,7 @@ public class CSSParser {
                         if (t == Token.TK_RBRACE) {
                             next();
                             skip_whitespace();
-                            break LOOP;
+                            break;
                         } else {
                             declaration_list(ruleset, false, true, true);
                         }
