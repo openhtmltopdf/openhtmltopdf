@@ -68,6 +68,11 @@
       <name>Mads Opheim</name>
       <email>mads.opheim@gmail.com</email>
     </developer>
+    <developer>
+      <id>siegelzc</id>
+      <name>Zachary Siegel</name>
+      <email>siegelzc@gmail.com</email>
+    </developer>
   </developers>
 
   <profiles>
