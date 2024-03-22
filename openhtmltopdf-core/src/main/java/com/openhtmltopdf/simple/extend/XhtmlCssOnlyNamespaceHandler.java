@@ -18,30 +18,21 @@
  */
 package com.openhtmltopdf.simple.extend;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
-import com.openhtmltopdf.util.LogMessageId;
-import com.openhtmltopdf.util.OpenUtil;
-
-import org.w3c.dom.CharacterData;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
-
 import com.openhtmltopdf.css.extend.StylesheetFactory;
 import com.openhtmltopdf.css.sheet.Stylesheet;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
 import com.openhtmltopdf.simple.NoNamespaceHandler;
+import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.OpenUtil;
 import com.openhtmltopdf.util.XRLog;
+import org.w3c.dom.CharacterData;
+import org.w3c.dom.*;
+
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.*;
+import java.util.logging.Level;
 
 /**
  * Handles xhtml but only css styling is honored,
@@ -102,7 +93,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
     protected boolean isInteger(String value) {
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
-            if (! (c >= '0' && c <= '9')) {
+            if (!(c >= '0' && c <= '9')) {
                 return false;
             }
         }
@@ -121,13 +112,14 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         while (current != null) {
             short nodeType = current.getNodeType();
             if (nodeType == Node.TEXT_NODE || nodeType == Node.CDATA_SECTION_NODE) {
-                Text t = (Text)current;
+                Text t = (Text) current;
                 result.append(t.getData());
             }
             current = current.getNextSibling();
         }
         return result.toString();
     }
+
     private static String collapseWhiteSpace(String text) {
         StringBuilder result = new StringBuilder();
         int l = text.length();
@@ -137,7 +129,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
                 result.append(' ');
                 while (++i < l) {
                     c = text.charAt(i);
-                    if (! Character.isWhitespace(c)) {
+                    if (!Character.isWhitespace(c)) {
                         i--;
                         break;
                     }
@@ -148,6 +140,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         }
         return result.toString();
     }
+
     /**
      * Gets the linkUri attribute of the XhtmlNamespaceHandler object
      *
@@ -171,6 +164,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         }
         return null;
     }
+
     /**
      * Gets the elementStyling attribute of the XhtmlNamespaceHandler object
      *
@@ -253,7 +247,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         for (int i = 0; i < children.getLength(); i++) {
             Node n = children.item(i);
             if (n.getNodeType() == Node.ELEMENT_NODE && n.getNodeName().equals(targetName)) {
-                return (Element)n;
+                return (Element) n;
             }
         }
 
@@ -271,7 +265,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         Node current = style.getFirstChild();
         while (current != null) {
             if (current instanceof CharacterData) {
-                buf.append(((CharacterData)current).getData());
+                buf.append(((CharacterData) current).getData());
             }
             current = current.getNextSibling();
         }
@@ -338,7 +332,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
             Node current = head.getFirstChild();
             while (current != null) {
                 if (current.getNodeType() == Node.ELEMENT_NODE) {
-                    Element elem = (Element)current;
+                    Element elem = (Element) current;
                     StylesheetInfo info = null;
                     String elemName = elem.getLocalName();
                     if (elemName == null) {
@@ -420,17 +414,16 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
             Node current = head.getFirstChild();
             while (current != null) {
                 if (current.getNodeType() == Node.ELEMENT_NODE) {
-                    Element elem = (Element)current;
+                    Element elem = (Element) current;
                     String elemName = elem.getLocalName();
-                    if (elemName == null)
-                    {
+                    if (elemName == null) {
                         elemName = elem.getTagName();
                     }
                     if (elemName.equals("meta")) {
                         String http_equiv = elem.getAttribute("http-equiv");
                         String content = elem.getAttribute("content");
 
-                        if(!http_equiv.equals("") && !content.equals("")) {
+                        if (!http_equiv.equals("") && !content.equals("")) {
                             metadata.put(http_equiv, content);
                         }
                     }

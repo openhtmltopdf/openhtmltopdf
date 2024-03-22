@@ -19,13 +19,6 @@
  */
 package com.openhtmltopdf.context;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.logging.Level;
-
 import com.openhtmltopdf.css.extend.StylesheetFactory;
 import com.openhtmltopdf.css.parser.CSSParser;
 import com.openhtmltopdf.css.sheet.Ruleset;
@@ -35,6 +28,13 @@ import com.openhtmltopdf.extend.UserAgentCallback;
 import com.openhtmltopdf.resource.CSSResource;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * A Factory class for Cascading Style Sheets. Sheets are parsed using a single
@@ -135,7 +135,7 @@ public class StylesheetFactoryImpl implements StylesheetFactory {
     public void setUserAgentCallback(UserAgentCallback userAgent) {
         _userAgentCallback = userAgent;
     }
-    
+
     public void setSupportCMYKColors(boolean b) {
         _cssParser.setSupportCMYKColors(b);
     }

@@ -19,25 +19,13 @@
  */
 package com.openhtmltopdf.context;
 
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.logging.Level;
-
-import com.openhtmltopdf.css.newmatch.Matcher;
-import com.openhtmltopdf.css.sheet.FontFaceRule;
-import com.openhtmltopdf.util.LogMessageId;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
 import com.openhtmltopdf.css.constants.CSSName;
-import com.openhtmltopdf.css.extend.AttributeResolver;
 import com.openhtmltopdf.css.extend.lib.DOMTreeResolver;
 import com.openhtmltopdf.css.newmatch.CascadedStyle;
+import com.openhtmltopdf.css.newmatch.Matcher;
 import com.openhtmltopdf.css.newmatch.PageInfo;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
+import com.openhtmltopdf.css.sheet.FontFaceRule;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
 import com.openhtmltopdf.css.sheet.Stylesheet;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
@@ -46,7 +34,16 @@ import com.openhtmltopdf.extend.NamespaceHandler;
 import com.openhtmltopdf.extend.UserAgentCallback;
 import com.openhtmltopdf.extend.UserInterface;
 import com.openhtmltopdf.layout.SharedContext;
+import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
 
 
 /**
@@ -147,19 +144,19 @@ public class StyleReference {
      * assigned value as a SAC CSSValue instance. The properties should have
      * been matched to the element when the Context was established for this
      * StyleReference on the Document to which the Element belongs.
-     *
+     * <p>
      * Only used by broken DOM inspector.
      *
      * @param e The DOM Element for which to find properties
      * @return Map of CSS property names to CSSValue instance assigned to it.
      */
     @Deprecated
-	public java.util.Map<String, CSSPrimitiveValue> getCascadedPropertiesMap(Element e) {
+    public java.util.Map<String, CSSPrimitiveValue> getCascadedPropertiesMap(Element e) {
         CascadedStyle cs = _matcher.getCascadedStyle(e, false);
 
-		java.util.Map<String, CSSPrimitiveValue> props = new java.util.LinkedHashMap<>();
+        java.util.Map<String, CSSPrimitiveValue> props = new java.util.LinkedHashMap<>();
 
-		for (PropertyDeclaration pd : cs.getCascadedPropertyDeclarations()) {
+        for (PropertyDeclaration pd : cs.getCascadedPropertyDeclarations()) {
             String propName = pd.getPropertyName();
             CSSName cssName = CSSName.getByPropertyName(propName);
             props.put(propName, cs.propertyByName(cssName).getValue());

@@ -3,8 +3,11 @@ package com.openhtmltopdf.util;
 public interface LogMessageId {
 
     Enum<?> getEnum();
+
     String getWhere();
+
     String getMessageFormat();
+
     String formatMessage(Object[] args);
 
     enum LogMessageId0Param implements LogMessageId {
@@ -58,7 +61,6 @@ public interface LogMessageId {
         EXCEPTION_COULD_NOT_READ_PDF_AS_SRC_FOR_IMG(XRLog.EXCEPTION, "Could not read pdf passed as src for img element!"),
         EXCEPTION_COULD_NOT_PARSE_DEFAULT_STYLESHEET(XRLog.EXCEPTION, "Could not parse default stylesheet"),
         EXCEPTION_SELECTOR_BAD_SIBLING_AXIS(XRLog.EXCEPTION, "Bad sibling axis");
-        
 
         private final String where;
         private final String messageFormat;
@@ -127,7 +129,7 @@ public interface LogMessageId {
         LOAD_COULD_NOT_LOAD_PREFERRED_XML(XRLog.LOAD, "Could not load preferred XML {}, using default which may not be secure."),
         LOAD_LOADED_DOCUMENT_TIME(XRLog.LOAD, "Loaded document in ~{}ms"),
         LOAD_SAX_XMLREADER_IN_USE(XRLog.LOAD, "SAX XMLReader in use (parser): {}"),
-        LOAD_XMLREADER_CLASS_SPECIFIED_COULD_NOT_BE_FOUND(XRLog.LOAD,"The XMLReader class you specified as a configuration property " +
+        LOAD_XMLREADER_CLASS_SPECIFIED_COULD_NOT_BE_FOUND(XRLog.LOAD, "The XMLReader class you specified as a configuration property " +
                 "could not be found. Class.forName() failed on " +
                 "{}. Please check classpath. Use value 'default' in " +
                 "FS configuration if necessary. Will now try JDK default."),
@@ -321,8 +323,8 @@ public interface LogMessageId {
         CASCADE_UNKNOWN_DATATYPE_FOR_RELATIVE_TO_ABSOLUTE(XRLog.CASCADE, "Asked to convert {} from relative to absolute, don't recognize the datatype '{}' {}({})"),
         CASCADE_CALC_FLOAT_PROPORTIONAL_VALUE_INFO_FONT_SIZE(XRLog.CASCADE, "{}, relative= {} ({}), absolute= {}"),
 
-        EXCEPTION_CONFIGURATION_WRONG_TYPE(XRLog.EXCEPTION, "Property '{}' was requested as a {}, but value of '{}' is not a {}. Check configuration."),;
-
+        EXCEPTION_CONFIGURATION_WRONG_TYPE(XRLog.EXCEPTION, "Property '{}' was requested as a {}, but value of '{}' is not a {}. Check configuration."),
+        ;
 
 
         private final String where;
