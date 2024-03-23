@@ -233,8 +233,7 @@ public class CSSParser {
                         break;
                     case Token.AT_RULE:
                         next();
-                        error(new CSSParseException(
-                                "Invalid at-rule", getCurrentLine()), "at-rule", true);
+                        error(new CSSParseException("Invalid at-rule", getCurrentLine()), "at-rule", true);
                         recover(false, false);
                         break;
                     default:
@@ -1831,20 +1830,17 @@ public class CSSParser {
 
     private void skip_whitespace() throws IOException {
         Token t;
-        while ((t = next()) == Token.TK_S) {
-            // skip
-        }
+        do {
+            t = next();
+        } while (t == Token.TK_S);
         save(t);
     }
 
     private void skip_whitespace_and_cdocdc() throws IOException {
         Token t;
-        while (true) {
+        do {
             t = next();
-            if (!(t == Token.TK_S || t == Token.TK_CDO || t == Token.TK_CDC)) {
-                break;
-            }
-        }
+        } while (t == Token.TK_S || t == Token.TK_CDO || t == Token.TK_CDC);
         save(t);
     }
 

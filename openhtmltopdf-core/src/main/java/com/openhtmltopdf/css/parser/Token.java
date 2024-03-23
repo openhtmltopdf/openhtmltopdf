@@ -74,6 +74,7 @@ public class Token {
     public static final int ASTERISK = 52;
     public static final int VERTICAL_BAR = 53;
     public static final int EOF = 54;
+    public static final int LAYER_SYM = 55;
 
     public static final Token TK_S = new Token(S, "S", "whitespace");
     public static final Token TK_CDO = new Token(CDO, "CDO", "<!--");
@@ -97,6 +98,7 @@ public class Token {
     public static final Token TK_CHARSET_SYM = new Token(CHARSET_SYM, "CHARSET_SYM", "@charset");
     public static final Token TK_NAMESPACE_SYM = new Token(NAMESPACE_SYM, "NAMESPACE_SYM", "@namespace,");
     public static final Token TK_FONT_FACE_SYM = new Token(FONT_FACE_SYM, "FONT_FACE_SYM", "@font-face");
+    public static final Token TK_LAYER_SYM = new Token(LAYER_SYM, "LAYER_SYM", "@layer");
     public static final Token TK_AT_RULE = new Token(AT_RULE, "AT_RULE", "at rule");
     public static final Token TK_IMPORTANT_SYM = new Token(IMPORTANT_SYM, "IMPORTANT_SYM", "!important");
     public static final Token TK_EMS = new Token(EMS, "EMS", "an em value");
@@ -130,34 +132,33 @@ public class Token {
     public static final Token TK_VERTICAL_BAR = new Token(VERTICAL_BAR, "VERTICAL_BAR", "|");
     public static final Token TK_EOF = new Token(EOF, "EOF", "end of file");
 
-  
     private final int _type;
     private final String _name;
     private final String _externalName;
-  
+
     private Token(int type, String name, String externalName) {
         _type = type;
         _name = name;
         _externalName = externalName;
     }
-    
+
     public int getType() {
         return _type;
     }
-    
+
     public String getName() {
         return _name;
     }
-    
+
     public String getExternalName() {
         return _externalName;
     }
-    
+
     @Override
     public String toString() {
         return _name;
     }
-    
+
     public static Token createOtherToken(String value) {
         return new Token(OTHER, "OTHER", value + " (other)");
     }
