@@ -567,6 +567,18 @@ public class CSSParser {
         }
     }
 
+    /**
+     * layer :
+     * LAYER_SYM S* IDENT? pseudo_page? S*
+     * '{' S* [ declaration | margin ]? [ ';' S* [ declaration | margin ]? ]* '}' S*
+     * LAYER_SYM S* IDENT? S* LBRACE rules? S* RBRACE
+     * LAYER_SYM S* IDENT S* [COMMA S* IDENT S*].. SEMICOLON
+     * LAYER_SYM S* LBRACE rules? S* RBRACE
+     */
+    private void layer() throws IOException {
+
+    }
+
     //  margin :
 //    margin_sym S* '{' declaration [ ';' S* declaration? ]* '}' S*
 //    ;
