@@ -569,14 +569,24 @@ public class CSSParser {
 
     /**
      * layer :
-     * LAYER_SYM S* IDENT? pseudo_page? S*
-     * '{' S* [ declaration | margin ]? [ ';' S* [ declaration | margin ]? ]* '}' S*
+     * LAYER_SYM S* IDENT? pseudo_page? S* '{' S* [ declaration | margin ]? [ ';' S* [ declaration | margin ]? ]* '}' S*
      * LAYER_SYM S* IDENT? S* LBRACE rules? S* RBRACE
      * LAYER_SYM S* IDENT S* [COMMA S* IDENT S*].. SEMICOLON
      * LAYER_SYM S* LBRACE rules? S* RBRACE
      */
     private void layer() throws IOException {
+        Token token = next();
 
+        try {
+            if (token != Token.TK_LAYER_SYM) {
+                throw new CSSParseException(token, Token.TK_LAYER_SYM, getCurrentLine());
+            }
+
+
+        } catch (CSSParseException e) {
+            error(e, "@layer rule", true);
+            recover(false, false);
+        }
     }
 
     //  margin :
@@ -1883,8 +1893,9 @@ public class CSSParser {
         if (!e.isCallerNotified()) {
             String message = e.getMessage() + " Skipping " + what + ".";
             _errorHandler.error(_URI, message);
+            e.setCallerNotified(true);
         }
-        e.setCallerNotified(true);
+
         if (e.isEOF() && rethrowEOF) {
             throw e;
         }
