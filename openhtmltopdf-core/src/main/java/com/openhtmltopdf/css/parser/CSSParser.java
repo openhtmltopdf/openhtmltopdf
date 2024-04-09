@@ -177,31 +177,33 @@ public class CSSParser {
             }
             skip_whitespace_and_cdocdc();
 
-            /* March 2024: https://archive.ph/tMcxr
-            "An @import rule must be defined at the top of the stylesheet, before any other at-rule (except @charset and @layer) and style declarations, or it will be ignored." */
+            /* April 2024: https://archive.ph/tMcxr, https://archive.is/Jy0Jp
+            "An @import rule must be defined at the top of the stylesheet, before any other at-rule (except @charset and @layer) and style declarations, or it will be ignored."
+            @layer may appear before @import. If it does, the parser will ignore all @import rules. */
             while (true) {
                 token = nextWithSave();
-                /* todo: zach: Add awareness of @layer at-rule https://archive.is/Jy0Jp
-                @layer may appear before @import. If it does, the parser will ignore all @import rules. */
                 if (token == Token.TK_IMPORT_SYM) {
                     import_rule(stylesheet);
-                    skip_whitespace_and_cdocdc();
+                } else if (token == Token.TK_LAYER_SYM) {
+                    layer();
                 } else {
                     break;
                 }
+                skip_whitespace_and_cdocdc();
             }
 
             /* March 2024: https://archive.is/Yreun
             "Any @namespace rules must follow all @charset and @import rules, and precede all other at-rules and style declarations in a style sheet." */
             while (true) {
                 token = nextWithSave();
-                // todo: zach: ignore @layer here too
                 if (token == Token.TK_NAMESPACE_SYM) {
                     namespace();
-                    skip_whitespace_and_cdocdc();
+                } else if (token == Token.TK_LAYER_SYM) {
+                    layer();
                 } else {
                     break;
                 }
+                skip_whitespace_and_cdocdc();
             }
 
             while (true) {
@@ -218,6 +220,9 @@ public class CSSParser {
                         break;
                     case Token.FONT_FACE_SYM:
                         font_face(stylesheet);
+                        break;
+                    case Token.LAYER_SYM:
+                        layer();
                         break;
                     case Token.IMPORT_SYM:
                         next();
@@ -581,8 +586,6 @@ public class CSSParser {
             if (token != Token.TK_LAYER_SYM) {
                 throw new CSSParseException(token, Token.TK_LAYER_SYM, getCurrentLine());
             }
-
-
         } catch (CSSParseException e) {
             error(e, "@layer rule", true);
             recover(false, false);
