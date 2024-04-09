@@ -19,6 +19,7 @@
  */
 package com.openhtmltopdf.css.parser;
 
+// todo: refctor to enum. remove integer 'type'
 public class Token {
     public static final int S = 1;
     public static final int CDO = 2;
