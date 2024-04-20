@@ -1,4 +1,4 @@
-[![build](https://github.com/danfickle/openhtmltopdf/workflows/build/badge.svg)](https://github.com/danfickle/openhtmltopdf/actions?query=workflow%3Abuild)
+[![build](https://github.com/openhtmltopdf/openhtmltopdf/workflows/build/badge.svg)](https://github.com/openhtmltopdf/openhtmltopdf/actions?query=workflow%3Abuild)
 
 # OPEN HTML TO PDF
 
@@ -50,7 +50,7 @@ An exception to this is the pdf-a testing module, which is licensed under the GP
 and is for testing only.
 
 Open HTML to PDF uses a couple of FOSS packages to get the job done. A list
-of these can be found in the [dependency graph](https://github.com/danfickle/openhtmltopdf/network/dependencies).
+of these can be found in the [dependency graph](https://github.com/openhtmltopdf/openhtmltopdf/network/dependencies).
 
 ## CREDITS
 Open HTML to PDF is based on [Flying-saucer](https://github.com/flyingsaucerproject/flyingsaucer). Credit goes to the contributors of that project. Code will also be used from [neoFlyingSaucer](https://github.com/danfickle/neoflyingsaucer)
