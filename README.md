@@ -5,6 +5,8 @@
 ![PDF screenshot of OpenHTMLtoPDF](screenshot.png)
 
 ## OVERVIEW
+This is a community fork of [OpenHTMLtoPDF](https://github.com/danfickle/openhtmltopdf).
+
 Open HTML to PDF is a pure-Java library for rendering a reasonable subset of well-formed XML/XHTML (and even some HTML5)
 using CSS 2.1 (and later standards) for layout and formatting, outputting to PDF or images.
 
@@ -53,6 +55,8 @@ Open HTML to PDF uses a couple of FOSS packages to get the job done. A list
 of these can be found in the [dependency graph](https://github.com/openhtmltopdf/openhtmltopdf/network/dependencies).
 
 ## CREDITS
+Thanks to @danfickle for starting Open HTML to PDF.
+
 Open HTML to PDF is based on [Flying-saucer](https://github.com/flyingsaucerproject/flyingsaucer). Credit goes to the contributors of that project. Code will also be used from [neoFlyingSaucer](https://github.com/danfickle/neoflyingsaucer)
 
 ## FAQ
