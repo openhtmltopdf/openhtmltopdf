@@ -43,7 +43,7 @@ to get good results. Avoid floats near page breaks and use table layouts.
 ## LICENSE
 Open HTML to PDF is distributed under the LGPL.  Open HTML to PDF itself is licensed 
 under the GNU Lesser General Public License, version 2.1 or later, available at
-http://www.gnu.org/copyleft/lesser.html. You can use Open HTML to PDF in any
+https://www.gnu.org/copyleft/lesser.html. You can use Open HTML to PDF in any
 way and for any purpose you want as long as you respect the terms of the 
 license. A copy of the LGPL license is included as license-lgpl-2.1.txt or license-lgpl-3.txt
 in our distributions and in our source tree.

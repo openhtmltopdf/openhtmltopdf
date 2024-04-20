@@ -117,7 +117,7 @@ h3(fs_heading). License and Dependencies
 
 <img src="../images/screenshots/pure-xml-thumb.png" style="float: right; margin-left: 10px;" />
 
-Flying Saucer itself is licensed under the "GNU Lesser General Public License":http://www.gnu.org/copyleft/lesser.html. You can use Flying Saucer in any way you want as long as you respect the terms of the license. A copy of the LGPL is provided under LGPL.txt in our distribution.
+Flying Saucer itself is licensed under the "GNU Lesser General Public License":https://www.gnu.org/copyleft/lesser.html. You can use Flying Saucer in any way you want as long as you respect the terms of the license. A copy of the LGPL is provided under LGPL.txt in our distribution.
 
 Flying Saucer uses a couple of FOSS packages to get the job done. A list of these, along with the license they each have, is listed in the LICENSE file in our distribution.   
 
