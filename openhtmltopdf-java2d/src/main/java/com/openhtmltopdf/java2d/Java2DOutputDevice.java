@@ -177,12 +177,6 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
 			_graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, oldInterpolation);
     }
 
-    @Deprecated
-    @Override
-    public boolean isSupportsSelection() {
-        return false;
-    }
-
     @Override
     public boolean isSupportsCMYKColors() {
         return false;

@@ -87,9 +87,6 @@ public interface OutputDevice {
     public Object getRenderingHint(Key key);
     public void setRenderingHint(Key key, Object value);
     
-    @Deprecated
-    public boolean isSupportsSelection();
-    
     public boolean isSupportsCMYKColors();
 
     /**

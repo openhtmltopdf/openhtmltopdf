@@ -181,9 +181,6 @@ public interface PdfBoxOutputDevice extends OutputDevice, Closeable {
     void drawSelection(RenderingContext c, InlineText inlineText);
 
     @Override
-    boolean isSupportsSelection();
-
-    @Override
     boolean isSupportsCMYKColors();
 
     @Override

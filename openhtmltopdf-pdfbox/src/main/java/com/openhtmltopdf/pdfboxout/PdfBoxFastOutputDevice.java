@@ -1054,11 +1054,6 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     }
 
     @Override
-    public boolean isSupportsSelection() {
-        return false;
-    }
-
-    @Override
     public boolean isSupportsCMYKColors() {
         return true;
     }
