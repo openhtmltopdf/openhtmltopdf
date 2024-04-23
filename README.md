@@ -5,7 +5,7 @@
 ![PDF screenshot of OpenHTMLtoPDF](screenshot.png)
 
 ## OVERVIEW
-This is a community fork of [OpenHTMLtoPDF](https://github.com/danfickle/openhtmltopdf).
+This is the community's next iteration of the [OpenHTMLtoPDF project](https://github.com/danfickle/openhtmltopdf).
 
 Open HTML to PDF is a pure-Java library for rendering a reasonable subset of well-formed XML/XHTML (and even some HTML5)
 using CSS 2.1 (and later standards) for layout and formatting, outputting to PDF or images.
