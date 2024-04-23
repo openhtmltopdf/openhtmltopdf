@@ -55,7 +55,7 @@ Open HTML to PDF uses a couple of FOSS packages to get the job done. A list
 of these can be found in the [dependency graph](https://github.com/openhtmltopdf/openhtmltopdf/network/dependencies).
 
 ## CREDITS
-Thanks to @danfickle for starting Open HTML to PDF.
+Thanks to @danfickle for his work advancing the OpenHtmlToPdf project beyond FlyingSaucer.
 
 Open HTML to PDF is based on [Flying-saucer](https://github.com/flyingsaucerproject/flyingsaucer). Credit goes to the contributors of that project. Code will also be used from [neoFlyingSaucer](https://github.com/danfickle/neoflyingsaucer)
 
