@@ -34,7 +34,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Step 1 - Checkout code
         uses: actions/checkout@v4
