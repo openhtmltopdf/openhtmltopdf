@@ -3,9 +3,10 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.openhtmltopdf</groupId>
+  <groupId>io.github.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf-parent</artifactId>
   <version>${revision}</version>
+  <inceptionYear>2004</inceptionYear>
 
   <packaging>pom</packaging>
 
@@ -140,6 +141,7 @@
                     <arg>--pinentry-mode</arg>
                     <arg>loopback</arg>
                   </gpgArguments>
+                  <passphrase>${env.GPG_PASSPHRASE}</passphrase>
                 </configuration>
               </execution>
             </executions>
@@ -170,7 +172,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
+          <version>3.12.1</version>
           <configuration>
             <compilerArgs>
               <arg>-Xlint:deprecation</arg>
@@ -180,12 +182,12 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.6.3</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -204,8 +206,9 @@
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
         <configuration>
-          <releaseProfiles>release</releaseProfiles>
+          <releaseProfiles>maven-release</releaseProfiles>
           <autoVersionSubmodules>true</autoVersionSubmodules>
+          <goals>deploy</goals>
         </configuration>
       </plugin>
 

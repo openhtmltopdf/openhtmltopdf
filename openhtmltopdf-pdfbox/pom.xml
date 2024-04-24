@@ -16,7 +16,7 @@
 
 
   <parent>
-    <groupId>org.openhtmltopdf</groupId>
+    <groupId>io.github.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf-parent</artifactId>
     <version>${revision}</version>
   </parent>
@@ -82,7 +82,7 @@
       <version>${pdfbox.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-core</artifactId>
       <version>${project.version}</version>
     </dependency>

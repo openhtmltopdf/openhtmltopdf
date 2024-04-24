@@ -1,0 +1,65 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: ['8','11','17', '21']
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{matrix.java}}
+          cache: maven
+      - name: Maven -v
+        run: mvn -v
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+  release:
+    name: Create release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Step 1 - Checkout code
+        uses: actions/checkout@v4
+      - name: Step 2 - Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PUBLIC_KEY }}" | gpg --import
+          echo "${{ secrets.GPG_SECRET_KEY }}" | gpg --import --no-tty --batch --yes
+      - name: Step 3 - Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+          server-id: maven
+          server-username: MAVEN_USERNAME # env variable for username in deploy
+          server-password: MAVEN_CENTRAL_TOKEN # env variable for token in deploy
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE # env variable for GPG private key passphrase
+      - name: Step 4 - Get next version
+        uses: reecetech/version-increment@2023.9.3
+        id: version
+        with:
+          scheme: semver
+          increment: patch
+      - name: Step 5 - Prepare and perform release
+        run: mvn -B deploy -Drevision=${{ ${{ steps.version.outputs.version }}
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}

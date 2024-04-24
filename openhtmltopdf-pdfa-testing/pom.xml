@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.openhtmltopdf</groupId>
+    <groupId>io.github.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf-parent</artifactId>
     <version>${revision}</version>
   </parent>
@@ -25,12 +25,12 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-core</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-pdfbox</artifactId>
       <version>${project.version}</version>
     </dependency>

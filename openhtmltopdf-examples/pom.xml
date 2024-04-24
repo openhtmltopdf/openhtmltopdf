@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.openhtmltopdf</groupId>
+    <groupId>io.github.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf-parent</artifactId>
     <version>${revision}</version>
   </parent>
@@ -30,22 +30,22 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-core</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-pdfbox</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-rtl-support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-svg-support</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -60,22 +60,22 @@
       <version>${open.rhino.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-mathml-support</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-java2d</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-objects</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.openhtmltopdf</groupId>
+      <groupId>io.github.openhtmltopdf</groupId>
       <artifactId>openhtmltopdf-latex-support</artifactId>
       <version>${project.version}</version>
     </dependency>
