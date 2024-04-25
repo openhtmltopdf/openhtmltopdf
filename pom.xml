@@ -296,7 +296,7 @@
   </build>
 
   <properties>
-    <revision>0.0.1</revision>
+    <revision>1.1.5</revision>
     <open.batik.version>1.17</open.batik.version>
 
     <!-- Please keep xmlgraphics-commons up to date with batik. -->
