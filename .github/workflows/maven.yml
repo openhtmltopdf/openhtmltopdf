@@ -25,6 +25,8 @@ jobs:
         run: mvn -v
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+        env:
+          NEW_VERSION: ${{ github.sha }}
 
 
   release-dev:
@@ -48,6 +50,7 @@ jobs:
         run: mvn -B deploy -Dgithub-release -e -Drevision=dev-${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: dev-${{ github.sha }}
 
   release:
     name: Create release
@@ -77,3 +80,4 @@ jobs:
           title: openhtmltopdf
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEW_VERSION: ${{ github.sha }}

@@ -58,9 +58,10 @@ jobs:
           scheme: semver
           increment: patch
       - name: Step 5 - Prepare and perform release
-        run: mvn -B deploy --no-transfer-progress -e -Prelease -Drevision=${{ steps.version.outputs.version }} -s settings.xml
+        run: mvn -B deploy --no-transfer-progress -e -Prelease -s settings.xml
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          NEW_VERSION: ${{ steps.version.outputs.version }}
