@@ -40,7 +40,7 @@
     <connection>scm:git:git://github.com/openhtmltopdf/openhtmltopdf.git</connection>
     <developerConnection>scm:git:https://github.com/openhtmltopdf/openhtmltopdf.git</developerConnection>
     <url>git://github.com/openhtmltopdf/openhtmltopdf.git</url>
-    <tag>openhtmltopdf-parent-1.1.4</tag>
+    <tag>openhtmltopdf-parent-${revision}</tag>
   </scm>
 
   <developers>
@@ -296,7 +296,7 @@
   </build>
 
   <properties>
-    <revision>1.1.5</revision>
+    <revision>${env.NEW_VERSION}</revision>
     <open.batik.version>1.17</open.batik.version>
 
     <!-- Please keep xmlgraphics-commons up to date with batik. -->

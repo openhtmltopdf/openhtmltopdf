@@ -26,6 +26,8 @@ jobs:
         run: mvn -v
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+        env:
+          NEW_VERSION: ${{ github.sha }}
 
   release:
     name: Create release
@@ -64,3 +66,4 @@ jobs:
           MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          NEW_VERSION: ${{ steps.version.outputs.version }}
