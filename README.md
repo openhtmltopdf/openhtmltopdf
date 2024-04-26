@@ -74,8 +74,30 @@ from ````/openhtmltopdf-examples/src/main/java/com/openhtmltopdf/testcases/Testc
 
 ## CHANGELOG
 
-### head - 1.1.5-SNAPSHOT
-+ See commit log.
+### NEWER VERSIONS: SEE COMMIT LOG BETWEEN TAGS
++ https://github.com/openhtmltopdf/openhtmltopdf/tags
+
+
+### 1.1.8 (2024-April-26)
++ [#29](https://github.com/openhtmltopdf/openhtmltopdf/pull/29) Update README to clarify fork and differences to old project. Thanks, @XSpielinbox and @siegelzc.
+
+
+### 1.1.7 (2024-April-26)
++ [ebee9c0](https://github.com/openhtmltopdf/openhtmltopdf/commit/ebee9c0d560fc648674afdc7f38581f65389e078) Don't run release pipeline from forks. Thanks, @madsop-nav.
++ [cdbd127](https://github.com/openhtmltopdf/openhtmltopdf/commit/cdbd127cba411d47327d2054428a136dbaeba0ff) Automatically publish new versions to Maven Central. Thanks, @madsop-nav.
+
+
+### 1.1.6 (2024-April-26)
++ [84b2cd0](https://github.com/openhtmltopdf/openhtmltopdf/commit/84b2cd0c660151744545d0f9c230e767ae2caa25) correct release target java version to 8. Thanks, @madsop-nav.
++ [edd9c53](https://github.com/openhtmltopdf/openhtmltopdf/commit/edd9c53dbd3574aafdbde5466e693c5083f07a69) Use the proper tag. Thanks, @madsop-nav.
+
+
+### 1.1.5 (2024-April-25)
+**NOTE**: This release is only available from GitHub.
+
++ [#20](https://github.com/openhtmltopdf/openhtmltopdf/pull/20) Release mechanism and change group id to **io.github.openhtmltopdf**. Thanks, @madsop-nav.
++ [#33](https://github.com/openhtmltopdf/openhtmltopdf/pull/33) Fix release process bugs. Thanks, @madsop-nav.
++ [#35](https://github.com/openhtmltopdf/openhtmltopdf/pull/35) Minimize use of hardcoded versions. Thanks, @madsop-nav.
 
 
 ### 1.1.4 (2023-October-1)
