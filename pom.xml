@@ -155,6 +155,11 @@
               <publishingServerId>central</publishingServerId>
               <tokenAuth>true</tokenAuth>
               <autoPublish>true</autoPublish>
+              <excludeArtifacts>
+                <excludeArtifact>openhtmltopdf-examples</excludeArtifact>
+                <excludeArtifact>openhtmltopdf-pdfa-testing</excludeArtifact>
+                <excludeArtifact>openhtmltopdf-templates</excludeArtifact>
+              </excludeArtifacts>
             </configuration>
           </plugin>
         </plugins>
