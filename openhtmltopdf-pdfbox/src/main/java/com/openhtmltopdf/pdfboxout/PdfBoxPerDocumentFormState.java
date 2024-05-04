@@ -99,7 +99,7 @@ public PDAppearanceStream getSignatureStream() {
     }
 
     private String getControlFont(SharedContext sharedContext, PdfBoxForm.Control ctrl, RenderingContext renderingContext) {
-        PDFont fnt = ((PdfBoxFSFont) sharedContext.getFont(ctrl.box.getStyle().getFont(renderingContext))).getFontDescription().get(0).getFont();
+        PDFont fnt = ((PdfBoxFSFont) sharedContext.getFont(ctrl.box.getStyle().getFont(renderingContext))).getFontDescriptions().get(0).getFont();
         String fontName;
 
         if (!controlFonts.containsKey(fnt)) {

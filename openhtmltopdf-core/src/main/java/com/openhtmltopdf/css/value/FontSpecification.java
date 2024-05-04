@@ -13,13 +13,13 @@ public class FontSpecification {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("Font specification: ");
-        sb
-                .append(" families: " + Arrays.asList(families).toString())
-                .append(" size: " + size)
-                .append(" weight: " + fontWeight)
-                .append(" style: " + fontStyle)
-                .append(" variant: " + variant);
-        return sb.toString();
+        return new StringBuilder("Font specification:")
+                .append(" families: ")
+                .append(Arrays.asList(families))
+                .append(" size: ").append(size)
+                .append(" weight: ").append(fontWeight)
+                .append(" style: ").append(fontStyle)
+                .append(" variant: ").append(variant)
+                .toString();
     }
 }

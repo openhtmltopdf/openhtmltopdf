@@ -19,15 +19,15 @@
  */
 package com.openhtmltopdf.pdfboxout;
 
-import java.util.List;
-
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
 import com.openhtmltopdf.render.FSFont;
+
+import java.util.List;
 
 public class PdfBoxFSFont implements FSFont {
     private final List<FontDescription> _fonts;
     private final float _size;
-    
+
     public PdfBoxFSFont(List<FontDescription> fonts, float size) {
         _fonts = fonts;
         _size = size;
@@ -38,7 +38,7 @@ public class PdfBoxFSFont implements FSFont {
         return _size;
     }
 
-    public List<FontDescription> getFontDescription() {
+    public List<FontDescription> getFontDescriptions() {
         return _fonts;
     }
 }

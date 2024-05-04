@@ -27,10 +27,15 @@ public class PdfBoxUtil {
 	}
 	
     public static class FontRun {
-        String str;
-        FontDescription des;
-        int spaceCharacterCount;
-        int otherCharacterCount;
+        final FontDescription description;
+
+        String string = "";
+        int spaceCharacterCount = 0;
+        int otherCharacterCount = 0;
+
+        public FontRun(FontDescription description) {
+            this.description = description;
+        }
     }
 	
     /** 

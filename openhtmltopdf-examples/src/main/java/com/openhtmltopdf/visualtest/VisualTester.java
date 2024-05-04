@@ -25,12 +25,12 @@ import com.openhtmltopdf.util.XRLogger;
 
 /**
  * Based on library PDFCompare by Github user red6.
- * https://github.com/red6/pdfcompare
- * 
+ * <a href="https://github.com/red6/pdfcompare">PDFCompare</a>
+ * <p>
  * Given a resource, this will use the project renderer to convert it from html to PDF.
  * It will then visual compare the generated PDF against an expected version (of the same name)
  * in the override or expected path provided.
- * 
+ * <p>
  * If they differ, a diff image will be output to the output path along with the generated pdf.
  * Hopefully, this will allow the user to easily see where the PDF has changed compared to the expected
  * version.

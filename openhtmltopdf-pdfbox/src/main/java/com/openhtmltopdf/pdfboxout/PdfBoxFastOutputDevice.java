@@ -382,7 +382,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     @Override
     public void setFont(FSFont font) {
         _font = ((PdfBoxFSFont) font);
-        if (_font.getFontDescription().isEmpty()) {
+        if (_font.getFontDescriptions().isEmpty()) {
             throw new FontNotFoundException(this.getFontSpecification());
         }
     }
@@ -403,7 +403,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     @Override
     public void drawString(String s, float x, float y, JustificationInfo info) {
-        PDFont firstFont = _font.getFontDescription().get(0).getFont();
+        PDFont firstFont = _font.getFontDescriptions().get(0).getFont();
 
         String effectiveString = TextRenderer.getEffectivePrintableString(s);
 
@@ -412,7 +412,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         try {
             firstFont.getStringWidth(effectiveString);
             // We got here, so all is good.
-            drawStringFast(effectiveString, x, y, info, _font.getFontDescription().get(0), _font.getSize2D());
+            drawStringFast(effectiveString, x, y, info, _font.getFontDescriptions().get(0), _font.getSize2D());
             return;
         }
         catch (Exception e) {
@@ -423,12 +423,12 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         
         float xOffset = 0f;
         for (FontRun run : fontRuns) {
-            drawStringFast(run.str, x + xOffset, y, info, run.des, _font.getSize2D());
+            drawStringFast(run.string, x + xOffset, y, info, run.description, _font.getSize2D());
             try {
                 if (info == null) {
-                    xOffset += ((run.des.getFont().getStringWidth(run.str) / 1000f) * _font.getSize2D());
+                    xOffset += ((run.description.getFont().getStringWidth(run.string) / 1000f) * _font.getSize2D());
                 } else {
-                    xOffset += ((run.des.getFont().getStringWidth(run.str) / 1000f) * _font.getSize2D()) +
+                    xOffset += ((run.description.getFont().getStringWidth(run.string) / 1000f) * _font.getSize2D()) +
                                (run.spaceCharacterCount * info.getSpaceAdjust()) +
                                (run.otherCharacterCount * info.getNonSpaceAdjust());
                 }
@@ -1083,11 +1083,11 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
                         }
                         PdfBoxFSFont fsFont = (PdfBoxFSFont) getSharedContext().getFontResolver()
                                 .resolveFont(getSharedContext(), spec);
-                        FontDescription fontDescription = fsFont.getFontDescription().get(0);
+                        FontDescription fontDescription = fsFont.getFontDescriptions().get(0);
 						/*
 						 * Detect the default fallback value
 						 */
-                        if (fsFont.getFontDescription().size() == 1) {
+                        if (fsFont.getFontDescriptions().size() == 1) {
                             if (fontDescription.getFont().getName().equals("Times-Roman")
                                     && !(font.getFamily().equals("Times New Roman"))) {
 								/*
