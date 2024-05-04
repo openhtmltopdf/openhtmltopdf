@@ -322,6 +322,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
         try {
             result = description.getFont().getStringWidth(effectiveString) / 1000f + pdfBoxFont.getSize2D();
         } catch (IllegalArgumentException e) {
+            // todo: logarithmic partitioning
             /* PDFont::getStringWidth throws an IllegalArgumentException if the character doesn't exist in the font.
                So we do it one character by character instead. */
             result = getStringWidthSlow(pdfBoxFont, effectiveString) / 1000f * pdfBoxFont.getSize2D();
