@@ -263,7 +263,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         return getProtocolFactory(protocol).getUrl(uri).getStream();
       } else {
         try {
-          is = new URL(uri).openStream();
+          is = new URI(uri).toURL().openStream();
         } catch (java.net.MalformedURLException e) {
           XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_MALFORMED_URL, uri, e);
         } catch (java.io.FileNotFoundException e) {
@@ -292,7 +292,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         return getProtocolFactory(protocol).getUrl(uri).getReader();
       } else {
         try {
-          is = new URL(uri).openStream();
+          is = new URI(uri).toURL().openStream();
         } catch (java.net.MalformedURLException e) {
           XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_MALFORMED_URL, uri, e);
         } catch (java.io.FileNotFoundException e) {
@@ -539,7 +539,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
       InputStream is = null;
 
       try {
-        URLConnection conn = new URL(uri).openConnection();
+        URLConnection conn = new URI(uri).toURL().openConnection();
         conn.setConnectTimeout(this.connectTimeout);
         conn.setReadTimeout(this.readTimeout);
         conn.connect();
@@ -551,9 +551,11 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_ITEM_AT_URI_NOT_FOUND, uri, e);
       } catch (java.io.IOException e) {
         XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_IO_PROBLEM_FOR_URI, uri, e);
+      } catch (URISyntaxException e) {
+        XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_URI_SYNTAX_WHILE_LOADING_EXTERNAL_SVG_RESOURCE, uri, e);
       }
 
-      // Ownership is transferred to DefaultHttpStream which implements Closeable.
+        // Ownership is transferred to DefaultHttpStream which implements Closeable.
       return new DefaultHttpStream(is);
     }
   }
@@ -662,7 +664,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
             // Fix for OpenHTMLtoPDF issue-#125, URI class doesn't resolve jar: scheme urls and so returns only
             // the relative part on calling base.resolve(relative) so we use the URL class instead which does
             // understand jar: scheme urls.
-            URL base = new URL(baseUri);
+            URL base = new URI(baseUri).toURL();
             URL absolute = new URL(base, uri);
             return absolute.toString();
           } else {
