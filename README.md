@@ -1,4 +1,4 @@
-[![build](https://github.com/openhtmltopdf/openhtmltopdf/workflows/build/badge.svg)](https://github.com/openhtmltopdf/openhtmltopdf/actions?query=workflow%3Abuild)
+[![build-release](https://github.com/openhtmltopdf/openhtmltopdf/workflows/release/badge.svg)](https://github.com/openhtmltopdf/openhtmltopdf/actions?query=workflow%3Arelease)
 
 # OPEN HTML TO PDF
 
