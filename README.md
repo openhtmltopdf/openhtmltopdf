@@ -17,12 +17,13 @@ use it's extended CSS feature like [#31](https://github.com/danfickle/openhtmlto
 to get good results. Avoid floats near page breaks and use table layouts.
 
 ## GETTING STARTED
-+ [Integration guide](https://github.com/danfickle/openhtmltopdf/wiki/Integration-Guide) - get maven artifacts and code to get started.
-+ [1.0.10 Online Sandbox](https://sandbox.openhtmltopdf.com/) - Now with logs!
-+ [Templates for Openhtmltopdf](https://danfickle.github.io/pdf-templates/index.html) - MIT licensed templates that work with this project. Updated 2021-09-21.
++ [Maven Central registry](https://central.sonatype.com/artifact/io.github.openhtmltopdf)
++ [1.0.10 Online Sandbox](https://sandbox.openhtmltopdf.com/)
++ [Templates for Openhtmltopdf](https://danfickle.github.io/pdf-templates/index.html)
+  + MIT licensed templates that work with this project. Updated 2021-09-21.
 + [Showcase Document - PDF](https://openhtmltopdf.com/showcase.pdf)
 + [Documentation wiki](https://github.com/danfickle/openhtmltopdf/wiki)
-+ [Template Author Guide - PDF - DEPRECATED - Prefer wiki](https://openhtmltopdf.com/template-guide.pdf) - Moving info to wiki
+  + Note: This documentation is hosted on the old GitHub repository and has yet to be migrated
 + [Sample Project - Pretty Resume Generator](https://github.com/danfickle/pretty-resume)
 
 ## DIFFERENCES WITH FLYING SAUCER
@@ -54,7 +55,7 @@ and is for testing only.
 Open HTML to PDF uses a couple of FOSS packages to get the job done. A list
 of these can be found in the [dependency graph](https://github.com/openhtmltopdf/openhtmltopdf/network/dependencies).
 
-## CREDITS
+## ACCREDITATION
 Thanks to @danfickle for his work advancing the OpenHtmlToPdf project beyond FlyingSaucer.
 
 Open HTML to PDF is based on [Flying-saucer](https://github.com/flyingsaucerproject/flyingsaucer). Credit goes to the contributors of that project. Code will also be used from [neoFlyingSaucer](https://github.com/danfickle/neoflyingsaucer)
