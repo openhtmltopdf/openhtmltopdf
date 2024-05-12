@@ -664,8 +664,9 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
             // Fix for OpenHTMLtoPDF issue-#125, URI class doesn't resolve jar: scheme urls and so returns only
             // the relative part on calling base.resolve(relative) so we use the URL class instead which does
             // understand jar: scheme urls.
-            URL base = new URI(baseUri).toURL();
-            URL absolute = new URL(base, uri);
+            URI base = new URI(baseUri);
+            URI resolvedUri = base.resolve(uri);
+            URL absolute = resolvedUri.toURL();
             return absolute.toString();
           } else {
             URI base = new URI(baseUri);
