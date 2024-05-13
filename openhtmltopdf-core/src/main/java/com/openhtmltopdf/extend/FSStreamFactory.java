@@ -6,5 +6,5 @@ package com.openhtmltopdf.extend;
  */
 public interface FSStreamFactory 
 {
-	public FSStream getUrl(String url);
+	FSStream getUrl(String url);
 }

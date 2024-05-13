@@ -8,6 +8,6 @@ import java.io.Reader;
  * about the charset encoding through the headers returned from the object. 
  */
 public interface FSStream {
-	public InputStream getStream();
-	public Reader getReader();
+	InputStream getStream();
+	Reader getReader();
 }
