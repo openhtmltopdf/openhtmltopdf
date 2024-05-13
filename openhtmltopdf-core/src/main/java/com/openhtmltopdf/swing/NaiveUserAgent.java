@@ -344,12 +344,13 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
   public abstract ImageResource getImageResource(String uri, ExternalResourceType type);
 
   /**
-   * Retrieves the XML located at the given URI. It's assumed the URI does point to a XML--the URI will
-   * be accessed (using the set HttpStreamFactory or URL::openStream), opened, read and then passed into the XML parser (XMLReader)
-   * configured for Flying Saucer. The result is packed up into an XMLResource for later consumption.
+   * Retrieves the XML located at the given URI. It's assumed the URI does point to an XML--the URI will
+   * be accessed (using the set {@link FSStreamFactory} or {@link URL#openStream()}), opened, read and then passed into
+   * the XML parser (XMLReader) configured for Flying Saucer. The result is packed up into an {@link XMLResource} for
+   * later consumption.
    *
    * @param uri Location of the XML source.
-   * @return An XMLResource containing the image.
+   * @return An {@link XMLResource} containing the image.
    */
   @Override
   public XMLResource getXMLResource(String uri, ExternalResourceType type) {

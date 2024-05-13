@@ -13,6 +13,7 @@ import org.w3c.dom.Document;
 import java.io.Closeable;
 import java.io.File;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -154,8 +155,8 @@ public abstract class BaseRendererBuilder<TFinalClass extends BaseRendererBuilde
 	}
 
 	/**
-	 * Provides an HttpStreamFactory implementation if the user desires to use an
-	 * external HTTP/HTTPS implementation. Uses URL::openStream by default.
+	 * Provides an {@link FSStreamFactory} implementation if the user desires to use an
+	 * external HTTP/HTTPS implementation. Uses {@link URL#openStream()} by default.
 	 * 
 	 * @see #useProtocolsStreamImplementation(FSStreamFactory, String[])
 	 *
@@ -172,9 +173,6 @@ public abstract class BaseRendererBuilder<TFinalClass extends BaseRendererBuilde
 	 * implementation if the user desires to use an external
 	 * stream provider for a particular set of protocols.
 	 * Protocols should always be in lower case.
-	 * 
-	 * NOTE: HttpStreamFactory, despite its historical name, can be used for any protocol
-	 * including private made-up protocols.
 	 * 
 	 * @see #useHttpStreamImplementation(FSStreamFactory)
 	 * @see #useProtocolsStreamImplementation(FSStreamFactory, String[])
@@ -194,9 +192,6 @@ public abstract class BaseRendererBuilder<TFinalClass extends BaseRendererBuilde
 	 * implementation if the user desires to use an external
 	 * stream provider for a particular list of protocols.
 	 * Protocols should always be in lower case.
-	 * 
-	 * NOTE: HttpStreamFactory, despite its historical name, can be used for any protocol
-	 * including private made-up protocols.
 	 * 
 	 * @see #useHttpStreamImplementation(FSStreamFactory)
 	 * @see #useProtocolsStreamImplementation(FSStreamFactory, Set)

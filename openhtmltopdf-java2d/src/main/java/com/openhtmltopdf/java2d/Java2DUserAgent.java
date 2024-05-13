@@ -4,10 +4,12 @@ import java.awt.image.BufferedImage;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.logging.Level;
 
 import javax.imageio.ImageIO;
 
+import com.openhtmltopdf.extend.FSStreamFactory;
 import com.openhtmltopdf.java2d.image.AWTFSImage;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
@@ -20,11 +22,11 @@ public class Java2DUserAgent extends NaiveUserAgent {
 
     /**
      * Retrieves the image located at the given URI. It's assumed the URI does point to an image--the URI will
-     * be accessed (using the set HttpStreamFactory or URL::openStream), opened, read and then passed into the JDK image-parsing routines.
-     * The result is packed up into an ImageResource for later consumption.
+     * be accessed (using the set {@link FSStreamFactory} or {@link URL#openStream()}), opened, read and then passed
+     * into the JDK image-parsing routines. The result is packed up into an {@link ImageResource} for later consumption.
      *
      * @param uri Location of the image source.
-     * @return An ImageResource containing the image.
+     * @return An {@link ImageResource} containing the image.
      */
     @Override
     public ImageResource getImageResource(String uri, ExternalResourceType type) {
