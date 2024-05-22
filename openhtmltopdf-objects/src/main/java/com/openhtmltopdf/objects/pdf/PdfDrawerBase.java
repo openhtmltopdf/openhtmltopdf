@@ -3,6 +3,8 @@ package com.openhtmltopdf.objects.pdf;
 import com.openhtmltopdf.extend.FSObjectDrawer;
 import com.openhtmltopdf.pdfboxout.PdfBoxOutputDevice;
 import com.openhtmltopdf.render.RenderingContext;
+import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.XRLog;
 import org.apache.pdfbox.io.RandomAccessReadBuffer;
 import org.apache.pdfbox.multipdf.LayerUtility;
 import org.apache.pdfbox.pdfparser.PDFParser;
@@ -14,9 +16,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public abstract class PdfDrawerBase implements FSObjectDrawer
 {
@@ -34,13 +38,14 @@ public abstract class PdfDrawerBase implements FSObjectDrawer
         PDFormXObject pdFormXObject = map.get(url);
         if (pdFormXObject == null)
         {
-            try (InputStream inputStream = new URL(url).openStream())
+            try (InputStream inputStream = new URI(url).toURL().openStream())
             {
                 PDFParser pdfParser = new PDFParser(new RandomAccessReadBuffer(inputStream));
                 PDDocument pdfDocument = pdfParser.parse();
-                pdFormXObject = layerUtility
-                        .importPageAsForm(pdfDocument, pdfpage - 1);
+                pdFormXObject = layerUtility.importPageAsForm(pdfDocument, pdfpage - 1);
                 pdfDocument.close();
+            } catch (URISyntaxException ex) {
+                XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_MALFORMED_URL, url, ex);
             }
             map.put(url, pdFormXObject);
         }

@@ -263,7 +263,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         return getProtocolFactory(protocol).getUrl(uri).getStream();
       } else {
         try {
-          is = new URL(uri).openStream();
+          is = new URI(uri).toURL().openStream();
         } catch (java.net.MalformedURLException e) {
           XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_MALFORMED_URL, uri, e);
         } catch (java.io.FileNotFoundException e) {
@@ -292,7 +292,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         return getProtocolFactory(protocol).getUrl(uri).getReader();
       } else {
         try {
-          is = new URL(uri).openStream();
+          is = new URI(uri).toURL().openStream();
         } catch (java.net.MalformedURLException e) {
           XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_MALFORMED_URL, uri, e);
         } catch (java.io.FileNotFoundException e) {
@@ -539,13 +539,13 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
       InputStream is = null;
 
       try {
-        URLConnection conn = new URL(uri).openConnection();
+        URLConnection conn = new URI(uri).toURL().openConnection();
         conn.setConnectTimeout(this.connectTimeout);
         conn.setReadTimeout(this.readTimeout);
         conn.connect();
 
         is = conn.getInputStream();
-      } catch (java.net.MalformedURLException e) {
+      } catch (java.net.MalformedURLException | URISyntaxException e) {
         XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_MALFORMED_URL, uri, e);
       } catch (java.io.FileNotFoundException e) {
         XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_ITEM_AT_URI_NOT_FOUND, uri, e);
