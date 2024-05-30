@@ -5,13 +5,11 @@ on:
   pull_request:
     paths:
       - "!**/**.md"
-      - "*"
   push:
     branches:
       - "*"
     paths:
       - "!**/**.md"
-      - "*"
 
 jobs:
   build:
