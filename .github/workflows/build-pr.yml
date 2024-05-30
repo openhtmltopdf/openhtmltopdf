@@ -9,7 +9,7 @@ on:
     branches:
       - "*"
     paths:
-      - "!**/**.md"
+      - "*"
 
 jobs:
   build:
