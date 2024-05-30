@@ -5,6 +5,7 @@ on:
   pull_request:
     paths-ignore:
       - "!**/**.md"
+      - "!.github/workflows/**.yml"
 
 jobs:
   build:
