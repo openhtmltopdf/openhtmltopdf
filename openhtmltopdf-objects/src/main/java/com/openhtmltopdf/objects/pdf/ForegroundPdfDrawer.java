@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 public class ForegroundPdfDrawer extends PdfDrawerBase
-{
+{ // Temp change
     @Override
     public Map<Shape, String> drawObject(Element e, double x, double y, double width, double height,
             OutputDevice outputDevice, RenderingContext ctx, int dotsPerPixel)
