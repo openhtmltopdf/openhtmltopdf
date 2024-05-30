@@ -1,6 +1,6 @@
 [![build-release](https://github.com/openhtmltopdf/openhtmltopdf/workflows/release/badge.svg)](https://github.com/openhtmltopdf/openhtmltopdf/actions?query=workflow%3Arelease)
 
-# OPEN HTML TO PDF TEMP CHANGE
+# OPEN HTML TO PDF
 
 ![PDF screenshot of OpenHTMLtoPDF](screenshot.png)
 
