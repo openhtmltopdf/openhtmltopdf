@@ -39,7 +39,10 @@ import java.util.List;
 import java.util.logging.Level;
 
 public class PdfBoxTextRenderer implements TextRenderer {
-    private static float TEXT_MEASURING_DELTA = 0.01f;
+
+    private static final float TEXT_MEASURING_DELTA = 0.01f;
+    private static final int FAST_FONT_RUN_MINIMUM_LENGTH = 32;
+    private static final int FAST_FONT_RUN_PARTIITON_FACTOR = 3;
 
     private BidiReorderer _reorderer;
 
@@ -318,14 +321,23 @@ public class PdfBoxTextRenderer implements TextRenderer {
             return 0;
         }
 
-        float result;
+        float result = 0f;
         try {
             result = description.getFont().getStringWidth(effectiveString) / 1000f + pdfBoxFont.getSize2D();
         } catch (IllegalArgumentException e) {
-            // todo: logarithmic partitioning
             /* PDFont::getStringWidth throws an IllegalArgumentException if the character doesn't exist in the font.
-               So we do it one character by character instead. */
-            result = getStringWidthSlow(pdfBoxFont, effectiveString) / 1000f * pdfBoxFont.getSize2D();
+               We can do it one character by character instead, but first let's partition the string logarithmically
+               (e.g. merge-sort) to minimize the length of the string which must be parsed slowly. */
+
+            if (effectiveString.length() < FAST_FONT_RUN_MINIMUM_LENGTH) {
+                result = getStringWidthSlow(pdfBoxFont, effectiveString) / 1000f * pdfBoxFont.getSize2D();
+            } else {
+                for (int i = 0; i < FAST_FONT_RUN_PARTIITON_FACTOR; i++) {
+                    int chunkSize = effectiveString.length() / FAST_FONT_RUN_PARTIITON_FACTOR;
+                    String chunk = effectiveString.substring(i * chunkSize, (i + 1) * chunkSize);
+                    result += getWidth(context, font, chunk);
+                }
+            }
         } catch (IOException e) {
             throw new PdfContentStreamAdapter.PdfException("getWidth", e);
         }
@@ -359,4 +371,5 @@ public class PdfBoxTextRenderer implements TextRenderer {
         XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.RENDER_FONT_IS_NULL, fontDescription);
         _loggedMissingFont = true;
     }
+
 }
