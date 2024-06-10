@@ -70,6 +70,7 @@ public abstract class BaseRendererBuilder<TFinalClass extends BaseRendererBuilde
 		public String _preferredTransformerFactoryImplementationClass = "com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl";
 		public String _preferredDocumentBuilderFactoryImplementationClass = "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl";
 		public Consumer<Diagnostic> _diagnosticConsumer;
+		public Hyphenator _hyphenator;
     }
 
 	protected final TBaseRendererBuilderState state;

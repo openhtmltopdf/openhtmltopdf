@@ -911,6 +911,18 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS2 property.
      */
+    public final static CSSName HYPHENS =
+            addProperty(
+                    "hyphens",
+                    PRIMITIVE,
+                    "manual",
+                    INHERITS,
+                    new PrimitivePropertyBuilders.Hyphens()
+            );
+
+    /**
+     * Unique CSSName instance for CSS2 property.
+     */
     public final static CSSName PAGE =
             addProperty(
                     "page",

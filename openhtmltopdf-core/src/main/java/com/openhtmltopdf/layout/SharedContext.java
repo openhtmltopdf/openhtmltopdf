@@ -110,6 +110,7 @@ public class SharedContext {
 	private String replacementText = "#";
 	private FSTextBreaker lineBreaker = new UrlAwareLineBreakIterator(BreakIterator.getLineInstance(Locale.US));
 	private FSTextBreaker characterBreaker = new TextUtil.DefaultCharacterBreaker(BreakIterator.getCharacterInstance(Locale.US));
+    private Hyphenator hyphenator;
 
 	private FSTextTransformer _unicodeToLowerTransformer = new TextUtil.DefaultToLowerTransformer(Locale.US);
 	private FSTextTransformer _unicodeToUpperTransformer = new TextUtil.DefaultToUpperTransformer(Locale.US);
@@ -527,6 +528,14 @@ public class SharedContext {
 	public void setCharacterBreaker(FSTextBreaker breaker) {
 		this.characterBreaker = breaker;
 	}
+
+    public void setHyphenator(Hyphenator hyphenator) {
+        this.hyphenator = hyphenator;
+    }
+
+    public Hyphenator getHyphenator() {
+        return this.hyphenator;
+    }
 	
 	
 	/**

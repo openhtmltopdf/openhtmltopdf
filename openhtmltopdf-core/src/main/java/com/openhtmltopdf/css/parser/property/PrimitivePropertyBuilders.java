@@ -1126,6 +1126,17 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    public static class Hyphens extends SingleIdent {
+        // auto | none | manual
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.NONE, IdentValue.MANUAL });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class PaddingTop extends NonNegativeLengthLike {
     }
 

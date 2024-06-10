@@ -251,6 +251,15 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
 	}
 
 	/**
+	 * Provide a custom auto-hyphenator, that will be used, if the 'hyphens' is being used in css
+	 * @param hyphenator custom hyphenator, that should be used
+	 */
+	public PdfRendererBuilder useHyphenation(Hyphenator hyphenator) {
+		state._hyphenator = hyphenator;
+		return this;
+	}
+
+	/**
 	 * List of caches available.
 	 */
 	public enum CacheStore {
