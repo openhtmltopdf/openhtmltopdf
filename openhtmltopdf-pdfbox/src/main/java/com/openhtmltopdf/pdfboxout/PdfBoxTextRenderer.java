@@ -42,7 +42,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
     private static final float TEXT_MEASURING_DELTA = 0.01f;
     private static final int FAST_FONT_RUN_MINIMUM_LENGTH = 32;
-    private static final int FAST_FONT_RUN_PARTIITON_FACTOR = 3;
+    private static final int FAST_FONT_RUN_PARTITION_FACTOR = 3;
 
     private BidiReorderer _reorderer;
 
@@ -335,8 +335,8 @@ public class PdfBoxTextRenderer implements TextRenderer {
             if (effectiveString.length() < FAST_FONT_RUN_MINIMUM_LENGTH) {
                 result = getStringWidthSlow(pdfBoxFont, effectiveString) / 1000f * pdfBoxFont.getSize2D();
             } else {
-                for (int i = 0; i < FAST_FONT_RUN_PARTIITON_FACTOR; i++) {
-                    int chunkSize = effectiveString.length() / FAST_FONT_RUN_PARTIITON_FACTOR;
+                for (int i = 0; i < FAST_FONT_RUN_PARTITION_FACTOR; i++) {
+                    int chunkSize = effectiveString.length() / FAST_FONT_RUN_PARTITION_FACTOR;
                     String chunk = effectiveString.substring(i * chunkSize, (i + 1) * chunkSize);
                     result += getWidth(context, font, chunk);
                 }
