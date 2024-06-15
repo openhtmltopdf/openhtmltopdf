@@ -10,11 +10,19 @@ This is the community's next iteration of the [OpenHTMLtoPDF project](https://gi
 Open HTML to PDF is a pure-Java library for rendering a reasonable subset of well-formed XML/XHTML (and even some HTML5)
 using CSS 2.1 (and later standards) for layout and formatting, outputting to PDF or images.
 
-Use this library to generated nice looking PDF documents. But be aware that you can not throw modern HTML5+ at
-this engine and expect a great result. You must special craft the HTML document for this library and 
-use it's extended CSS feature like [#31](https://github.com/danfickle/openhtmltopdf/pull/31) or
-[#32](https://github.com/danfickle/openhtmltopdf/pull/32) 
-to get good results. Avoid floats near page breaks and use table layouts.
+## DISCLAIMER
+OpenHTMLtoPDF uses a custom engine to render HTML/CSS (rather than WebKit/Blink/etc.). This engine is not as
+well-maintained or fully-featured, but it is much lighter, allowing it to run significantly faster than alternatives (
+e.g. none of our code pays any attention to JavaScript). As a result, some not-so-gentle massaging is required to
+achieve parity between the PDF output and what is seen in a web browser.
+
+Notably, the CSS flex box and grid layout schemes are not supported. Oftentimes, a modern web page must be re-adapted to
+use older web design practices employing HTML tables or 'floating' inline blocks. Transparency is also not supported, so
+color codes utilizing alpha values or computed opacity will have to be re-formed to use an explicit RGB/HSL value.
+
+The native XML parser cannot interpret the full HTML specification. We recommend users to utilize
+the [Jsoup](https://jsoup.org/) library to pre-emptively parse the HTML file before passing a `Document` object to the
+PDF renderer.
 
 ## GETTING STARTED
 + [Maven Central registry](https://central.sonatype.com/artifact/io.github.openhtmltopdf)
