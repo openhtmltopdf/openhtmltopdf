@@ -37,7 +37,6 @@ import com.openhtmltopdf.extend.TextRenderer;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.outputdevice.helper.FontResolverHelper;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
-import com.openhtmltopdf.pdfboxout.PdfBoxUtil.FontRun;
 import com.openhtmltopdf.pdfboxout.PdfBoxUtil.Metadata;
 import com.openhtmltopdf.pdfboxout.fontstore.FontNotFoundException;
 import com.openhtmltopdf.render.*;
