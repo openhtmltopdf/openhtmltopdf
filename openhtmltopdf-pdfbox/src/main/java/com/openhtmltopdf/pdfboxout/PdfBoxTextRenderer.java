@@ -337,7 +337,9 @@ public class PdfBoxTextRenderer implements TextRenderer {
             } else {
                 for (int i = 0; i < FAST_FONT_RUN_PARTITION_FACTOR; i++) {
                     int chunkSize = effectiveString.length() / FAST_FONT_RUN_PARTITION_FACTOR;
-                    String chunk = effectiveString.substring(i * chunkSize, (i + 1) * chunkSize);
+                    int left = i * chunkSize;
+                    int right = i + 1 == FAST_FONT_RUN_PARTITION_FACTOR ? effectiveString.length() : (i + 1) * chunkSize;
+                    String chunk = effectiveString.substring(left, right);
                     result += getWidth(context, font, chunk);
                 }
             }
