@@ -22,6 +22,7 @@ import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.logging.Level;
 
+@SuppressWarnings({"UnusedReturnValue", "unused"}) // Return values are used by clients
 public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, PdfRendererBuilderState> {
 
 	public PdfRendererBuilder() {
@@ -173,7 +174,7 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
 
 	/**
 	 * Set the PDF/A conformance, typically we use PDF/A-1
-	 * 
+	 * <p>
 	 * Note: PDF/A documents require fonts to be embedded. So if this is not set to NONE,
 	 * the built-in fonts will not be available and currently any text without a
 	 * specified and embedded font will cause the renderer to crash with an exception.
@@ -185,11 +186,20 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
         }
 		return this;
 	}
-	
+
 	/**
 	 * Whether to conform to PDF/UA or Accessible PDF. False by default.
-	 * @param pdfUaAccessibility
-	 * @return this for method chaining
+	 * @deprecated Misspelled method name
+	 * @see PdfRendererBuilder#usePdfUaAccessibility
+	 */
+	@SuppressWarnings("SpellCheckingInspection")
+    @Deprecated
+	public PdfRendererBuilder usePdfUaAccessbility(boolean pdfUaAccessibility) {
+		return usePdfUaAccessibility(pdfUaAccessibility);
+	}
+
+	/**
+	 * Whether to conform to PDF/UA or Accessible PDF. False by default.
 	 */
 	public PdfRendererBuilder usePdfUaAccessibility(boolean pdfUaAccessibility) {
 	    this.state._pdfUaConform = pdfUaAccessibility;
@@ -197,10 +207,10 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
 	}
 
 	/**
-	 * Sets the color profile, needed for PDF/A conformance.
-	 *
-	 * You can use the sRGB.icc from https://svn.apache.org/viewvc/pdfbox/trunk/examples/src/main/resources/org/apache/pdfbox/resources/pdfa/
-	 */
+     * Sets the color profile, needed for PDF/A conformance.
+     * <p>
+     * You can use the sRGB.icc from <a href="https://svn.apache.org/viewvc/pdfbox/trunk/examples/src/main/resources/org/apache/pdfbox/resources/pdfa/">Apache PdfBox</a>
+     */
 	public PdfRendererBuilder useColorProfile(byte[] colorProfile) {
 		this.state._colorProfile = colorProfile;
 		return this;
@@ -265,7 +275,7 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
 	
 	/**
 	 * Use a specific cache. Cache values should be thread safe, so provided your cache store itself
-	 * is thread safe can be used accross threads.
+	 * is thread safe can be used across threads.
 	 * @return this for method chaining.
 	 * @see CacheStore
 	 */
@@ -288,7 +298,6 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
 
 	/**
 	 * Various level of PDF/A conformance:
-	 *
 	 * PDF/A-1, PDF/A-2 and PDF/A-3
 	 */
 	public enum PdfAConformance {
