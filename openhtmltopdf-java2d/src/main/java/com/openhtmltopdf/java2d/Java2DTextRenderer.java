@@ -300,8 +300,5 @@ public class Java2DTextRenderer implements TextRenderer {
         return result;
     }
 
-	@Override
-	public void setup(FontContext context) {
-	}
 }
 

@@ -352,10 +352,6 @@ public class PdfBoxTextRenderer implements TextRenderer {
         }
     }
 
-    @Override
-    public void setup(FontContext context) {
-    }
-
     private FontDescription getFontDescription(PdfBoxFSFont pdfBoxFont) {
         for (FontDescription d : pdfBoxFont.getFontDescriptions()) {
             if (d.getFont() != null) {

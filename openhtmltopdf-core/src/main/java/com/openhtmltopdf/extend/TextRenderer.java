@@ -37,7 +37,7 @@ public interface TextRenderer {
      * @return The cleaned string or <code>null</code> if the input is null
      * @see com.openhtmltopdf.util.OpenUtil#isSafeFontCodePointToPrint(int)
      */
-    public static String getEffectivePrintableString(String input) {
+    static String getEffectivePrintableString(String input) {
         if (input == null || input.isEmpty() || areAllCharactersPrintable(input)) {
             return input;
         }
@@ -48,18 +48,15 @@ public interface TextRenderer {
         return effective.toString();
     }
 
-    void setup(FontContext context);
-
     void drawString(OutputDevice outputDevice, String string, float x, float y);
-    void drawString(
-            OutputDevice outputDevice, String string, float x, float y, JustificationInfo info);
 
-    FSFontMetrics getFSFontMetrics(
-            FontContext context, FSFont font, String string );
+    void drawString(OutputDevice outputDevice, String string, float x, float y, JustificationInfo info);
+
+    FSFontMetrics getFSFontMetrics(FontContext context, FSFont font, String string);
 
     /**
      * Rarely need to use this method directly.
-     * Instead favor {@link Breaker} static method instead.
+     * Instead, favor {@link Breaker} static method instead.
      */
     int getWidth(FontContext context, FSFont font, String string);
 }

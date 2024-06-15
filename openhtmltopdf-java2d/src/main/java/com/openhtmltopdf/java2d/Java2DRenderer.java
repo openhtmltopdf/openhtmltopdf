@@ -286,8 +286,6 @@ public class Java2DRenderer implements Closeable {
         
         _outputDevice.setRenderingContext(result);
 
-        _sharedContext.getTextRenderer().setup(result.getFontContext());
-
         result.setRootLayer(_root.getLayer());
 
         return result;
