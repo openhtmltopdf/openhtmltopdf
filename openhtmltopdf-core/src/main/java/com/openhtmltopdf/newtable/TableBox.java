@@ -641,15 +641,18 @@ public class TableBox extends BlockBox {
             // XHTML 1.0 specifies that a table width refers to the border
             // width.  This can be removed if/when we support the box-sizing
             // property.
-            int result = (int)getStyle().getFloatPropertyProportionalWidth(
+            int result = (int) getStyle().getFloatPropertyProportionalWidth(
                     CSSName.WIDTH, getContainingBlock().getContentWidth(), c);
 
             BorderPropertySet border = getBorder(c);
-            result -= (int)border.left() + (int)border.right();
-            if (! getStyle().isCollapseBorders()) {
+            result -= (int) border.left() + (int) border.right();
+            if (!getStyle().isCollapseBorders()) {
                 RectPropertySet padding = getPadding(c);
-                result -= (int)padding.left() + (int)padding.right();
+                result -= (int) padding.left() + (int) padding.right();
             }
+
+            RectPropertySet margin = getMargin(c);
+            result -= (int) margin.left() + (int) margin.right();
 
             return result >= 0 ? result : -1;
         }
