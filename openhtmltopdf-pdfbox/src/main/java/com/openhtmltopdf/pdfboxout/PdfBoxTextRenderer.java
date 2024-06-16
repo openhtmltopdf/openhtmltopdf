@@ -192,10 +192,10 @@ public class PdfBoxTextRenderer implements TextRenderer {
         return replace;
     }
 
-    public static List<FontRun> divideIntoFontRuns(FSFont font, String str, BidiReorderer reorderer) {
+    public static List<FontRun> divideIntoFontRuns(PdfBoxFSFont font, String str, BidiReorderer reorderer) {
         StringBuilder stringBuilder = new StringBuilder();
         ReplacementChar replace = PdfBoxTextRenderer.getReplacementChar(font);
-        List<FontDescription> fontDescriptions = ((PdfBoxFSFont) font).getFontDescriptions();
+        List<FontDescription> fontDescriptions = font.getFontDescriptions();
         List<FontRun> runs = new ArrayList<>();
         FontRun currentRun = null;
 
@@ -294,8 +294,8 @@ public class PdfBoxTextRenderer implements TextRenderer {
         return runs;
     }
 
-    private float getStringWidthSlow(FSFont bf, String str) {
-        List<FontRun> runs = divideIntoFontRuns(bf, str, _reorderer);
+    private float getStringWidthSlow(PdfBoxFSFont font, String str) {
+        List<FontRun> runs = divideIntoFontRuns(font, str, _reorderer);
         float strWidth = 0;
 
         for (FontRun run : runs) {
@@ -340,7 +340,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
                     int left = i * chunkSize;
                     int right = i + 1 == FAST_FONT_RUN_PARTITION_FACTOR ? effectiveString.length() : (i + 1) * chunkSize;
                     String chunk = effectiveString.substring(left, right);
-                    result += getWidth(context, font, chunk);
+                    result += getWidth(context, pdfBoxFont, chunk);
                 }
             }
         } catch (IOException e) {
