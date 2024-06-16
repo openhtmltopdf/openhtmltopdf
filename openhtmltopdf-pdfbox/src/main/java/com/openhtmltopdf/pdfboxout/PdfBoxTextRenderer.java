@@ -194,7 +194,6 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
     public static List<FontRun> divideIntoFontRuns(PdfBoxFSFont font, String str, BidiReorderer reorderer) {
         StringBuilder stringBuilder = new StringBuilder();
-        ReplacementChar replace = PdfBoxTextRenderer.getReplacementChar(font);
         List<FontDescription> fontDescriptions = font.getFontDescriptions();
         List<FontRun> runs = new ArrayList<>();
         FontRun currentRun = null;
@@ -212,29 +211,53 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
             FontDescription applicableDescription = null;
             for (FontDescription description : fontDescriptions) {
-                if (description.getFont() == null) {
-                    continue;
-                }
                 try {
                     description.getFont().getStringWidth(ch);
+                    // We got here, so this font includes this character
                     applicableDescription = description;
-                } catch (IllegalArgumentException e) {
+                } catch (IllegalArgumentException e) { // PDFont # getStringWidth throws IllegalArgumentException when a character in the string is not contained by the font
                     if (!reorderer.isLiveImplementation()) {
                         continue;
                     }
+                    // Try to deshape the character before moving on to the next font
+                } catch (IOException e) {
+                    // Keep trying with next font.
+                    continue;
+                }
 
+                if (applicableDescription == null) {
                     // Character is not in font! Next, we try deshaping.
                     String deshaped = reorderer.deshapeText(ch);
                     try {
                         description.getFont().getStringWidth(deshaped);
+                        // We got here, so this font has this deshaped character.
                         applicableDescription = description;
-                    } catch (Exception e2) {
+                        ch = deshaped;
+                    } catch (IllegalArgumentException | IOException e1) {
                         // Keep trying with next font.
                         continue;
                     }
-                } catch (IOException e) {
-                    // Keep trying with next font.
                 }
+
+                if (currentRun == null) {
+                    // First character of run.
+                    currentRun = new FontRun(applicableDescription);
+                } else if (applicableDescription != currentRun.description) {
+                    // We have changed font, so we'll start a new font run.
+                    currentRun.string = stringBuilder.toString();
+                    runs.add(currentRun);
+                    currentRun = new FontRun(applicableDescription);
+                    stringBuilder = new StringBuilder();
+                }
+
+                if (isJustificationSpace(unicode)) {
+                    currentRun.spaceCharacterCount++;
+                } else {
+                    currentRun.otherCharacterCount++;
+                }
+
+                stringBuilder.append(ch);
+                break;
             }
 
             if (applicableDescription == null) {
@@ -244,6 +267,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
                 }
 
                 // We still don't have the character after all that. So use replacement character.
+                ReplacementChar replace = PdfBoxTextRenderer.getReplacementChar(font);
                 if (currentRun == null) {
                     // First character of run.
                     currentRun = new FontRun(replace.fontDescription);
@@ -262,26 +286,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
                     currentRun.otherCharacterCount++;
                     stringBuilder.append(replace.replacement);
                 }
-                continue;
             }
-
-            // We got here, so this font has this character.
-            if (currentRun == null) { // First character of run.
-                currentRun = new FontRun(applicableDescription);
-            } else if (applicableDescription != currentRun.description) { // We have changed font, so we'll start a new font run.
-                currentRun.string = stringBuilder.toString();
-                runs.add(currentRun);
-                currentRun = new FontRun(applicableDescription);
-                stringBuilder = new StringBuilder();
-            }
-
-            if (isJustificationSpace(unicode)) {
-                currentRun.spaceCharacterCount += 1;
-            } else {
-                currentRun.otherCharacterCount += 1;
-            }
-
-            stringBuilder.append(ch);
         }
 
         if (stringBuilder.length() > 0) {

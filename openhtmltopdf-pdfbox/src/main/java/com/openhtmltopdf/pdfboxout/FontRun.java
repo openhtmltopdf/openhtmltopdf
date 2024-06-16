@@ -1,11 +1,11 @@
 package com.openhtmltopdf.pdfboxout;
 
 public class FontRun {
-    final PdfBoxFontResolver.FontDescription description;
+    public final PdfBoxFontResolver.FontDescription description;
 
-    String string = "";
-    int spaceCharacterCount = 0;
-    int otherCharacterCount = 0;
+    public String string = "";
+    public int spaceCharacterCount = 0;
+    public int otherCharacterCount = 0;
 
     public FontRun(PdfBoxFontResolver.FontDescription description) {
         this.description = description;
