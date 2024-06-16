@@ -35,6 +35,7 @@ import com.openhtmltopdf.util.XRLog;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 
 public class PdfBoxTextRenderer implements TextRenderer {
@@ -318,14 +319,14 @@ public class PdfBoxTextRenderer implements TextRenderer {
             return 0;
         }
 
-        FontDescription description = getFontDescription(pdfBoxFont);
-        if (description == null) {
+        Optional<FontDescription> description = getFontDescription(pdfBoxFont);
+        if (!description.isPresent()) {
             return 0;
         }
 
         float result = 0f;
         try {
-            result = description.getFont().getStringWidth(effectiveString) / 1000f + pdfBoxFont.getSize2D();
+            result = description.get().getFont().getStringWidth(effectiveString) / 1000f * pdfBoxFont.getSize2D();
         } catch (IllegalArgumentException e) {
             /* PDFont::getStringWidth throws an IllegalArgumentException if the character doesn't exist in the font.
                We can do it one character by character instead, but first let's partition the string logarithmically
@@ -353,14 +354,14 @@ public class PdfBoxTextRenderer implements TextRenderer {
         }
     }
 
-    private FontDescription getFontDescription(PdfBoxFSFont pdfBoxFont) {
+    private Optional<FontDescription> getFontDescription(PdfBoxFSFont pdfBoxFont) {
         for (FontDescription d : pdfBoxFont.getFontDescriptions()) {
             if (d.getFont() != null) {
-                return d;
+                return Optional.of(d);
             }
             logMissingFont(d);
         }
-        return null;
+        return Optional.empty();
     }
 
     private void logMissingFont(FontDescription fontDescription) {
