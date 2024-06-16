@@ -211,6 +211,10 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
             FontDescription applicableDescription = null;
             for (FontDescription description : fontDescriptions) {
+                if (description.getFont() == null) {
+                    continue;
+                }
+
                 try {
                     description.getFont().getStringWidth(ch);
                     // We got here, so this font includes this character
