@@ -17,7 +17,7 @@ use it's extended CSS feature like [#31](https://github.com/danfickle/openhtmlto
 to get good results. Avoid floats near page breaks and use table layouts.
 
 ## GETTING STARTED
-+ [Maven Central registry](https://central.sonatype.com/artifact/io.github.openhtmltopdf)
++ [Maven Central registry](https://central.sonatype.com/namespace/io.github.openhtmltopdf)
 + [1.0.10 Online Sandbox](https://sandbox.openhtmltopdf.com/)
 + [Templates for Openhtmltopdf](https://danfickle.github.io/pdf-templates/index.html)
   + MIT licensed templates that work with this project. Updated 2021-09-21.
