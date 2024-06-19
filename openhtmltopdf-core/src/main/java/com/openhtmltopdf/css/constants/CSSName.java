@@ -908,9 +908,6 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.Overflow()
             );
 
-    /**
-     * Unique CSSName instance for CSS2 property.
-     */
     public final static CSSName HYPHENS =
             addProperty(
                     "hyphens",
