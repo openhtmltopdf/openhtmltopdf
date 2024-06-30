@@ -28,7 +28,7 @@ PDF renderer.
 
 ## GETTING STARTED
 
-+ [Maven Central registry](https://central.sonatype.com/artifact/io.github.openhtmltopdf)
++ [Maven Central registry](https://central.sonatype.com/namespace/io.github.openhtmltopdf)
 + [1.0.10 Online Sandbox](https://sandbox.openhtmltopdf.com/)
 + [Templates for Openhtmltopdf](https://danfickle.github.io/pdf-templates/index.html)
     + MIT licensed templates that work with this project. Updated 2021-09-21.
