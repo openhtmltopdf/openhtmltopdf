@@ -135,6 +135,8 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
     private final Closeable _diagnosticConsumer;
 
+    private Hyphenator _hyphenator;
+
     private final int _initialPageNumber;
 
     /**
@@ -166,6 +168,8 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             _pdfAConformance = state._pdfAConformance;
             _pdfUaConformance = state._pdfUaConform;
             _colorProfile = state._colorProfile;
+
+            _hyphenator = state._hyphenator;
 
             _dotsPerPoint = DEFAULT_DOTS_PER_POINT;
             _testMode = state._testMode;
@@ -247,6 +251,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
             if (unicode.toTitleTransformer != null) {
                 _sharedContext.setUnicodeToTitleTransformer(unicode.toTitleTransformer);
+            }
+
+            if(_hyphenator != null) {
+                _sharedContext.setHyphenator(_hyphenator);
             }
 
             this._defaultTextDirection = unicode.textDirection ? BidiSplitter.RTL : BidiSplitter.LTR;

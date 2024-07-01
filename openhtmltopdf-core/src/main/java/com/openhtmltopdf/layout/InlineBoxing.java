@@ -37,6 +37,7 @@ import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.RectPropertySet;
+import com.openhtmltopdf.extend.Hyphenator;
 import com.openhtmltopdf.layout.Breaker.BreakTextResult;
 import com.openhtmltopdf.render.AnonymousBlockBox;
 import com.openhtmltopdf.render.BlockBox;
@@ -84,6 +85,7 @@ public class InlineBoxing {
         Element blockElement = box.getElement();
         Paragraph para = c.getParagraphSplitter().lookupBlockElement(blockElement);
         byte blockLayoutDirection = para.getActualDirection();
+        Hyphenator hyphenator = c.getSharedContext().getHyphenator();
 
         SpaceVariables space = new SpaceVariables(box.getContentWidth());
         StateVariables current = new StateVariables();
@@ -146,6 +148,10 @@ public class InlineBoxing {
                 InlineBox inlineBox = (InlineBox)node;
 
                 CalculatedStyle style = inlineBox.getStyle();
+
+                if (hyphenator != null && IdentValue.AUTO.equals(style.getIdent(CSSName.HYPHENS))) {
+                    inlineBox.setText(hyphenator.hyphenateText(inlineBox.getText()));
+                }
 
                 if (inlineBox.hasFootnote() && c.isPrint()) {
                     c.getFootnoteManager().addFootnoteBody(c, inlineBox.getFootnoteBody(), current.line);

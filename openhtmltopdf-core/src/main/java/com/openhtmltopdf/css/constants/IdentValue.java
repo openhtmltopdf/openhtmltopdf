@@ -131,6 +131,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue LOWER_ROMAN = addValue("lower-roman");
     public final static IdentValue LOWERCASE = addValue("lowercase");
     public final static IdentValue LTR = addValue("ltr");
+    public final static IdentValue MANUAL = addValue("manual");
     public final static IdentValue MARKER = addValue("marker");
     public final static IdentValue MIDDLE = addValue("middle");
     public final static IdentValue NO_CLOSE_QUOTE = addValue("no-close-quote");
