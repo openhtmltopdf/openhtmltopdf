@@ -4,6 +4,7 @@ import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.extend.FSCacheEx;
 import com.openhtmltopdf.extend.FSCacheValue;
 import com.openhtmltopdf.extend.FSSupplier;
+import com.openhtmltopdf.extend.Hyphenator;
 import com.openhtmltopdf.extend.impl.FSNoOpCacheStore;
 import com.openhtmltopdf.outputdevice.helper.*;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontGroup;
