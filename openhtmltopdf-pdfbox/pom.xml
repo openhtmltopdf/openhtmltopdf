@@ -141,7 +141,7 @@
   </build>
 
   <properties>
-    <pdfbox.version>3.0.2</pdfbox.version>
+    <pdfbox.version>3.0.3</pdfbox.version>
   </properties>
 
 </project>
