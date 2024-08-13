@@ -1,0 +1,23 @@
+<html>
+<head>
+<style>
+@page {
+  size: A4;
+  margin: 0;
+}
+</style>
+</head>
+<body>
+   <div style="width: 100%; height: 20px; background-color: transparent; page-break-after: always;"></div>
+
+   <div id="secondpage" style="background-color: red; height: 10px; -fs-named-destination: create;"></div>
+   <div style="width: 100%; height: 20px; background-color: transparent; page-break-after: always;"></div>
+   <div id="thirdpage" style="background-color: green; height: 10px; -fs-named-destination: create;"></div>
+   <div style="width: 100%; height: 20px; background-color: transparent; page-break-after: always;"></div>
+   <!-- Default -fs-named-destination behaviour: none -->
+   <div id="fourthpage" style="background-color: blue; height: 10px;"></div>
+   <div style="width: 100%; height: 20px; background-color: transparent; page-break-after: always;"></div>
+   <!-- Explicit -fs-named-destination behaviour -->
+   <div id="fifthpage" style="background-color: yellow; height: 10px; -fs-named-destination: none;"></div>
+</body>
+</html>

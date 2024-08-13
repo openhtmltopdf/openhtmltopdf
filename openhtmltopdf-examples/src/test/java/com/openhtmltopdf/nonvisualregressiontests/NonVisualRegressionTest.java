@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.junit.Assert.*;
 
 import java.awt.Color;
@@ -12,11 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -26,16 +23,16 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.cos.COSObject;
+import org.apache.pdfbox.cos.COSString;
 import org.apache.pdfbox.io.IOUtils;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDDocumentInformation;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachment;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationWidget;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDNamedDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageXYZDestination;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
@@ -981,6 +978,39 @@ public class NonVisualRegressionTest {
 
         assertTrue(TestSupport.comparePdfs(os.toByteArray(), filename));
         assertEquals(111.48, lastContentLine, 0.5);
+    }
+
+    @Test
+    public void testNamedDestinationsBasic() throws IOException {
+        try (PDDocument doc = run("named-destinations-basic")) {
+            PDDocumentCatalog catalog = doc.getDocumentCatalog();
+            assertNotNull(catalog.getNames());
+            assertNotNull(catalog.getNames().getDests());
+
+            Set<String> namedDestinationKeys = catalog.getNames().getDests().getNames().keySet();
+            assertEquals(2, namedDestinationKeys.size());
+            assertThat(namedDestinationKeys, hasItems("secondpage", "thirdpage"));
+
+            PDPageDestination nd1 = catalog.findNamedDestinationPage(new PDNamedDestination(new COSString("secondpage")));
+            assertNotNull(nd1);
+            assertThat(nd1, instanceOf(PDPageXYZDestination.class));
+            PDPageXYZDestination dest1 = (PDPageXYZDestination) nd1;
+
+            // At top of second page.
+            assertEquals(dest1.getPage(), doc.getPage(1));
+            assertEquals(doc.getPage(1).getMediaBox().getUpperRightY(), dest1.getTop(), 1.0d);
+
+            PDPageDestination nd2 = catalog.findNamedDestinationPage(new PDNamedDestination(new COSString("thirdpage")));
+            assertNotNull(nd2);
+            assertThat(nd2, instanceOf(PDPageXYZDestination.class));
+            PDPageXYZDestination dest2 = (PDPageXYZDestination) nd2;
+
+            // At top of third page.
+            assertEquals(dest2.getPage(), doc.getPage(2));
+            assertEquals(doc.getPage(2).getMediaBox().getUpperRightY(), dest2.getTop(), 1.0d);
+
+            remove("named-destinations-basic", doc);
+        }
     }
 
     // TODO:

@@ -182,6 +182,9 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     // Link manage handles a links. We add the link in paintBackground and then output links when the document is finished.
     private PdfBoxFastLinkManager _linkManager;
 
+    // Named destination manager, to track where we have named destinations to create which are then written when the document is finished.
+    private PdfBoxNamedDestinationManager _namedDestinationManager;
+
     // Not used currently.
     private RenderingContext _renderingContext;
 
@@ -878,6 +881,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     public void start(Document doc) {
         _bmManager = new PdfBoxBookmarkManager(doc, _writer, _sharedContext, _dotsPerPoint, this);
         _linkManager = new PdfBoxFastLinkManager(_sharedContext, _dotsPerPoint, _root, this);
+        _namedDestinationManager = new PdfBoxNamedDestinationManager(_writer, _sharedContext, _dotsPerPoint, this);
         loadMetadata(doc);
         
         if (_pdfUaConform) {
@@ -899,6 +903,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         // Also need access to the structure tree.
 		processControls(c);
         _linkManager.processLinks(_pdfUa);
+        _namedDestinationManager.processNamedDestinations(c, root);
         
         if (_pdfUa != null) {
             _pdfUa.finishNumberTree();

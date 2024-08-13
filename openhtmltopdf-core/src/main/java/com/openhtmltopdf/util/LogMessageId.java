@@ -60,7 +60,8 @@ public interface LogMessageId {
         EXCEPTION_TRIED_TO_OPEN_A_PASSWORD_PROTECTED_DOCUMENT_AS_SRC_FOR_IMG(XRLog.EXCEPTION, "Tried to open a password protected document as src for an img!"),
         EXCEPTION_COULD_NOT_READ_PDF_AS_SRC_FOR_IMG(XRLog.EXCEPTION, "Could not read pdf passed as src for img element!"),
         EXCEPTION_COULD_NOT_PARSE_DEFAULT_STYLESHEET(XRLog.EXCEPTION, "Could not parse default stylesheet"),
-        EXCEPTION_SELECTOR_BAD_SIBLING_AXIS(XRLog.EXCEPTION, "Bad sibling axis");
+        EXCEPTION_SELECTOR_BAD_SIBLING_AXIS(XRLog.EXCEPTION, "Bad sibling axis"),
+        EXCEPTION_INVALID_DESTS_ARRAY(XRLog.EXCEPTION, "Invalid dests array.");
 
         private final String where;
         private final String messageFormat;
