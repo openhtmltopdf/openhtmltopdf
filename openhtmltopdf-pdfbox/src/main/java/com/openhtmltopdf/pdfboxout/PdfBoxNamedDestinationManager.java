@@ -35,15 +35,15 @@ public class PdfBoxNamedDestinationManager {
 
     public void processNamedDestinations(RenderingContext c, Box root) {
         Map<String, Box> idMap = _sharedContext.getIdMap();
-        if (idMap != null && !idMap.isEmpty()) {
-            Map<String, PDPageDestination> names = new LinkedHashMap<>();
+        if (_sharedContext.isUsingFsNamedDestination() && idMap != null && !idMap.isEmpty()) {
+            Map<String, PDPageDestination> explicitNames = new LinkedHashMap<>();
             idMap.forEach((id, box) -> {
                 if (box.getStyle().isIdent(CSSName.FS_NAMED_DESTINATION, IdentValue.CREATE)) {
-                    names.put(id, createDestination(c, box, root));
+                    explicitNames.put(id, createDestination(c, box, root));
                 }
             });
 
-            if (!names.isEmpty()) {
+            if (!explicitNames.isEmpty()) {
                 PDDocumentNameDictionary nameTree = new PDDocumentNameDictionary(_writer.getDocumentCatalog());
                 PDDestinationNameTreeNode dests = nameTree.getDests();
                 if (dests == null) {
@@ -54,9 +54,9 @@ public class PdfBoxNamedDestinationManager {
                 try {
                     Map<String, PDPageDestination> allNames = dests.getNames();
                     if (allNames == null) {
-                        allNames = names;
+                        allNames = explicitNames;
                     } else {
-                        allNames.putAll(names);
+                        allNames.putAll(explicitNames);
                     }
 
                     dests.setNames(allNames);

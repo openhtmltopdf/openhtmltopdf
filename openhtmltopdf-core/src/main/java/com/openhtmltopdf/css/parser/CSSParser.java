@@ -20,6 +20,7 @@
 package com.openhtmltopdf.css.parser;
 
 import com.openhtmltopdf.css.constants.CSSName;
+import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.constants.MarginBoxName;
 import com.openhtmltopdf.css.constants.SVGProperty;
 import com.openhtmltopdf.css.extend.TreeResolver;
@@ -1331,6 +1332,10 @@ public class CSSParser {
                     }
 
                     if (valid) {
+                        if (cssName == CSSName.FS_NAMED_DESTINATION && values.stream().anyMatch(propertyValue -> IdentValue.valueOf(propertyValue.getStringValue()) == IdentValue.CREATE)) {
+                            ThreadCtx.get().sharedContext().setUsingFsNamedDestination(true);
+                        }
+
                         try {
                             PropertyBuilder builder = CSSName.getPropertyBuilder(cssName);
                             ruleset.addAllProperties(builder.buildDeclarations(

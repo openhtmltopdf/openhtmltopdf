@@ -116,6 +116,11 @@ public class SharedContext {
 	private FSTextTransformer _unicodeToUpperTransformer = new TextUtil.DefaultToUpperTransformer(Locale.US);
 	private FSTextTransformer _unicodeToTitleTransformer = new TextUtil.DefaultToTitleTransformer();
 
+    /**
+     * A flag to indicate that named boxes should be checked for creating named destinations
+     */
+    private boolean usingFsNamedDestination;
+
 	public String _preferredTransformerFactoryImplementationClass = null;
 	public String _preferredDocumentBuilderFactoryImplementationClass = null;
 
@@ -577,6 +582,14 @@ public class SharedContext {
 	public void setUnicodeToTitleTransformer(FSTextTransformer tr) {
 		this._unicodeToTitleTransformer = tr;
 	}
+
+    public boolean isUsingFsNamedDestination() {
+        return usingFsNamedDestination;
+    }
+
+    public void setUsingFsNamedDestination(boolean usingFsNamedDestination) {
+        this.usingFsNamedDestination = usingFsNamedDestination;
+    }
 
     public RootCounterContext getGlobalCounterContext() {
         return _rootCounterContext;
