@@ -17,6 +17,7 @@ import java.awt.*;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.logging.Level;
 
@@ -259,13 +260,23 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
     }
 
     /**
-	  * Provide a custom auto-hyphenator, that will be used, if the 'hyphens' is being used in css
-	  * @param hyphenator custom hyphenator, that should be used
-	  */
-	  public PdfRendererBuilder useHyphenation(Hyphenator hyphenator) {
-		  state._hyphenator = hyphenator;
-		  return this;
-	  }
+     * Override the creation date metadata on the output document
+     * @param timestamp the timestamp to apply; defaults to the current time
+     * @return this for method chaining
+     */
+    public PdfRendererBuilder withCreateTimestamp(Instant timestamp) {
+        state._createdAt = timestamp;
+        return this;
+    }
+
+    /**
+     * Provide a custom auto-hyphenator, that will be used, if the 'hyphens' is being used in css
+     * @param hyphenator custom hyphenator, that should be used
+     */
+    public PdfRendererBuilder useHyphenation(Hyphenator hyphenator) {
+        state._hyphenator = hyphenator;
+        return this;
+    }
 
     /**
      * List of caches available.

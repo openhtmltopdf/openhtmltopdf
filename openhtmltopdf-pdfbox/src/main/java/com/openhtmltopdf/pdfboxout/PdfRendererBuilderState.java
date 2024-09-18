@@ -9,6 +9,7 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder.PdfAConformance;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import java.io.OutputStream;
+import java.time.Instant;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -23,6 +24,7 @@ public class PdfRendererBuilderState extends BaseRendererBuilder.BaseRendererBui
 	public OutputStream _os;
 	public float _pdfVersion = 1.7f;
 	public String _producer;
+	public Instant _createdAt;
 	public PDDocument pddocument;
         public final Map<CacheStore, FSCacheEx<String, FSCacheValue>> _caches = new EnumMap<>(CacheStore.class);
 	public PdfAConformance _pdfAConformance = PdfAConformance.NONE;

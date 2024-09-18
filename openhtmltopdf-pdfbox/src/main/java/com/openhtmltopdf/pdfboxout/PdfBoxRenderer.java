@@ -79,11 +79,8 @@ import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
+import java.time.Instant;
+import java.util.*;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -106,10 +103,11 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private final float _dotsPerPoint;
 
     private PDDocument _pdfDoc;
-    
+
     private PDEncryption _pdfEncryption;
 
-    private String _producer;
+    private final String _producer;
+    private final Instant _createdAt;
 
     // Usually 1.7
     private float _pdfVersion;
@@ -122,11 +120,11 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private boolean _testMode;
 
     private PDFCreationListener _listener;
-    
+
     private OutputStream _os;
     private SVGDrawer _svgImpl;
     private SVGDrawer _mathmlImpl;
-    
+
     private BidiSplitterFactory _splitterFactory;
     private byte _defaultTextDirection = BidiSplitter.LTR;
     private BidiReorderer _reorderer;
@@ -158,7 +156,8 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             _pdfDoc.setVersion(state._pdfVersion);
             _pdfVersion = state._pdfVersion;
 
-            _producer = state._producer;
+            _producer = state._producer != null ? state._producer : "openhtmltopdf.com";
+            _createdAt = state._createdAt != null ? state._createdAt : Instant.now();
 
             _pageSupplier = state._pageSupplier != null ? state._pageSupplier : this;
 
@@ -173,7 +172,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
             _dotsPerPoint = DEFAULT_DOTS_PER_POINT;
             _testMode = state._testMode;
-            _outputDevice = 
+            _outputDevice =
                     new PdfBoxFastOutputDevice(DEFAULT_DOTS_PER_POINT, _testMode,
                             state._pdfUaConform || state._pdfAConformance.getConformanceValue().equals("A"),
                             state._pdfAConformance != PdfAConformance.NONE);
@@ -297,14 +296,14 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     public Document getDocument() {
         return _doc;
     }
-    
+
     /**
      * Returns the PDDocument or null if it has been closed.
      */
     public PDDocument getPdfDocument() {
         return _pdfDoc;
     }
-    
+
     /**
      * Get the PDF-BOX font resolver. Can be used to add fonts in code.
      */
@@ -323,18 +322,18 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private void setDocumentP(Document doc, String url) {
         setDocumentP(doc, url, new XhtmlNamespaceHandler());
     }
-    
+
     private void setDocumentP(File file) throws IOException {
         File parent = file.getAbsoluteFile().getParentFile();
         setDocumentP(loadDocument(file.toURI().toURL().toExternalForm()), (parent == null ? "" : parent.toURI().toURL().toExternalForm()));
     }
-    
+
     private void setDocumentFromStringP(String content, String baseUrl) {
         InputSource is = new InputSource(new BufferedReader(new StringReader(content)));
         Document dom = XMLResource.load(is).getDocument();
         setDocumentP(dom, baseUrl);
     }
-    
+
     private void setDocumentP(Document doc, String url, NamespaceHandler nsh) {
         _doc = doc;
 
@@ -348,16 +347,16 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         _sharedContext.setNamespaceHandler(nsh);
         _sharedContext.getCss().setDocumentContext(_sharedContext, _sharedContext.getNamespaceHandler(), doc, new NullUserInterface());
         getFontResolver().importFontFaces(_sharedContext.getCss().getFontFaceRules());
-        
+
         if (_svgImpl != null) {
             _svgImpl.importFontFaceRules(_sharedContext.getCss().getFontFaceRules(), _sharedContext);
         }
-        
+
         if (_mathmlImpl != null) {
             _mathmlImpl.importFontFaceRules(_sharedContext.getCss().getFontFaceRules(), _sharedContext);
         }
     }
-    
+
     public float getPDFVersion() {
         return _pdfVersion == 0f ? 1.7f : _pdfVersion;
     }
@@ -390,10 +389,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         result.setFontContext(new PdfBoxFontContext());
 
         result.setOutputDevice(_outputDevice);
-        
+
         if (_reorderer != null)
             result.setBidiReorderer(_reorderer);
-        
+
         _outputDevice.setRenderingContext(result);
 
         result.setRootLayer(_root.getLayer());
@@ -404,10 +403,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private LayoutContext newLayoutContext() {
         LayoutContext result = _sharedContext.newLayoutContextInstance();
         result.setFontContext(new PdfBoxFontContext());
-        
+
         if (_splitterFactory != null)
             result.setBidiSplitterFactory(_splitterFactory);
-        
+
         if (_reorderer != null)
         	result.setBidiReorderer(_reorderer);
 
@@ -452,7 +451,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     /**
      * @deprecated
      */
-    @Deprecated 
+    @Deprecated
     public void finishPDF() throws IOException {
         if (_pdfDoc != null) {
             fireOnClose();
@@ -535,7 +534,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         PDPageContentStream cs = new PDPageContentStream(doc, page, AppendMode.APPEND, !_testMode);
 
         _outputDevice.initializePage(cs, page, h);
-        
+
         return cs;
     }
 
@@ -613,7 +612,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
      * Shadow pages are an opt-in feature that allows cut off content beyond
      * the right edge (or left edge for RTL mode) of the main page to be
      * output as a series of shadow pages.
-     * 
+     *
      * It may be useful for example for large tables.
      */
     private void paintShadowPages(
@@ -637,7 +636,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             float shadowWidth = currentPage.getWidth(c) / _dotsPerPoint;
             float shadowHeight = currentPage.getHeight(c) / _dotsPerPoint;
 
-            PDPage shadowPdPage = 
+            PDPage shadowPdPage =
                 _pageSupplier.requestPage(doc, shadowWidth, shadowHeight, mainPageIndex, i);
 
             try (PDPageContentStream shadowCs = new PDPageContentStream(doc, shadowPdPage, AppendMode.APPEND, !_testMode)) {
@@ -828,13 +827,11 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private void setDidValues(PDDocument doc) {
         PDDocumentInformation info = new PDDocumentInformation();
 
-        info.setCreationDate(Calendar.getInstance());
-
-        if (_producer == null) {
-            info.setProducer("openhtmltopdf.com");
-        } else {
-            info.setProducer(_producer);
-        }
+        Calendar calendarNow = new Calendar.Builder()
+                .setInstant(new Date(_createdAt.toEpochMilli()))
+                .build();
+        info.setCreationDate(calendarNow);
+        info.setProducer(_producer);
 
         for (Metadata metadata : _outputDevice.getMetadata()) {
         	String name = metadata.getName();
@@ -857,10 +854,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
         doc.setDocumentInformation(info);
     }
-    
+
     private void paintPageFast(RenderingContext c, PageBox page, DisplayListPageContainer pageOperations, int additionalTranslateX) {
         page.paintBackground(c, 0, Layer.PAGED_MODE_PRINT);
-        
+
         c.setInPageMargins(true);
         page.paintMarginAreas(c, 0, Layer.PAGED_MODE_PRINT);
         c.setInPageMargins(false);
@@ -875,7 +872,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         int left = page.getMarginBorderPadding(c, CalculatedStyle.LEFT);
 
         int translateX = left + additionalTranslateX;
-        
+
         _outputDevice.translate(translateX, top);
         DisplayListPainter painter = new DisplayListPainter();
         painter.paint(c, pageOperations);
@@ -955,7 +952,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     public void close() {
         this.cleanup();
     }
-    
+
     @Override
     public PDPage requestPage(PDDocument doc, float pageWidth, float pageHeight, int pageNumber, int shadowPageNumber) {
     	PDPage page = new PDPage(new PDRectangle(pageWidth, pageHeight));
@@ -973,7 +970,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     /**
      * Returns the bottom Y postion in bottom-up PDF units
      * on the last page of content.
-     * 
+     *
      * <strong>WARNING:</strong> NOT transform aware.
      */
     public float getLastContentBottom() {
