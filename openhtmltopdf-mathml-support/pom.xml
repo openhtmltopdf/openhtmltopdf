@@ -92,7 +92,7 @@
         <configuration>
           <archive>
             <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-          </archive>
+          </archive> 
         </configuration>
       </plugin>
 
