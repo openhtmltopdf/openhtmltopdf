@@ -152,7 +152,7 @@ public class ListItemPainter {
 
     private static void drawText(RenderingContext c, BlockBox box) {
         MarkerData.TextMarker text = box.getMarkerData().getTextMarker();
-        int x = getReferenceX(c, box);
+        int x;
         int y = getReferenceBaseline(c, box);
 
         MarkerData markerData = box.getMarkerData();
@@ -165,20 +165,19 @@ public class ListItemPainter {
             // same end-alignment as is default for glyph/image markers
             if (direction == IdentValue.RTL) {
                 x = markerData.getReferenceLine() != null ?
-                        x + markerData.getReferenceLine().getWidth() :
+                        getReferenceX(c, box) + markerData.getReferenceLine().getWidth() :
                         box.getParent().getAbsX() + box.getParent().getWidth() - (int) box.getParent().getPadding(c).right();
             } else {
                 assert direction == IdentValue.LTR || direction == IdentValue.AUTO;
-                x -= text.getLayoutWidth();
+                x = getReferenceX(c, box) - text.getLayoutWidth();
             }
         } else {
             if (direction == IdentValue.RTL) {
                 x = box.getParent().getWidth() - text.getLayoutWidth();
             } else {
-                x -= box.getParent().getPadding(c).left();
+                x = getReferenceX(c, box) - (int) box.getParent().getPadding(c).left();
             }
         }
-
 
         c.getOutputDevice().setColor(box.getStyle().getColor());
         if (c.getOutputDevice() instanceof AbstractOutputDevice) {

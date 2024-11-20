@@ -364,7 +364,7 @@ public class BlockBox extends Box {
             imageMarker = result.getImageMarker() != null;
         }
 
-        CascadedStyle markerStyle = c.getCss().getPseudoElementStyle(_element,"marker");
+        CascadedStyle markerStyle = c.getCss().getPseudoElementStyle(_element,IdentValue.MARKER.toString());
 
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
             result.setTextMarker(makeTextMarker(c, markerStyle));
@@ -420,6 +420,7 @@ public class BlockBox extends Box {
         if (listDirection == IdentValue.RTL) {
             text = "  .".concat(text);
         } else {
+            assert listDirection == IdentValue.LTR || listDirection == IdentValue.AUTO;
             text = text.concat(".  ");
         }
 
@@ -439,17 +440,17 @@ public class BlockBox extends Box {
 
     private MarkerData.TextMarker makeTextMarker(LayoutContext c, CascadedStyle markerStyle) {
         IdentValue listDirection = getParent().getStyle().getDirection();
-        IdentValue alignment = getStyle().deriveStyle(markerStyle).getTextAlign();
+        IdentValue alignment;
 
         // coalesce to flow-relative values, for ListItemPainter to use
         if (listDirection == IdentValue.RTL) {
-            if (alignment == IdentValue.LEFT) {
+            if (getStyle().deriveStyle(markerStyle).getTextAlign() == IdentValue.LEFT) {
                 alignment = IdentValue.END;
             } else {
                 alignment = IdentValue.START;
             }
         } else {
-            if (alignment == IdentValue.RIGHT) {
+            if (getStyle().deriveStyle(markerStyle).getTextAlign() == IdentValue.RIGHT) {
                 alignment = IdentValue.END;
             } else {
                 alignment = IdentValue.START;
@@ -459,6 +460,7 @@ public class BlockBox extends Box {
         StringBuilder sb = new StringBuilder();
 
         if (listDirection == IdentValue.RTL) {
+            // Ensure some whitespace padding
             sb.append("  ");
         }
 
@@ -467,7 +469,7 @@ public class BlockBox extends Box {
         // from the insertGeneratedContent() method chain.
         List<Styleable> markerBoxes = new ArrayList<>();
         ChildBoxInfo info = new ChildBoxInfo();
-        insertGeneratedContent(c, _element, getStyle().getParent(), "marker", markerBoxes, info);
+        insertGeneratedContent(c, _element, getStyle().getParent(), IdentValue.MARKER.toString(), markerBoxes, info);
         for (Styleable box : markerBoxes) {
             CalculatedStyle style = box.getStyle();
             if (style.isInline()) {
@@ -482,6 +484,7 @@ public class BlockBox extends Box {
         }
 
         if (listDirection == IdentValue.LTR) {
+            // Ensure some whitespace padding
             sb.append("  ");
         }
 
