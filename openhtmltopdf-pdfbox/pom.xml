@@ -3,18 +3,6 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <repositories>
-    <repository>
-      <id>ApacheSnapshot</id>
-      <name>Apache Repository</name>
-      <url>https://repository.apache.org/content/groups/snapshots/</url>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-    </repositories>
-
-
   <parent>
     <groupId>io.github.openhtmltopdf</groupId>
     <artifactId>openhtmltopdf-parent</artifactId>
