@@ -943,6 +943,14 @@ public class VisualRegressionTest {
     public void testPdfLinkedFromImgTag() throws IOException {
         assertTrue(vt.runTest("pdf-linked-from-img-tag"));
     }
+
+    /**
+     * Tests that we correctly render PDF encoded as base64 data uri
+     */
+    @Test
+    public void testBase64DataUriPdfFromImgTag() throws IOException {
+        assertTrue(vt.runTest("pdf-from-img-tag-base64"));
+    }
     
     /**
      * Tests the JFreeChart object drawers respect CSS width and height

@@ -62,6 +62,7 @@ public class PdfBoxReplacedElementFactory implements ReplacedElementFactory {
             if (srcAttr != null && srcAttr.length() > 0) {
                 //handle the case of linked svg from img tag
                 boolean isDataImageSvg = false;
+                boolean isDataPdf = false;
                 if (_svgImpl != null && (srcAttr.endsWith(".svg") || (isDataImageSvg = srcAttr.startsWith("data:image/svg+xml;base64,")))) {
                     XMLResource xml = isDataImageSvg ?
                          XMLResource.load(new ByteArrayInputStream(NaiveUserAgent.getEmbeddedBase64Image(srcAttr))) : 
@@ -79,8 +80,8 @@ public class PdfBoxReplacedElementFactory implements ReplacedElementFactory {
                     }
 
                     return null;
-                } else if (srcAttr.endsWith(".pdf")) {
-                    byte[] pdfBytes = uac.getBinaryResource(srcAttr, ExternalResourceType.PDF);
+                } else if (srcAttr.endsWith(".pdf") || (isDataPdf = srcAttr.startsWith("data:application/pdf;base64,"))) {
+                    byte[] pdfBytes = isDataPdf ? NaiveUserAgent.getEmbeddedBase64Image(srcAttr) : uac.getBinaryResource(srcAttr, ExternalResourceType.PDF);
                     
                     if (pdfBytes != null) {
                         return PdfBoxPDFReplacedElement.create(_outputDevice.getWriter(), pdfBytes, e, box, c, c.getSharedContext());
