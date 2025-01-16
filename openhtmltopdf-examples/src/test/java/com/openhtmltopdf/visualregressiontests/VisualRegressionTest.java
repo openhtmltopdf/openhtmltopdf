@@ -1538,6 +1538,11 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("form-control-on-second-page"));
     }
 
+    @Test
+    public void testIssueB75Images() throws IOException {
+        assertTrue(vt.runTest("issue-B-75"));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
