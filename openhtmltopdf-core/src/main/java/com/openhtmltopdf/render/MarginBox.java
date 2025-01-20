@@ -59,7 +59,7 @@ public class MarginBox extends BlockBox {
     }
 
     @Override
-    protected int getContainingBlockWidth() {
+    public int getContainingBlockWidth() {
         return _bounds.width;
     }
 

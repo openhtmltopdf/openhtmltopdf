@@ -1944,6 +1944,11 @@ public class BlockBox extends Box {
 
             int width = getCSSWidth(c, true);
 
+            // issue 75
+            if (getColumnGroupRequestedWidth() >= 0 && getContainingBlockWidth() <= 0) {
+                // devi contare margin border padding?!?
+               getContainingBlock().setContentWidth(getColumnGroupRequestedWidth());
+            }
             createReplaced(c);
             if (isReplaced() && width == -1) {
                 // FIXME: We need to special case this for issue 313.
@@ -2027,6 +2032,7 @@ public class BlockBox extends Box {
 
         for (Iterator<Box> i = getChildIterator(); i.hasNext();) {
             BlockBox child = (BlockBox) i.next();
+            child.setColumnGroupRequestedWidth(getColumnGroupRequestedWidth());
             child.calcMinMaxWidth(c);
             if (child.getMinWidth() > childMinWidth) {
                 childMinWidth = child.getMinWidth();
@@ -2073,6 +2079,7 @@ public class BlockBox extends Box {
                 }
                 trimmableIB = null;
                 BlockBox block = (BlockBox) child;
+                block.setColumnGroupRequestedWidth(getColumnGroupRequestedWidth());
                 block.calcMinMaxWidth(c);
                 lineWidth += block.getMaxWidth();
                 if (block.getMinWidth() > childMinWidth) {

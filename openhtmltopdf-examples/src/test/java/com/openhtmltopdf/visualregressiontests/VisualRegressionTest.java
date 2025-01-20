@@ -699,7 +699,6 @@ public class VisualRegressionTest {
      * Tests that an img (with percentage max-width) shows up in an auto width table cell. Issue 313.
      */
     @Test
-    @Ignore // img max-width inside table-cell is resolving to zero and therefore image is not inserted.
     public void testReplacedImgInTableCell() throws IOException {
         assertTrue(vt.runTest("replaced-img-in-table-cell"));
     }
@@ -711,6 +710,16 @@ public class VisualRegressionTest {
     @Test
     public void testReplacedImgInTableCell2() throws IOException {
         assertTrue(vt.runTest("replaced-img-in-table-cell-2"));
+    }
+    
+    /**
+     * 1. Tests that an img (with percentage max-width) shows up in an absolute width table colgroup.
+     * 2. Tests that an img (with percentage max-width) shows up in a percentage width table colgroup.
+     * cfr. issue 75
+     */
+    @Test
+    public void testReplacedImgInTableCell4() throws IOException {
+        assertTrue(vt.runTest("replaced-img-in-table-cell-4"));
     }
     
     /**
@@ -1536,11 +1545,6 @@ public class VisualRegressionTest {
     @Test
     public void testFormFieldOnSecondPage() throws IOException {
         assertTrue(vt.runTest("form-control-on-second-page"));
-    }
-
-    @Test
-    public void testIssueB75Images() throws IOException {
-        assertTrue(vt.runTest("issue-B-75"));
     }
 
     // TODO:
