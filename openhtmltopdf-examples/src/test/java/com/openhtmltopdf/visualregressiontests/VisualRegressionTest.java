@@ -626,6 +626,11 @@ public class VisualRegressionTest {
      */
     @Test
     @Ignore // Leaving a 2px white border around the background-color for some reason.
+    // Just a brief explaination of the bug: BlockBox._contentWidth of <html> tag is calculated
+    // based on CSS style of *first* page.
+    // It is 100px-2*10px-2*2px = 76px = 1520dots
+    // This is used to layout the whole html (see BlockBox.layout())
+    // If we have a border on the first page only, this calc is correct for first page only
     public void testPageBorderBackground() throws IOException {
         assertTrue(vt.runTest("page-border-background"));
     }
