@@ -26,6 +26,7 @@ import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
+import com.openhtmltopdf.css.style.Length;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.RectPropertySet;
 import com.openhtmltopdf.layout.Layer;
@@ -106,7 +107,9 @@ public abstract class Box implements Styleable, DisplayListItem {
     private boolean _clipBoxCalculated = false;
     
     private Object _accessibilityObject;
-    
+
+    private int _colGroupRequestedWidth = -1;
+
     protected Box() {
     }
     
@@ -937,6 +940,24 @@ public abstract class Box implements Styleable, DisplayListItem {
             _workingMargin = getStyleMargin(cssContext).copyOf();
         }
     }
+    
+    public int getColumnGroupRequestedWidth() {
+        return _colGroupRequestedWidth;
+    }
+
+    public void setColumnGroupRequestedWidth(int colWidth) {
+        this._colGroupRequestedWidth = colWidth;
+    }
+
+    public void setColumnGroupRequestedWidth(Length colWidth, int outerWidth) {
+        if (colWidth != null) {
+            if (colWidth.isFixed()) {
+                this._colGroupRequestedWidth = (int) colWidth.value();
+            } else if (outerWidth > -1) {
+                this._colGroupRequestedWidth = (int) colWidth.width(outerWidth);
+            }
+        }
+    }
 
     public RectPropertySet getMargin(CssContext cssContext) {
         return _workingMargin != null ? _workingMargin : getStyleMargin(cssContext);
@@ -958,7 +979,7 @@ public abstract class Box implements Styleable, DisplayListItem {
         return getStyle().getBorder(cssCtx);
     }
 
-    protected int getContainingBlockWidth() {
+    public int getContainingBlockWidth() {
         return getContainingBlock().getContentWidth();
     }
 

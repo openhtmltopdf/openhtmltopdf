@@ -1257,6 +1257,11 @@ public class TableBox extends BlockBox {
                         l.setMinWidth(Math.max(l.minWidth(), getMinColWidth()));
                         l.setMaxWidth(Math.max(l.maxWidth(), getMinColWidth()));
 
+                        Length w = cell.getOuterStyleOrColWidth(c);
+                        w.setValue(Math.min(Length.MAX_WIDTH, Math.max(0, w.value())));
+
+                        cell.setColumnGroupRequestedWidth(w, _table.getContainingBlockWidth());
+
                         cell.calcMinMaxWidth(c);
                         if (cell.getMinWidth() > l.minWidth()) {
                             l.setMinWidth(cell.getMinWidth());
@@ -1264,9 +1269,6 @@ public class TableBox extends BlockBox {
                         if (cell.getMaxWidth() > l.maxWidth()) {
                             l.setMaxWidth(cell.getMaxWidth());
                         }
-
-                        Length w = cell.getOuterStyleOrColWidth(c);
-                        w.setValue(Math.min(Length.MAX_WIDTH, Math.max(0, w.value())));
 
                         switch (w.type()) {
                         case Length.FIXED:
