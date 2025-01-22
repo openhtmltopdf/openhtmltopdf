@@ -1946,7 +1946,7 @@ public class BlockBox extends Box {
 
             // issue 75
             if (getColumnGroupRequestedWidth() >= 0 && getContainingBlockWidth() <= 0) {
-                // devi contare margin border padding?!?
+                // should take in consideration margin border padding?!?
                getContainingBlock().setContentWidth(getColumnGroupRequestedWidth());
             }
             createReplaced(c);
