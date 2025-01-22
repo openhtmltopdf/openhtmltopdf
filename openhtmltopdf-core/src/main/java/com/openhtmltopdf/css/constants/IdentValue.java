@@ -62,7 +62,7 @@ public class IdentValue implements FSDerivedValue {
 
     public final static IdentValue ABSOLUTE = addValue("absolute");
     public final static IdentValue ALWAYS = addValue("always");
-    public final static IdentValue ARABIC = addValue("arabic");
+    public final static IdentValue ARABIC = addValue("arabic-indic");
     public final static IdentValue ARMENIAN = addValue("armenian");
     public final static IdentValue AUTO = addValue("auto");
     public final static IdentValue AVOID = addValue("avoid");
