@@ -25,4 +25,16 @@ public class CounterLanguage {
         }
         return result;
     }
+
+    static String toArabic(int val) {
+        char[] arabicDigits = {'٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'};
+        StringBuilder arabicNumber = new StringBuilder();
+        String valStr = String.valueOf(val);
+
+        for (char digit : valStr.toCharArray()) {
+            arabicNumber.append(arabicDigits[digit - '0']);
+        }
+
+        return arabicNumber.toString();
+    }
 }
