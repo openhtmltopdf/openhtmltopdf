@@ -372,7 +372,7 @@ public class PdfBoxAccessibilityHelper {
             } else if (listStyleType == IdentValue.LOWER_ALPHA) {
                 listType = "LowerAlpha";
             } else if (listStyleType == IdentValue.ARABIC_INDIC) {
-                listType = "ArabicIndic";
+                listType = "Ordered";
             } else {
                 // Armenian, Georgian, Latin and Greek are not supported by the PDF spec.
                 listType = "Decimal";
