@@ -69,7 +69,8 @@ public class PrimitivePropertyBuilders {
     // disc | circle | square | decimal
     // | decimal-leading-zero | lower-roman | upper-roman
     // | lower-greek | lower-latin | upper-latin | armenian
-    // | georgian | lower-alpha | upper-alpha | none | inherit
+    // | georgian | lower-alpha | upper-alpha | arabic-indic
+    // | none | inherit
     public static final BitSet LIST_STYLE_TYPES = setFor(new IdentValue[] {
             IdentValue.DISC, IdentValue.CIRCLE, IdentValue.SQUARE,
             IdentValue.DECIMAL, IdentValue.DECIMAL_LEADING_ZERO,
@@ -77,7 +78,8 @@ public class PrimitivePropertyBuilders {
             IdentValue.LOWER_GREEK, IdentValue.LOWER_LATIN,
             IdentValue.UPPER_LATIN, IdentValue.ARMENIAN,
             IdentValue.GEORGIAN, IdentValue.LOWER_ALPHA,
-            IdentValue.UPPER_ALPHA, IdentValue.NONE });
+            IdentValue.UPPER_ALPHA, IdentValue.ARABIC_INDIC,
+            IdentValue.NONE });
 
     // repeat | repeat-x | repeat-y | no-repeat | inherit
     public static final BitSet BACKGROUND_REPEATS = setFor(
