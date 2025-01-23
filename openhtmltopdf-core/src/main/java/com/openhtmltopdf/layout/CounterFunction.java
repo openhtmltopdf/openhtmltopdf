@@ -51,6 +51,8 @@ public class CounterFunction {
             text = CounterLanguage.toRoman(listCounter).toLowerCase();
         } else if (listStyle == IdentValue.UPPER_ROMAN) {
             text = CounterLanguage.toRoman(listCounter).toUpperCase();
+        } else if (listStyle == IdentValue.ARABIC_INDIC) {
+            text = CounterLanguage.toArabic(listCounter);
         } else if (listStyle == IdentValue.DECIMAL_LEADING_ZERO) {
             text = (listCounter >= 10 ? "" : "0") + listCounter;
         } else { // listStyle == IdentValue.DECIMAL or anything else

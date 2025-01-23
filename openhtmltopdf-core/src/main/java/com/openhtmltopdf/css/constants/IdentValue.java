@@ -62,6 +62,7 @@ public class IdentValue implements FSDerivedValue {
 
     public final static IdentValue ABSOLUTE = addValue("absolute");
     public final static IdentValue ALWAYS = addValue("always");
+    public final static IdentValue ARABIC_INDIC = addValue("arabic-indic");
     public final static IdentValue ARMENIAN = addValue("armenian");
     public final static IdentValue AUTO = addValue("auto");
     public final static IdentValue AVOID = addValue("avoid");
@@ -219,17 +220,17 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue XX_LARGE = addValue("xx-large");
     public final static IdentValue XX_SMALL = addValue("xx-small");
 
-	public static final IdentValue COMPLETE_FONT = addValue("complete-font");
-	public static final IdentValue SUBSET = addValue("subset");
+    public static final IdentValue COMPLETE_FONT = addValue("complete-font");
+    public static final IdentValue SUBSET = addValue("subset");
 
-	public static final IdentValue DIAMOND = addValue("diamond");
-	public static final IdentValue STAR = addValue("star");
-	public static final IdentValue CHECK = addValue("check");
-	public static final IdentValue CROSS = addValue("cross");
+    public static final IdentValue DIAMOND = addValue("diamond");
+    public static final IdentValue STAR = addValue("star");
+    public static final IdentValue CHECK = addValue("check");
+    public static final IdentValue CROSS = addValue("cross");
 
-	/*
-	 * CSS 3 Transform Values
-	 */
+    /*
+     * CSS 3 Transform Values
+     */
     public static final IdentValue MATRIX = addValue("matrix");
     public static final IdentValue TRANSLATE = addValue("translate");
     public static final IdentValue TRANSLATE_X = addValue("translateX");
@@ -247,7 +248,7 @@ public class IdentValue implements FSDerivedValue {
      */
     public static final IdentValue PIXELATED = addValue("pixelated");
     public static final IdentValue CRISP_EDGES = addValue("crisp-edges");
-    
+
     /*
      * Box-sizing
      */
@@ -255,7 +256,7 @@ public class IdentValue implements FSDerivedValue {
     public static final IdentValue CONTENT_BOX = addValue("content-box");
 
     /*
-     * Column break. 
+     * Column break.
      */
     public static final IdentValue COLUMN = addValue("column");
 

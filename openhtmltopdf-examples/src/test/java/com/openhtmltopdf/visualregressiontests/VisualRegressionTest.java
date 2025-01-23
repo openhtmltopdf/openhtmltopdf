@@ -1546,6 +1546,11 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("form-control-on-second-page"));
     }
 
+    @Test
+    public void testArabicIndicCounterStyle() throws IOException {
+        assertTrue(vt.runTest("arabic-indic-counter-style", TestSupport.WITH_ARABIC));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
