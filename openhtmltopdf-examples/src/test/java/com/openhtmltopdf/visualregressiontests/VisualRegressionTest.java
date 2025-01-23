@@ -1548,7 +1548,7 @@ public class VisualRegressionTest {
 
     @Test
     public void testArabicIndicCounterStyle() throws IOException {
-        assertTrue(vt.runTest("arabic-indic-counter-style"));
+        assertTrue(vt.runTest("arabic-indic-counter-style", TestSupport.WITH_ARABIC));
     }
 
     // TODO:
