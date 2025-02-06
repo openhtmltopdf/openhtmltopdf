@@ -99,12 +99,6 @@
             <scope>compile</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>1.14.2</version>
-        </dependency>
-
         <!-- JMH Benchmarks -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
@@ -117,12 +111,20 @@
             <version>${jmh.version}</version>
         </dependency>
 
+        <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${open.junit4.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.15.3</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
