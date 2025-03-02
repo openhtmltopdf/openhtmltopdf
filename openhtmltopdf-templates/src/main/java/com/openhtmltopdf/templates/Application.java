@@ -25,6 +25,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.imgscalr.Scalr;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -72,7 +73,7 @@ public class Application {
     }
 
     private TemplateSettings getYaml(String props) {
-        Constructor cons = new Constructor(TemplateSettings.class);
+        Constructor cons = new Constructor(TemplateSettings.class, new LoaderOptions());
         Yaml yaml = new Yaml(cons);
         return yaml.load(props);
     }
