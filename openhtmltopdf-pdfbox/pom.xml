@@ -81,6 +81,12 @@
             <groupId>de.rototor.pdfbox</groupId>
             <artifactId>graphics2d</artifactId>
             <version>3.0.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.pdfbox</groupId>
+                    <artifactId>pdfbox</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
