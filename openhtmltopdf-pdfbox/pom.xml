@@ -1,135 +1,138 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-  <modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>io.github.openhtmltopdf</groupId>
-    <artifactId>openhtmltopdf-parent</artifactId>
-    <version>${revision}</version>
-  </parent>
+    <parent>
+        <groupId>io.github.openhtmltopdf</groupId>
+        <artifactId>openhtmltopdf-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
 
-  <artifactId>openhtmltopdf-pdfbox</artifactId>
+    <artifactId>openhtmltopdf-pdfbox</artifactId>
 
-  <packaging>jar</packaging>
+    <packaging>jar</packaging>
 
-  <name>Openhtmltopdf PDF Rendering (Apache PDF-BOX 3)</name>
-  <description>Openhtmltopdf is a CSS 2.1 renderer written in Java. This artifact supports PDF output with Apache PDF-BOX 3.</description>
+    <name>Openhtmltopdf PDF Rendering (Apache PDF-BOX 3)</name>
+    <description>Openhtmltopdf is a CSS 2.1 renderer written in Java. This artifact supports PDF output with Apache
+        PDF-BOX 3.
+    </description>
 
-  <licenses>
-    <license>
-      <name>GNU Lesser General Public License (LGPL), version 2.1 or later</name>
-      <url>http://www.gnu.org/licenses/lgpl.html</url>
-    </license>
-  </licenses>
+    <licenses>
+        <license>
+            <name>GNU Lesser General Public License (LGPL), version 2.1 or later</name>
+            <url>http://www.gnu.org/licenses/lgpl.html</url>
+        </license>
+    </licenses>
 
-  <profiles>
-    <profile>
-      <id>release</id>
-      <build>
+    <profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${open.junit4.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>xmpbox</artifactId>
+            <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openhtmltopdf</groupId>
+            <artifactId>openhtmltopdf-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.rototor.pdfbox</groupId>
+            <artifactId>graphics2d</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>../</directory>
+                <targetPath>META-INF</targetPath>
+                <includes>
+                    <include>LICENSE*</include>
+                </includes>
+            </resource>
+        </resources>
+
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
-                  <gpgArguments>
-                    <arg>--pinentry-mode</arg>
-                    <arg>loopback</arg>
-                  </gpgArguments>
+                    <archive>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+                    </archive>
                 </configuration>
-              </execution>
-            </executions>
-          </plugin>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>*</Export-Package>
+                    </instructions>
+                </configuration>
+
+                <executions>
+                    <execution>
+                        <id>bundle-manifest</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>manifest</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
-      </build>
-    </profile>
-  </profiles>
 
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${open.junit4.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-    	<groupId>org.apache.pdfbox</groupId>
-    	<artifactId>pdfbox</artifactId>
-    	<version>${pdfbox.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.pdfbox</groupId>
-      <artifactId>xmpbox</artifactId>
-      <version>${pdfbox.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.github.openhtmltopdf</groupId>
-      <artifactId>openhtmltopdf-core</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-	  <dependency>
-		  <groupId>de.rototor.pdfbox</groupId>
-		  <artifactId>graphics2d</artifactId>
-		  <version>3.0.1</version>
-	  </dependency>
-  </dependencies>
+    </build>
 
-  <build>
-	  <resources>
-	    <resource>
-	      <directory>../</directory>
-	      <targetPath>META-INF</targetPath>
-	      <includes>
-	        <include>LICENSE*</include>
-	      </includes>
-	    </resource>
-	  </resources>
-
-    <plugins>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-          </archive> 
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>maven-bundle-plugin</artifactId>
-        <configuration>
-          <instructions>
-            <Export-Package>*</Export-Package>
-          </instructions>
-        </configuration>
-
-        <executions>
-          <execution>
-            <id>bundle-manifest</id>
-            <phase>process-classes</phase>
-              <goals>
-                <goal>manifest</goal>
-              </goals>
-          </execution>
-        </executions>
-      </plugin>
-
-    </plugins>
-
-  </build>
-
-  <properties>
-    <pdfbox.version>3.0.3</pdfbox.version>
-  </properties>
+    <properties>
+        <pdfbox.version>3.0.3</pdfbox.version>
+    </properties>
 
 </project>
