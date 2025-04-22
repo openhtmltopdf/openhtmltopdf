@@ -23,6 +23,11 @@ jobs:
           cache: maven
       - name: Maven -v
         run: mvn -v
+      - name: Publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run:
+          gh release create '0.0.1234' -t "openhtmltopdf"
       - name: Build with Maven
         run: mvn -B package --file pom.xml -Drevision=${{ github.sha }}
 
