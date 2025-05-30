@@ -356,7 +356,13 @@ public class BlockBox extends Box {
         result.setStructMetrics(strutMetrics);
 
         CalculatedStyle style = getStyle();
-        IdentValue listStyle = style.getIdent(CSSName.LIST_STYLE_TYPE);
+
+        String listStyleType = style.getStringProperty(CSSName.LIST_STYLE_TYPE);
+        IdentValue listStyle = IdentValue.valueOf(listStyleType);
+
+        if (style.isIdent(CSSName.LIST_STYLE_TYPE, listStyle)) {
+            listStyleType = "";
+        }
 
         String image = style.getStringProperty(CSSName.LIST_STYLE_IMAGE);
         if (! image.equals("none")) {
@@ -368,9 +374,9 @@ public class BlockBox extends Box {
 
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
             result.setTextMarker(makeTextMarker(c, markerStyle));
-        } else if (listStyle != IdentValue.NONE && ! imageMarker) {
+        } else if ((listStyle != IdentValue.NONE || !listStyleType.isEmpty()) && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
-                    listStyle == IdentValue.DISC) {
+                    listStyle == IdentValue.DISC || !listStyleType.isEmpty()) {
                 result.setGlyphMarker(makeGlyphMarker(strutMetrics));
             } else {
                 result.setTextMarker(makeTextMarker(c, listStyle));

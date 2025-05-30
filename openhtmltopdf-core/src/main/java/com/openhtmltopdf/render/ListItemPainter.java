@@ -45,12 +45,13 @@ public class ListItemPainter {
             drawImage(c, box, markerData);
         } else {
             CalculatedStyle style = box.getStyle();
-            IdentValue listStyle = style.getIdent(CSSName.LIST_STYLE_TYPE);
-            
+
+            String listStyleType = style.getStringProperty(CSSName.LIST_STYLE_TYPE);
+            IdentValue listStyle = IdentValue.valueOf(listStyleType);
             c.getOutputDevice().setColor(style.getColor());
     
             if (markerData.getGlyphMarker() != null) {
-                drawGlyph(c, box, style, listStyle);
+                drawGlyph(c, box, style, listStyle, listStyleType);
             } else if (markerData.getTextMarker() != null){
                 drawText(c, box);
             }
@@ -95,8 +96,13 @@ public class ListItemPainter {
         }
     }
 
-    private static void drawGlyph(RenderingContext c, BlockBox box, 
+    private static void  drawGlyph(RenderingContext c, BlockBox box, 
             CalculatedStyle style, IdentValue listStyle) {
+        drawGlyph(c, box, style, listStyle, "none");
+    }
+
+    private static void drawGlyph(RenderingContext c, BlockBox box, 
+            CalculatedStyle style, IdentValue listStyle, String listStyleType) {
         // save the old AntiAliasing setting, then force it on
         Object aa_key = c.getOutputDevice().getRenderingHint(RenderingHints.KEY_ANTIALIASING);
         c.getOutputDevice().setRenderingHint(RenderingHints.KEY_ANTIALIASING,
@@ -128,6 +134,19 @@ public class ListItemPainter {
             c.getOutputDevice().fillRect(x, y, marker.getDiameter(), marker.getDiameter());
         } else if (listStyle == IdentValue.CIRCLE) {
             c.getOutputDevice().drawOval(x, y, marker.getDiameter(), marker.getDiameter());
+        } else if (!listStyleType.equals("none")) {
+            InlineText text = new InlineText();
+            text.setMasterText(listStyleType);
+            text.setSubstring(0, listStyleType.length());
+
+            InlineLayoutBox box1 = new InlineLayoutBox(null, null, box.getStyle(), 0);
+            box1.setAbsX(x);
+            box1.setAbsY(bottomLine);
+            text.setParent(box1);
+
+            c.getOutputDevice().drawText(c, text);
+        } else { // Default to disc bullets
+            c.getOutputDevice().fillOval(x, y, marker.getDiameter(), marker.getDiameter());
         }
 
         // restore the old AntiAliasing setting

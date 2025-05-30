@@ -146,6 +146,31 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    static abstract class LSTSingleIndent extends SingleIdent {
+        protected abstract BitSet getAllowed();
+
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, values.size());
+            CSSPrimitiveValue value = values.get(0);
+            checkInheritAllowed(value, inheritAllowed);
+
+            if (value.getCssValueType() != CSSValue.CSS_INHERIT) {
+                checkIdentOrStringType(cssName, value);
+
+                if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
+                    IdentValue ident = checkIdent(cssName, value);
+                    checkValidity(cssName, getAllowed(), ident);
+                }
+            }
+
+            return Collections.singletonList(
+                    new PropertyDeclaration(cssName, value, important, origin));
+
+        }
+    }
+
     static class GenericColor extends AbstractPropertyBuilder {
         private static final BitSet ALLOWED = setFor(
                 new IdentValue[] { IdentValue.TRANSPARENT });
@@ -1058,7 +1083,7 @@ public class PrimitivePropertyBuilders {
         }
     }
 
-    public static class ListStyleType extends SingleIdent {
+    public static class ListStyleType extends LSTSingleIndent {
         @Override
         protected BitSet getAllowed() {
             return LIST_STYLE_TYPES;
