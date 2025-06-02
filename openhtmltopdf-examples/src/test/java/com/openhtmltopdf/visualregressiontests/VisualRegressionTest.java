@@ -965,6 +965,15 @@ public class VisualRegressionTest {
     public void testBase64DataUriPdfFromImgTag() throws IOException {
         assertTrue(vt.runTest("pdf-from-img-tag-base64"));
     }
+
+    /**
+     * Tests that list-style-type allows for use of strings as bullets
+     * per the CSS spec and browser implementations
+     */
+    @Test
+    public void testListStyleTypeStrings() throws IOException {
+        assertTrue(vt.runTest("list-style-type-with-string-values"));
+    }
     
     /**
      * Tests the JFreeChart object drawers respect CSS width and height
