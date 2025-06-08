@@ -361,7 +361,7 @@ public class BlockBox extends Box {
         IdentValue listStyle = IdentValue.valueOf(listStyleType);
 
         if (style.isIdent(CSSName.LIST_STYLE_TYPE, listStyle)) {
-            listStyleType = "";
+            listStyleType = null;
         }
 
         String image = style.getStringProperty(CSSName.LIST_STYLE_IMAGE);
@@ -374,9 +374,9 @@ public class BlockBox extends Box {
 
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
             result.setTextMarker(makeTextMarker(c, markerStyle));
-        } else if ((listStyle != IdentValue.NONE || !listStyleType.isEmpty()) && ! imageMarker) {
+        } else if ((listStyle != IdentValue.NONE || listStyleType!=null)  && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
-                    listStyle == IdentValue.DISC || !listStyleType.isEmpty()) {
+                    listStyle == IdentValue.DISC || listStyleType!=null) {
                 result.setGlyphMarker(makeGlyphMarker(strutMetrics));
             } else {
                 result.setTextMarker(makeTextMarker(c, listStyle));
