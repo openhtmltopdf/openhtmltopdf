@@ -134,7 +134,7 @@ public class ListItemPainter {
             c.getOutputDevice().fillRect(x, y, marker.getDiameter(), marker.getDiameter());
         } else if (listStyle == IdentValue.CIRCLE) {
             c.getOutputDevice().drawOval(x, y, marker.getDiameter(), marker.getDiameter());
-        } else if (!listStyleType.equals("none")) {
+        } else {
             InlineText text = new InlineText();
             text.setMasterText(listStyleType);
             text.setSubstring(0, listStyleType.length());
@@ -145,8 +145,6 @@ public class ListItemPainter {
             text.setParent(box1);
 
             c.getOutputDevice().drawText(c, text);
-        } else { // Default to disc bullets
-            c.getOutputDevice().fillOval(x, y, marker.getDiameter(), marker.getDiameter());
         }
 
         // restore the old AntiAliasing setting
