@@ -26,6 +26,7 @@ import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.extend.FSImage;
+import com.openhtmltopdf.layout.Breaker;
 
 /**
  * A utility class to paint list markers (all types).
@@ -112,7 +113,8 @@ public class ListItemPainter {
         MarkerData markerData = box.getMarkerData();
         StrutMetrics strutMetrics = markerData.getStructMetrics();
         MarkerData.GlyphMarker marker = markerData.getGlyphMarker();
-        int x = getReferenceX(c, box);
+        int refX = getReferenceX(c, box);
+        int x = refX;
         // see issue 478. To be noted, the X positioning does not consider the available padding space
         // (like all the browsers it seems), so if the font is too big, the list decoration will be cut or outside
         // the viewport.
@@ -136,12 +138,19 @@ public class ListItemPainter {
             c.getOutputDevice().drawOval(x, y, marker.getDiameter(), marker.getDiameter());
         } else {
             InlineText text = new InlineText();
-            text.setMasterText(listStyleType);
-            text.setSubstring(0, listStyleType.length());
+            String displayText = listStyleType;
+            text.setMasterText(displayText);
+            text.setSubstring(0, displayText.length());
+            text.setWidth(Breaker.getTextWidthWithLetterSpacing(c, 
+                    box.getStyle().getFSFont(c),
+                    displayText, // text
+                    text.getLetterSpacing()));
+
 
             InlineLayoutBox box1 = new InlineLayoutBox(null, null, box.getStyle(), 0);
-            box1.setAbsX(x);
+            box1.setAbsX(refX - text.getWidth());
             box1.setAbsY(bottomLine);
+
             text.setParent(box1);
 
             c.getOutputDevice().drawText(c, text);
