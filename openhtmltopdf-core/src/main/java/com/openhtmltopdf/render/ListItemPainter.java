@@ -97,11 +97,6 @@ public class ListItemPainter {
         }
     }
 
-    private static void  drawGlyph(RenderingContext c, BlockBox box, 
-            CalculatedStyle style, IdentValue listStyle) {
-        drawGlyph(c, box, style, listStyle, "none");
-    }
-
     private static void drawGlyph(RenderingContext c, BlockBox box, 
             CalculatedStyle style, IdentValue listStyle, String listStyleType) {
         // save the old AntiAliasing setting, then force it on
