@@ -941,7 +941,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         OpenUtil.tryQuietly(ThreadCtx::cleanup);
 
         // Close all still open font files
-        OpenUtil.closeQuietly((PdfBoxFontResolver) getSharedContext().getFontResolver());
+        FontResolver fontResolver = getSharedContext().getFontResolver();
+        if (fontResolver instanceof Closeable) {
+            OpenUtil.closeQuietly((Closeable) fontResolver);
+        }
 
         if (_svgImpl != null) {
             OpenUtil.closeQuietly(_svgImpl);
