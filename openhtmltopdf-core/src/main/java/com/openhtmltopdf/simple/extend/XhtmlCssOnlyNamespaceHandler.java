@@ -367,7 +367,7 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
             }
 
             StylesheetInfo info = new StylesheetInfo();
-            info.setUri("classpath:" + PATH_TO_DEFAULT_STYLESHEET);
+            info.setUri("classpath:" + getPathToDefaultStylesheet());
             info.setOrigin(StylesheetInfo.USER_AGENT);
             info.setMedia("all");
             info.setType("text/css");
@@ -395,10 +395,18 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         }
     }
 
+    /**
+     * @return path to the default css-File in the classpath
+     */
+    protected String getPathToDefaultStylesheet() {
+        return PATH_TO_DEFAULT_STYLESHEET;
+    }
+
     private InputStream getDefaultStylesheetStream() {
-        InputStream stream = this.getClass().getResourceAsStream(PATH_TO_DEFAULT_STYLESHEET);
+        final String pathToStylesheet = getPathToDefaultStylesheet();
+        final InputStream stream = this.getClass().getResourceAsStream(pathToStylesheet);
         if (stream == null) {
-            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_LOAD_DEFAULT_CSS, PATH_TO_DEFAULT_STYLESHEET);
+            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_LOAD_DEFAULT_CSS, pathToStylesheet);
             _defaultStylesheetError = true;
         }
         return stream;

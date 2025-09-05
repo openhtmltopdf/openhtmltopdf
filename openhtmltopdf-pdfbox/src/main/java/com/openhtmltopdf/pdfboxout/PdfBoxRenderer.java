@@ -99,6 +99,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private final SharedContext _sharedContext;
     private final PdfBoxOutputDevice _outputDevice;
     private final List<FSDOMMutator> _domMutators;
+    private final NamespaceHandler _namespaceHandler;
 
     private Document _doc;
     private BlockBox _root;
@@ -161,6 +162,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             _producer = state._producer;
 
             _pageSupplier = state._pageSupplier != null ? state._pageSupplier : this;
+            _namespaceHandler = state._namespaceHandler != null ? state._namespaceHandler : new XhtmlNamespaceHandler();
 
             _svgImpl = state._svgImpl;
             _mathmlImpl = state._mathmlImpl;
@@ -321,7 +323,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     }
 
     private void setDocumentP(Document doc, String url) {
-        setDocumentP(doc, url, new XhtmlNamespaceHandler());
+        setDocumentP(doc, url, _namespaceHandler);
     }
     
     private void setDocumentP(File file) throws IOException {

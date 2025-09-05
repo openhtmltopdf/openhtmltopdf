@@ -2,10 +2,12 @@ package com.openhtmltopdf.pdfboxout;
 
 import com.openhtmltopdf.extend.FSCacheEx;
 import com.openhtmltopdf.extend.FSCacheValue;
+import com.openhtmltopdf.extend.NamespaceHandler;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder.CacheStore;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder.PdfAConformance;
 
+import com.openhtmltopdf.simple.extend.XhtmlNamespaceHandler;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import java.io.OutputStream;
@@ -29,4 +31,5 @@ public class PdfRendererBuilderState extends BaseRendererBuilder.BaseRendererBui
 	public boolean _pdfUaConform = false;
 	public byte[] _colorProfile;
 	public PageSupplier _pageSupplier;
+	public NamespaceHandler _namespaceHandler;
 }

@@ -5,6 +5,7 @@ import com.openhtmltopdf.extend.FSCacheEx;
 import com.openhtmltopdf.extend.FSCacheValue;
 import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.extend.Hyphenator;
+import com.openhtmltopdf.extend.NamespaceHandler;
 import com.openhtmltopdf.extend.impl.FSNoOpCacheStore;
 import com.openhtmltopdf.outputdevice.helper.*;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontGroup;
@@ -300,6 +301,17 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
      */
     public PdfRendererBuilder usePageSupplier(PageSupplier pageSupplier) {
         state._pageSupplier = pageSupplier;
+        return this;
+    }
+
+    /**
+     * Customize the {@link NamespaceHandler}.
+     *
+     * @param namespaceHandler {@link NamespaceHandler} to use
+     * @return this for method chaining.
+     */
+    public PdfRendererBuilder useNamespaceHandler(NamespaceHandler namespaceHandler) {
+        state._namespaceHandler = namespaceHandler;
         return this;
     }
 

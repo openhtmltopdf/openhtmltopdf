@@ -36,7 +36,7 @@ public interface NamespaceHandler {
     /**
      * @return the namespace handled
      */
-    public String getNamespace();
+    String getNamespace();
 
     /**
      * @return the default CSS stylesheet for this namespace
