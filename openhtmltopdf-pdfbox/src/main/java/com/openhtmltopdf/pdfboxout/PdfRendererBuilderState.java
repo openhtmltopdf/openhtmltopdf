@@ -7,7 +7,6 @@ import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder.CacheStore;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder.PdfAConformance;
 
-import com.openhtmltopdf.simple.extend.XhtmlNamespaceHandler;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import java.io.OutputStream;

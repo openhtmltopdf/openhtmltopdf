@@ -403,8 +403,8 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
     }
 
     private InputStream getDefaultStylesheetStream() {
-        final String pathToStylesheet = getPathToDefaultStylesheet();
-        final InputStream stream = this.getClass().getResourceAsStream(pathToStylesheet);
+        String pathToStylesheet = getPathToDefaultStylesheet();
+        InputStream stream = this.getClass().getResourceAsStream(pathToStylesheet);
         if (stream == null) {
             XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_LOAD_DEFAULT_CSS, pathToStylesheet);
             _defaultStylesheetError = true;
