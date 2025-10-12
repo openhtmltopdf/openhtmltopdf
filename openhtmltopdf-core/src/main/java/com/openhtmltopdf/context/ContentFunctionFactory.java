@@ -180,11 +180,19 @@ public class ContentFunctionFactory {
         @Override
         public String calculate(RenderingContext c, FSFunction function, InlineText text) {
             // Due to how BoxBuilder::wrapGeneratedContent works, it is likely the immediate
-            // parent of text is an anonymous InlineLayoutBox so we have to go up another
-            // level to the wrapper box which contains the element.
-            Element hrefElement = text.getParent().getElement() == null ?
-                    text.getParent().getParent().getElement() :
-                    text.getParent().getElement();
+            // parent of text is an anonymous InlineLayoutBox so we have to go up at least
+            // another level to the wrapper box which contains the element (but possibly more
+            // levels, such as when text is a floating pseudo element).
+            Box box = text.getParent();
+            Element hrefElement = box.getElement();
+
+            while (hrefElement == null) {
+                box = box.getParent();
+                if (box == null || box.isRoot())
+                    return "";
+
+                hrefElement = box.getElement();
+            }
 
             String uri = hrefElement.getAttribute("href");
 
