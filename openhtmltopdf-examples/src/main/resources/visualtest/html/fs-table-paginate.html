@@ -1,0 +1,48 @@
+<html>
+    <head>
+        <style>
+            @page {
+                size: 500px 275px;
+            }
+            body {
+                font-family: TestFont, 'arabic', sans-serif;
+                font-size:18px
+            }
+            table {
+                border-collapse: collapse;
+                -fs-table-paginate: paginate;
+                width: 100%;
+            }
+            td {
+                padding: 8px;
+            }
+            thead td {
+                border: 1px solid black;
+                background-color: #cacaca;
+            }
+            tbody td {
+                border: 1px solid darkgray;
+                background-color: #e6e6e6;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <thead>
+                <tr>
+                    <td>Header<br/>Cell1</td>
+                    <td>Header<br/>Cell2</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td rowspan="2">Row1~2<br/>Cell1</td>
+                    <td>Row1<br/>Cell2</td>
+                </tr>
+                <tr>
+                    <td>Row2<br/>Cell2</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

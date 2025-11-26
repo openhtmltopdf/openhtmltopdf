@@ -1574,6 +1574,11 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("arabic-indic-counter-style", TestSupport.WITH_ARABIC));
     }
 
+    @Test
+    public void testFsTablePaginateHeader() throws IOException {
+        assertTrue(vt.runTest("fs-table-paginate"));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
