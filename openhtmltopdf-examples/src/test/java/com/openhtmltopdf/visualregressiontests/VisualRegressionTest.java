@@ -1575,6 +1575,14 @@ public class VisualRegressionTest {
     }
 
     /**
+     * CSS target-counter calling attr on a non-href attribute.
+     */
+    @Test
+    public void testTargetCounterCustomAttr() throws IOException {
+        assertTrue(vt.runTest("target-counter-custom-attr"));
+    }
+
+    /**
      * CSS target-counter on a floating pseudo element.
      */
     @Test

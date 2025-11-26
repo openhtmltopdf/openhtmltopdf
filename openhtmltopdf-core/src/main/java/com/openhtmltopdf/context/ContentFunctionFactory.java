@@ -194,7 +194,11 @@ public class ContentFunctionFactory {
                 hrefElement = box.getElement();
             }
 
-            String uri = hrefElement.getAttribute("href");
+            List<PropertyValue> parameters = function.getParameters();
+            FSFunction f = parameters.get(0).getFunction();
+            String attr = f.getParameters().get(0).getStringValue();
+
+            String uri = hrefElement.getAttribute(attr);
 
             if (uri != null && uri.startsWith("#")) {
                 String anchor = uri.substring(1);
@@ -232,9 +236,14 @@ public class ContentFunctionFactory {
                 if (parameters.size() == 2 || parameters.size() == 3) {
                     FSFunction f = parameters.get(0).getFunction();
                     if (f == null ||
-                            f.getParameters().size() != 1 ||
-                            f.getParameters().get(0).getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT ||
-                            ! f.getParameters().get(0).getStringValue().equals("href")) {
+                            (f.getParameters().size() != 1 && f.getParameters().size() != 2) ||
+                            f.getParameters().get(0).getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT) {
+                        return false;
+                    }
+
+                    if (f.getParameters().size() > 1 &&
+                            (f.getParameters().get(1).getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT ||
+                            ! "url".equals(f.getParameters().get(1).getStringValue()))) {
                         return false;
                     }
 
