@@ -1,0 +1,19 @@
+<html>
+<head>
+<style>
+@page{size: 250px 250px;margin:0;padding:0;}
+body{margin:0;padding:0;font-size:10px}
+h2{page-break-before:always;}
+a::after{float:right;content:"Page " target-counter(attr(href), page);}
+</style>
+</head>
+<body>
+<h1>Document</h1>
+<ol>
+<li style="width:100px;"><a href="#less"><i>Less</i></a></li>
+<li style="width:200px;"><a href="#more"><i>More</i></a></li>
+</ol>
+<h2 id="less">Less</h2><p>Some less</p>
+<h2 id="more">More</h2><p>Some more</p>
+</body>
+</html>
