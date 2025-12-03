@@ -33,9 +33,12 @@ import com.openhtmltopdf.util.ArrayUtil;
 import com.openhtmltopdf.util.XRLog;
 
 /**
- * The per document container for form and form control state.
+ * The per-document container for form and form control state.
  */
 public class PdfBoxPerDocumentFormState {
+
+    private static final String DEFAULT_APPEARANCE = "q\nQ\n";
+
     // We keep a map of forms for the document so we can add controls to the correct form as they are seen.
     private final Map<Element, PdfBoxForm> forms = new HashMap<>();
 
@@ -114,25 +117,22 @@ public PDAppearanceStream getSignatureStream() {
 private void createSignatureAppearanceStreams(PDDocument writer) {
 
         // this appearance is just a dummy to make the validation happy
-        signatureAppearance = PdfBoxForm.createCheckboxAppearance("q\nQ\n", writer, checkBoxFontResource);
+        signatureAppearance = PdfBoxForm.createCheckboxAppearance(DEFAULT_APPEARANCE, writer, checkBoxFontResource);
     }
 
     private void createCheckboxAppearanceStreams(PDDocument writer, PdfBoxForm.Control ctrl) {
         CheckboxStyle style = CheckboxStyle.fromIdent(ctrl.box.getStyle().getIdent(CSSName.FS_CHECKBOX_STYLE));
 
-        if (!checkboxAppearances.containsKey(style)) {
-            PDAppearanceStream strm = PdfBoxForm.createCheckboxAppearance(style, writer, checkBoxFontResource);
-            checkboxAppearances.put(style, strm);
-        }
+        checkboxAppearances.computeIfAbsent(style, k -> PdfBoxForm.createCheckboxAppearance(style, writer, checkBoxFontResource));
 
         if (checkboxOffAppearance == null) {
-            checkboxOffAppearance = PdfBoxForm.createCheckboxAppearance("q\nQ\n", writer, checkBoxFontResource);
+            checkboxOffAppearance = PdfBoxForm.createCheckboxAppearance(DEFAULT_APPEARANCE, writer, checkBoxFontResource);
         }
     }
 
-    private void createRadioboxAppearanceStream(PDDocument writer, PdfBoxForm.Control ctrl) {
+    private void createRadioboxAppearanceStream(PDDocument writer) {
         if (radioBoxOffAppearance == null) {
-            radioBoxOffAppearance = PdfBoxForm.createCheckboxAppearance("q\nQ\n", writer, checkBoxFontResource);
+            radioBoxOffAppearance = PdfBoxForm.createCheckboxAppearance(DEFAULT_APPEARANCE, writer, checkBoxFontResource);
         }
 
         if (radioBoxOnAppearance == null) {
@@ -162,7 +162,7 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
                 createCheckboxAppearanceStreams(writer, ctrl);
             } else if (ctrl.box.getElement().getAttribute("type").equals("radio")) {
                 createCheckboxFontResource();
-                createRadioboxAppearanceStream(writer, ctrl);
+                createRadioboxAppearanceStream(writer);
             }
 
             if (frm != null) {
@@ -170,30 +170,34 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
             }
         }
 
+        if (!forms.isEmpty()) {
+            processForms(writer, root);
+        }
+    }
+
+    private void processForms(PDDocument writer, Box root) {
         PDResources resources = new PDResources();
-        /* Defaultfonts */
+        /* Default fonts */
         resources.put(COSName.HELV, new PDType1Font(Standard14Fonts.FontName.HELVETICA));
         resources.put(COSName.ZA_DB, new PDType1Font(Standard14Fonts.FontName.ZAPF_DINGBATS));
         for (Map.Entry<PDFont, String> fnt : controlFonts.entrySet()) {
             resources.put(COSName.getPDFName(fnt.getValue()), fnt.getKey());
         }
 
-        if (forms.size() != 0) {
-            int start = 0;
-            PDAcroForm acro = new PDAcroForm(writer);
+        int start = 0;
+        PDAcroForm acro = new PDAcroForm(writer);
 
-            acro.setDefaultAppearance("/Helv 0 Tf 0 g");
-            acro.setNeedAppearances(Boolean.TRUE);
-            acro.setDefaultResources(resources);
+        acro.setDefaultAppearance("/Helv 0 Tf 0 g");
+        acro.setNeedAppearances(Boolean.TRUE);
+        acro.setDefaultResources(resources);
 
-            writer.getDocumentCatalog().setAcroForm(acro);
+        writer.getDocumentCatalog().setAcroForm(acro);
 
-            for (PdfBoxForm frm : forms.values()) {
-                try {
-                    start = 1 + frm.process(acro, start, root);
-                } catch (IOException e) {
-                    throw new PdfContentStreamAdapter.PdfException("processControls", e);
-                }
+        for (PdfBoxForm frm : forms.values()) {
+            try {
+                start = 1 + frm.process(acro, start, root);
+            } catch (IOException e) {
+                throw new PdfContentStreamAdapter.PdfException("processControls", e);
             }
         }
     }
