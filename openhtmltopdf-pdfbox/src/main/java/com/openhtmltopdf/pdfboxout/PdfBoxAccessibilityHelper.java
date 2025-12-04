@@ -25,6 +25,7 @@ import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructur
 import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedContent;
 import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachment;
 import org.w3c.dom.Document;
 
 import com.openhtmltopdf.css.constants.CSSName;
@@ -1224,8 +1225,21 @@ public class PdfBoxAccessibilityHelper {
 
     public void addLink(Box anchor, Box target, PDAnnotation pdAnnotation, PDPage page) {
         PDStructureElement struct = getStructualElementForBox(anchor);
+        
+        // For file attachment annotations, if no structure element exists, we need to ensure
+        // the annotation is associated with a proper LINK structure element for PDF/UA compliance.
+        // This can happen when elements with download attributes aren't <a> tags.
+        if (struct == null && pdAnnotation instanceof PDAnnotationFileAttachment) {
+            // Try to find a parent element that has a structure element
+            Box parentBox = anchor.getParent();
+            while (parentBox != null && struct == null) {
+                struct = getStructualElementForBox(parentBox);
+                parentBox = parentBox.getParent();
+            }
+        }
+        
         if (struct != null) {
-            // We have to append the link annotationobject reference as a kid of its associated structure element.
+            // We have to append the link annotation object reference as a kid of its associated structure element.
             PDObjectReference ref = new PDObjectReference();
             ref.setReferencedObject(pdAnnotation);
             struct.appendKid(ref);
