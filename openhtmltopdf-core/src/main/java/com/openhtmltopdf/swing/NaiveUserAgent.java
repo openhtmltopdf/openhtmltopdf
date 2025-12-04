@@ -133,7 +133,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         return null;
       }
 
-      String path = fullUri.getPath();
+      String path = fullUri.isOpaque() ? fullUri.getSchemeSpecificPart() : fullUri.getPath();
       if (path.startsWith("/")) {
         path = path.substring(1);
       }
