@@ -869,12 +869,12 @@ public class TableCellBox extends BlockBox {
         ) {
             bounds = getContentLimitedBorderEdge((RenderingContext) c);
             bounds = adjustBoundsToAvoidTheadOverlap((RenderingContext) c, bounds);
+
+            if (bounds == null) {
+                bounds = getPaintingBorderEdge(c);
+            }
         } else {
             bounds = getPaintingBorderEdge(c);
-        }
-
-        if (bounds == null) {
-            return null;
         }
 
         bounds.x -= (int) border.left() / 2;
