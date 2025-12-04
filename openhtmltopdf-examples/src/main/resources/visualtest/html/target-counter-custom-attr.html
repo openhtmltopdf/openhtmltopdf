@@ -1,0 +1,17 @@
+<html>
+<head>
+<style>
+@page{size: 250px 250px;margin:0;padding:0;}
+body{margin:0;padding:0;font-size:10px}
+h2{page-break-before:always;}
+.page-nbr::after{content: target-counter(attr(data-href url), page);}
+</style>
+</head>
+<body>
+<h1>Document</h1>
+<span>See <i>More</i> (<span class="page-nbr" data-href="#more">Page </span>)
+or <i>Less</i> (<span class="page-nbr" data-href="#less">Page </span>).</span>
+<h2 id="less">Less</h2><p>Some less</p>
+<h2 id="more">More</h2><p>Some more</p>
+</body>
+</html>

@@ -1578,6 +1578,22 @@ public class VisualRegressionTest {
     public void testFsTablePaginateHeader() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate"));
     }
+  
+    /**
+     * CSS target-counter calling attr on a non-href attribute.
+     */
+    @Test
+    public void testTargetCounterCustomAttr() throws IOException {
+        assertTrue(vt.runTest("target-counter-custom-attr"));
+    }
+
+    /**
+     * CSS target-counter on a floating pseudo element.
+     */
+    @Test
+    public void testTargetCounterFloat() throws IOException {
+        assertTrue(vt.runTest("target-counter-float"));
+    }
 
     // TODO:
     // + Elements that appear just on generated overflow pages.
