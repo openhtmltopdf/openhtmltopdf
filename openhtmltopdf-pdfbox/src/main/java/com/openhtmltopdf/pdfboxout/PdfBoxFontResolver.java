@@ -80,7 +80,7 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
         // All fonts are required to be embedded in PDF/A documents, so we don't add
         // the built-in fonts, if conformance is required.
         this._builtinFonts = (pdfAConformance == PdfAConformance.NONE && !pdfUaConform) ? 
-                new AbstractFontStore.BuiltinFontStore(doc) :
+                new AbstractFontStore.BuiltinFontStore() :
                 new AbstractFontStore.EmptyFontStore();
 
         this._finalFallbackFonts = new FallbackFontStore(sharedContext, doc, pdfMetricsCache);

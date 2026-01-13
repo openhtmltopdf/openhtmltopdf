@@ -6,7 +6,6 @@ import com.openhtmltopdf.outputdevice.helper.FontFamily;
 import com.openhtmltopdf.outputdevice.helper.FontResolverHelper;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
-import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
@@ -32,10 +31,9 @@ public abstract class AbstractFontStore {
     }
 
     public static class BuiltinFontStore extends AbstractFontStore {
-        final Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> _fontFamilies;
+        static final Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> _fontFamilies = createInitialFontMap();
 
-        public BuiltinFontStore(PDDocument doc) {
-            this._fontFamilies = createInitialFontMap();
+        public BuiltinFontStore() {
         }
 
         static Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> createInitialFontMap() {
