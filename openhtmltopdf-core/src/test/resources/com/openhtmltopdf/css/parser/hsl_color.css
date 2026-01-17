@@ -1,0 +1,9 @@
+.hsl-legacy {
+    color: hsl(210, 25%, 50%);
+}
+.hsl-number-number {
+    color: hsl(210 25 50);
+}
+.hsl-deg-percent {
+    color: hsl(210deg 25% 50%);
+}
