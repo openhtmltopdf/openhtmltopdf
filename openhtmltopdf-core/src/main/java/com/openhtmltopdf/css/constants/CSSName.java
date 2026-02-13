@@ -1082,6 +1082,30 @@ public final class CSSName implements Comparable<CSSName> {
             );
 
     /**
+     * CSS text-underline-position property.
+     */
+    public static final CSSName TEXT_UNDERLINE_POSITION =
+            addProperty(
+                    "text-underline-position",
+                    PRIMITIVE,
+                    "auto",
+                    INHERITS,
+                    new PrimitivePropertyBuilders.TextUnderlinePosition()
+            );
+
+    /**
+     * CSS text-underline-offset property.
+     */
+    public static final CSSName TEXT_UNDERLINE_OFFSET =
+            addProperty(
+                    "text-underline-offset",
+                    PRIMITIVE,
+                    "auto",
+                    INHERITS,
+                    new PrimitivePropertyBuilders.TextUnderlineOffset()
+            );
+
+    /**
      * Unique CSSName instance for CSS2 property.
      */
     public final static CSSName TEXT_INDENT =

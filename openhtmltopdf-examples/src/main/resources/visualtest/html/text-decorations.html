@@ -1,0 +1,161 @@
+<html>
+<head>
+    <style>
+        body {
+            font-family: Helvetica;
+        }
+
+        .default {
+            text-decoration: underline;
+        }
+
+        .under {
+            text-decoration: underline;
+            text-underline-position: under;
+        }
+
+        .offset-2px {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .offset-4px {
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        .offset-negative {
+            text-decoration: underline;
+            text-underline-offset: -2px;
+        }
+
+        .under-with-offset {
+            text-decoration: underline;
+            text-underline-position: under;
+            text-underline-offset: 3px;
+        }
+
+        .auto {
+            text-decoration: underline;
+            text-underline-position: auto;
+            text-underline-offset: auto;
+        }
+
+        .overline {
+            text-decoration: overline;
+        }
+
+        .line-through {
+            text-decoration: line-through;
+        }
+
+        .overline-with-offset {
+            text-decoration: overline;
+            text-underline-offset: 3px;
+        }
+
+        .line-through-with-offset {
+            text-decoration: line-through;
+            text-underline-offset: 3px;
+        }
+
+        .invalid-offset-string {
+            text-decoration: underline;
+            text-underline-offset: invalid;
+        }
+
+        .invalid-offset-percent {
+            text-decoration: underline;
+            text-underline-offset: 50%;
+        }
+
+        div {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        .label {
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="label">Default (no custom properties):</div>
+    <span class="default">This is default underline text with descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-position: auto (explicit):</div>
+    <span class="auto">This is auto underline text with descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-position: under:</div>
+    <span class="under">This is under underline text with descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-offset: 2px:</div>
+    <span class="offset-2px">This is underline with 2px offset and descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-offset: 4px:</div>
+    <span class="offset-4px">This is underline with 4px offset and descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-offset: -2px (negative):</div>
+    <span class="offset-negative">This is underline with -2px offset and descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-position: under + text-underline-offset: 3px:</div>
+    <span class="under-with-offset">This is under + 3px offset with descenders: gjpqy</span>
+</div>
+
+<h2>Non-Underline Decorations</h2>
+
+<div>
+    <div class="label">text-decoration: overline:</div>
+    <span class="overline">This is overline text with descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-decoration: line-through:</div>
+    <span class="line-through">This is line-through text with descenders: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-decoration: overline + text-underline-offset: 3px (should not affect overline):</div>
+    <span class="overline-with-offset">This is overline with underline offset property: gjpqy</span>
+</div>
+
+<h2>Invalid Offset Values</h2>
+
+<div>
+    <div class="label">text-underline-offset: invalid (should fallback to default):</div>
+    <span class="invalid-offset-string">This is underline with invalid offset value: gjpqy</span>
+</div>
+
+<div>
+    <div class="label">text-underline-offset: 50% (percentage, may not be supported):</div>
+    <span class="invalid-offset-percent">This is underline with percentage offset: gjpqy</span>
+</div>
+
+<h2>Comparison</h2>
+<div>
+    <div class="label">Multiple lines for comparison:</div>
+    <p class="default">Default: The quick brown fox jumps over the lazy dog.</p>
+    <p class="under">Under: The quick brown fox jumps over the lazy dog.</p>
+    <p class="offset-4px">Offset 4px: The quick brown fox jumps over the lazy dog.</p>
+    <p class="overline">Overline: The quick brown fox jumps over the lazy dog.</p>
+    <p class="line-through">Line-through: The quick brown fox jumps over the lazy dog.</p>
+</div>
+</body>
+</html>

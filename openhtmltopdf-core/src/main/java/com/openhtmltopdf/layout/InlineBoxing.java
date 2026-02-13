@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import com.openhtmltopdf.css.style.FSDerivedValue;
 import com.openhtmltopdf.util.LogMessageId;
 import org.w3c.dom.Element;
 
@@ -761,7 +762,7 @@ public class InlineBoxing {
             vaContext.setInitialMeasurements(measurements);
 
             List<TextDecoration> lBDecorations = calculateTextDecorations(
-                    container, measurements.getBaseline(), strutM);
+                    c, container, measurements.getBaseline(), strutM);
             if (lBDecorations != null) {
                 current.setTextDecorations(lBDecorations);
             }
@@ -864,7 +865,7 @@ public class InlineBoxing {
         iB.setBaseline(Math.round(fm.getAscent()));
 
         alignInlineContent(c, iB, fm.getAscent(), fm.getDescent(), vaContext);
-        List<TextDecoration> decorations = calculateTextDecorations(iB, iB.getBaseline(), fm);
+        List<TextDecoration> decorations = calculateTextDecorations(c, iB, iB.getBaseline(), fm);
         if (decorations != null) {
             iB.setTextDecorations(decorations);
         }
@@ -887,7 +888,7 @@ public class InlineBoxing {
         return result;
     }
 
-    public static List<TextDecoration> calculateTextDecorations(Box box, int baseline,
+    public static List<TextDecoration> calculateTextDecorations(LayoutContext c, Box box, int baseline,
             FSFontMetrics fm) {
         List<TextDecoration> result = null;
         CalculatedStyle style = box.getStyle();
@@ -897,25 +898,44 @@ public class InlineBoxing {
             result = new ArrayList<>(idents.size());
             if (idents.contains(IdentValue.UNDERLINE)) {
                 TextDecoration decoration = new TextDecoration(IdentValue.UNDERLINE);
-                // JDK returns zero so create additional space equal to one
-                // "underlineThickness"
-                if (fm.getUnderlineOffset() == 0) {
-                    decoration.setOffset(Math.round((baseline + fm.getUnderlineThickness())));
-                } else {
-                    decoration.setOffset(Math.round((baseline + fm.getUnderlineOffset())));
-                }
-                decoration.setThickness(Math.round(fm.getUnderlineThickness()));
 
-                // JDK on Linux returns some goofy values for
-                // LineMetrics.getUnderlineOffset(). Compensate by always
-                // making sure underline fits inside the descender
-                if (fm.getUnderlineOffset() == 0) {  // HACK, are we running under the JDK
-                    int maxOffset =
-                        baseline + (int)fm.getDescent() - decoration.getThickness();
-                    if (decoration.getOffset() > maxOffset) {
-                        decoration.setOffset(maxOffset);
+                IdentValue position = style.getTextUnderlinePosition();
+                FSDerivedValue offsetValue = style.getTextUnderlineOffset();
+
+                // Apply text-underline-position
+                int basePosition;
+                if (position == IdentValue.UNDER) {
+                    // Place underline below descender as base position
+                    basePosition = Math.round(baseline + fm.getDescent() + 1);
+                } else {
+                    basePosition = baseline;
+                }
+
+                // Calculate offset based on text-underline-offset
+                int offset;
+                if (offsetValue.isIdent() && offsetValue.asIdentValue() == IdentValue.AUTO) {
+                    offset = basePosition;
+                } else {
+                    // User-specified offset: move from base position
+                    float offsetFloat = style.getFloatPropertyProportionalTo(CSSName.TEXT_UNDERLINE_OFFSET, 0, c);
+                    offset = basePosition + Math.round(offsetFloat);
+                }
+                if (position == IdentValue.AUTO && offsetValue.isIdent() && offsetValue.asIdentValue() == IdentValue.AUTO) {
+                    // JDK on Linux returns some goofy values for
+                    // LineMetrics.getUnderlineOffset(). Compensate by always
+                    // making sure underline fits inside the descender
+                    if (fm.getUnderlineOffset() == 0) {  // HACK, are we running under the JDK
+                        int maxOffset =
+                                baseline + (int) fm.getDescent() - decoration.getThickness();
+                        if (offset > maxOffset) {
+                            offset = maxOffset;
+                        }
                     }
                 }
+
+                decoration.setOffset(offset);
+                decoration.setThickness(Math.round(fm.getUnderlineThickness()));
+
                 result.add(decoration);
             }
 

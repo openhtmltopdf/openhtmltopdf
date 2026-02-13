@@ -1428,6 +1428,20 @@ public class PrimitivePropertyBuilders {
     public static class TextIndent extends LengthLike {
     }
 
+    public static class TextUnderlinePosition extends SingleIdent {
+        // auto | under
+        private static final BitSet ALLOWED = setFor(IdentValue.AUTO, IdentValue.UNDER);
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
+    public static class TextUnderlineOffset extends LengthLikeWithAuto {
+        // auto | <length> | <percentage>
+    }
+
     public static class TextTransform extends SingleIdent {
        // capitalize | uppercase | lowercase | none | inherit
         private static final BitSet ALLOWED = setFor(
