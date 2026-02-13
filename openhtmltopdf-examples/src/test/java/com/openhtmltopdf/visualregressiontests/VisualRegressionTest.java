@@ -1578,7 +1578,12 @@ public class VisualRegressionTest {
     public void testFsTablePaginateHeader() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate"));
     }
-  
+
+    @Test
+    public void testFsTablePaginateMiddleSpace() throws IOException {
+        assertTrue(vt.runTest("fs-table-paginate-middle-space"));
+    }
+
     /**
      * CSS target-counter calling attr on a non-href attribute.
      */
