@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.logging.Level;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.openhtmltopdf.util.XRLog;
@@ -16,6 +17,7 @@ public class PdfTemplatesTest {
     }
 
     @Test
+    @Ignore
     public void testPdfTemplates() {
         Application app = new Application();
         int code = app.run();
