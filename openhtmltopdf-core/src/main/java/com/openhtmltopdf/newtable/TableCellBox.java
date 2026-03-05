@@ -463,16 +463,9 @@ public class TableCellBox extends BlockBox {
                 // during PagedBoxCollector and may reflect a different page by the time
                 // tbody cells are processed.
                 int theadBottom = getPageTheadBottom(c);
-                int rowSpan = getStyle().getRowSpan();
-                if (rowSpan > 1) {
-                    top = theadBottom > 0 ? theadBottom
-                            : limit.getTop() - ((TableRowBox)getParent()).getExtraSpaceTop();
-                } else {
-                    top = limit.getTop() - ((TableRowBox)getParent()).getExtraSpaceTop();
-                    if (theadBottom > 0) {
-                        top = Math.max(top, theadBottom);
-                    }
-                }
+
+                top = theadBottom > 0 ? theadBottom
+                        : limit.getTop() - ((TableRowBox)getParent()).getExtraSpaceTop();
             }
             
             int bottom = 0;
