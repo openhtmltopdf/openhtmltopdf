@@ -421,17 +421,15 @@ public class TableCellBox extends BlockBox {
                 top = limit.getTop() - ((TableRowBox)getParent()).getExtraSpaceTop() ;
             }
             
-            int bottom;
+            int bottom = 0;
             if (c.getPageNo() == contentLimitContainer.getLastPageNo()) {
                 bottom = result.y + result.height;
             } else {
-                // For rowspan cells, find the maximum bottom among all rows covered
-                int maxBottom = limit.getBottom() != ContentLimit.UNDEFINED ?
-                        limit.getBottom() + ((TableRowBox)getParent()).getExtraSpaceBottom() :
-                        result.y + result.height;
-
-                // Check all rows covered by rowspan by traversing siblings
+                // We must account for both cases:
+                // 1) A rowspan cell’s tall content forces the row height to grow, increasing the height of normal cells.
+                // 2) A normal cell’s tall content forces the row height to grow, increasing the effective height of the rowspan cell.
                 int rowSpan = getStyle().getRowSpan();
+                int maxLimit = 0;
                 Box currentBox = getParent();
                 for (int i = 1; i < rowSpan && currentBox != null; i++) {
                     currentBox = currentBox.getNextSibling();
@@ -442,18 +440,34 @@ public class TableCellBox extends BlockBox {
                             ContentLimit spannedLimit = spannedContainer.getContentLimit(c.getPageNo());
                             if (spannedLimit != null && spannedLimit.getBottom() != ContentLimit.UNDEFINED) {
                                 int spannedBottom = spannedLimit.getBottom() + spannedRow.getExtraSpaceBottom();
-                                maxBottom = Math.max(maxBottom, spannedBottom);
+                                maxLimit = Math.max(spannedBottom, maxLimit);
                             }
                         }
                     }
                 }
-
-                bottom = Math.min(result.y + result.height, maxBottom);
+                currentBox = getParent();
+                // A table cell cannot be limited later than the cells in the same row
+                // or the cells in any previous rows, regardless of whether it has rowspan.
+                while (currentBox != null) {
+                    if (currentBox instanceof TableRowBox) {
+                        TableRowBox spannedRow = (TableRowBox) currentBox;
+                        ContentLimitContainer spannedContainer = spannedRow.getContentLimitContainer();
+                        if (spannedContainer != null) {
+                            ContentLimit spannedLimit = spannedContainer.getContentLimit(c.getPageNo());
+                            if (spannedLimit != null && spannedLimit.getBottom() != ContentLimit.UNDEFINED) {
+                                int spannedBottom = spannedLimit.getBottom() + spannedRow.getExtraSpaceBottom();
+                                maxLimit = Math.max(spannedBottom, maxLimit);
+                            }
+                        }
+                    }
+                    currentBox = currentBox.getPreviousSibling();
+                }
+                bottom = Math.min(result.y + result.height, maxLimit);
             }
             
             result.y = top;
             result.height = bottom - top;
-            
+
             return result;
         }
     }  
