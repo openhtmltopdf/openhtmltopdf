@@ -39,6 +39,9 @@ import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlin
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.junit.Assert;
@@ -1024,6 +1027,67 @@ public class NonVisualRegressionTest {
             assertEquals(doc.getPage(2).getMediaBox().getUpperRightY(), dest2.getTop(), 1.0d);
 
             remove("named-destinations-basic", doc);
+        }
+    }
+
+    /**
+     * Tests that the PDF structure tree follows DOM order, not CSS paint order.
+     * CSS paints backgrounds first, then floats, then inlines - which differs
+     * from the DOM order. The structure tree must follow DOM order per
+     * PDF/UA-1 rule 7.4.2-1.
+     */
+    @Test
+    public void testStructureTreeFollowsDomOrder() throws IOException {
+        String html =
+            "<html lang='en'><head>" +
+            "<title>Structure Tree Ordering Test</title>" +
+            "<meta name='description' content='Test structure tree DOM ordering'/>" +
+            "<style>" +
+            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+            "</style></head><body>" +
+            "<h1>First</h1>" +
+            "<h2>Second</h2>" +
+            "<h3>Third</h3>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+            assertNotNull("Structure tree root should exist", root);
+
+            List<String> headingTags = new ArrayList<>();
+            collectStructureTags(root, headingTags, "H[1-6]");
+
+            assertEquals("Should find 3 headings", 3, headingTags.size());
+            assertEquals("First heading should be H1", "H1", headingTags.get(0));
+            assertEquals("Second heading should be H2", "H2", headingTags.get(1));
+            assertEquals("Third heading should be H3", "H3", headingTags.get(2));
+        }
+    }
+
+    /**
+     * Recursively collects structure element tags matching the given regex pattern
+     * in document order from the PDF structure tree.
+     */
+    private static void collectStructureTags(PDStructureNode node, List<String> tags, String pattern) {
+        for (Object kid : node.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement elem = (PDStructureElement) kid;
+                String tag = elem.getStructureType();
+                if (tag != null && tag.matches(pattern)) {
+                    tags.add(tag);
+                }
+                collectStructureTags(elem, tags, pattern);
+            }
         }
     }
 

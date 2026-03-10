@@ -3,6 +3,8 @@ package com.openhtmltopdf.pdfboxout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +28,7 @@ import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedConte
 import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
@@ -839,6 +842,7 @@ public class PdfBoxAccessibilityHelper {
             root.appendKid(rootElem);
 
             _root.elem = rootElem;
+            sortChildrenByDomOrder(_root);
             finishTreeItems(_root.children, _root);
 
             _od.getWriter().getDocumentCatalog().setStructureTreeRoot(root);
@@ -894,6 +898,101 @@ public class PdfBoxAccessibilityHelper {
         } else {
             return StandardStructureTypes.SPAN;
         }
+    }
+
+    /**
+     * Recursively sorts children of GenericStructualElement nodes by DOM document order.
+     * This fixes PDF/UA-1 rule 7.4.2-1 where structure tree order must follow logical
+     * reading order (DOM order), not CSS paint order.
+     *
+     * Table and list structures are excluded as they have their own semantic ordering.
+     */
+    private static void sortChildrenByDomOrder(AbstractStructualElement element) {
+        if (element instanceof GenericStructualElement) {
+            GenericStructualElement generic = (GenericStructualElement) element;
+            sortByDomOrder(generic.children);
+            for (AbstractTreeItem child : generic.children) {
+                if (child instanceof AbstractStructualElement) {
+                    sortChildrenByDomOrder((AbstractStructualElement) child);
+                }
+            }
+        } else if (element instanceof ListStructualElement) {
+            ListStructualElement list = (ListStructualElement) element;
+            sortByDomOrder(list.listItems);
+            for (ListItemStructualElement item : list.listItems) {
+                sortChildrenByDomOrder(item);
+            }
+        } else if (element instanceof ListItemStructualElement) {
+            ListItemStructualElement item = (ListItemStructualElement) element;
+            sortChildrenByDomOrder(item.body);
+        } else if (element instanceof TableStructualElement) {
+            TableStructualElement table = (TableStructualElement) element;
+            sortByDomOrder(table.tbodies);
+            sortChildrenByDomOrder(table.thead);
+            for (TableBodyStructualElement tbody : table.tbodies) {
+                sortChildrenByDomOrder(tbody);
+            }
+            sortChildrenByDomOrder(table.tfoot);
+        }
+    }
+
+    /**
+     * Sorts items that have a DOM node by document order, leaving items
+     * without a DOM node (anonymous boxes, text runs) in their original
+     * positions. This avoids Comparator transitivity issues that arise
+     * when mixing DOM-based and index-based ordering in a single sort.
+     */
+    private static <T extends AbstractTreeItem> void sortByDomOrder(List<T> children) {
+        if (children.size() < 2) {
+            return;
+        }
+
+        // Collect anchored items (those with a DOM node) and their positions.
+        List<Integer> anchoredIndices = new ArrayList<>();
+        List<T> anchoredItems = new ArrayList<>();
+
+        for (int i = 0; i < children.size(); i++) {
+            if (getDomNode(children.get(i)) != null) {
+                anchoredIndices.add(i);
+                anchoredItems.add(children.get(i));
+            }
+        }
+
+        if (anchoredItems.size() < 2) {
+            return;
+        }
+
+        // Sort anchored items by DOM document order.
+        Collections.sort(anchoredItems, new Comparator<T>() {
+            @Override
+            public int compare(T a, T b) {
+                Node nodeA = getDomNode(a);
+                Node nodeB = getDomNode(b);
+
+                short pos = nodeA.compareDocumentPosition(nodeB);
+                if ((pos & Node.DOCUMENT_POSITION_FOLLOWING) != 0) {
+                    return -1;
+                } else if ((pos & Node.DOCUMENT_POSITION_PRECEDING) != 0) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+
+        // Write sorted anchored items back into their original slots.
+        for (int i = 0; i < anchoredIndices.size(); i++) {
+            children.set(anchoredIndices.get(i), anchoredItems.get(i));
+        }
+    }
+
+    private static Node getDomNode(AbstractTreeItem item) {
+        if (item instanceof AbstractStructualElement) {
+            Box box = ((AbstractStructualElement) item).box;
+            if (box != null && box.getElement() != null) {
+                return box.getElement();
+            }
+        }
+        return null;
     }
 
     private static void finishTreeItems(List<? extends AbstractTreeItem> children, AbstractStructualElement parent) {
