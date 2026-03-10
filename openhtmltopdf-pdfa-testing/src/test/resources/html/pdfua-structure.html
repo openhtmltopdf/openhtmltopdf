@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>PDF/UA Structure Test</title>
+  <meta name="subject" content="PDF/UA structure validation"/>
+  <meta name="author" content="openhtmltopdf.com team"/>
+  <meta name="description" content="Tests heading order and link structure for PDF/UA-1"/>
+
+  <bookmarks>
+    <bookmark name="Main heading" href="#main"/>
+    <bookmark name="Section" href="#section"/>
+    <bookmark name="Subsection" href="#subsection"/>
+    <bookmark name="Links" href="#links"/>
+  </bookmarks>
+
+  <style>
+  @page {
+    margin: 30px 20px 60px 20px;
+
+    @bottom-center {
+      font-family: 'TestFont';
+      font-size: 12px;
+      content: element(footer);
+    }
+  }
+  body {
+    margin: 0;
+    font-family: 'TestFont';
+    font-size: 15px;
+  }
+  #footer {
+    position: running(footer);
+  }
+  </style>
+</head>
+<body>
+  <div id="footer">
+    <p>Contact: <a href="https://openhtmltopdf.com" title="Visit homepage">openhtmltopdf.com</a></p>
+  </div>
+
+  <h1 id="main">Main heading</h1>
+  <p>First paragraph with enough text to fill some space on the page.</p>
+
+  <h2 id="section">Section heading</h2>
+  <p>Second paragraph with content under the section heading.</p>
+
+  <h3 id="subsection">Subsection heading</h3>
+  <p>Third paragraph with content under the subsection heading.</p>
+
+  <h2 id="links">Links section</h2>
+  <p>This is a link to the <a title="The openhtmltopdf.com homepage" href="https://openhtmltopdf.com">homepage</a>.</p>
+  <p>This is an internal link to the <a title="Go to top" href="#main">top</a> of the document.</p>
+</body>
+</html>

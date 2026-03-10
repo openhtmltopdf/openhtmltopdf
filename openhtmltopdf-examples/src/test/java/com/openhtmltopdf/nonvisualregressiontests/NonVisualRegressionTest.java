@@ -1467,6 +1467,55 @@ public class NonVisualRegressionTest {
         }
     }
 
+    /**
+     * Tests that headings split across page breaks preserve correct reading order
+     * in the structure tree. Page breaks create new branches in the structure tree,
+     * but the heading order must remain H1 → H2 → H3 regardless of page boundaries.
+     */
+    @Test
+    public void testHeadingsAcrossPageBreaksPreserveOrder() throws IOException {
+        String html =
+            "<html lang='en'><head>" +
+            "<title>Headings Across Pages Test</title>" +
+            "<meta name='description' content='Test heading order across page breaks'/>" +
+            "<style>" +
+            "@page { size: 200px 200px; margin: 10px; }" +
+            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+            "</style></head><body>" +
+            "<h1>First heading</h1>" +
+            "<p>Some content on page one.</p>" +
+            "<h2 style='page-break-before: always;'>Second heading on page two</h2>" +
+            "<p>Content on page two.</p>" +
+            "<h3 style='page-break-before: always;'>Third heading on page three</h3>" +
+            "<p>Content on page three.</p>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            assertEquals("Should have 3 pages", 3, doc.getNumberOfPages());
+
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+            assertNotNull("Structure tree root should exist", root);
+
+            List<String> headingTags = new ArrayList<>();
+            collectStructureTags(root, headingTags, "H[1-6]");
+
+            assertEquals("Should find 3 headings", 3, headingTags.size());
+            assertEquals("First heading should be H1", "H1", headingTags.get(0));
+            assertEquals("Second heading should be H2", "H2", headingTags.get(1));
+            assertEquals("Third heading should be H3", "H3", headingTags.get(2));
+        }
+    }
+
     // TODO:
     // + More form controls.
     // + Custom meta info.
