@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>PDF/UA Figure Empty Content Test</title>
+  <meta name="subject" content="PDF/UA figure with no content"/>
+  <meta name="author" content="openhtmltopdf.com team"/>
+  <meta name="description" content="Tests that empty img elements do not cause NPE in structure tree"/>
+
+  <bookmarks>
+    <bookmark name="Figures" href="#figures"/>
+  </bookmarks>
+
+  <style>
+  @page {
+    margin: 30px 20px 60px 20px;
+  }
+  body {
+    margin: 0;
+    font-family: 'TestFont';
+    font-size: 15px;
+  }
+  </style>
+</head>
+<body>
+  <h1 id="figures">Figure test</h1>
+  <p>Paragraph before empty images.</p>
+
+  <!-- Empty img with no src - should not cause NPE in FigureStructualElement.finish() -->
+  <img alt="Empty image placeholder"/>
+
+  <!-- Broken src that will not resolve -->
+  <img src="" alt="Empty src image"/>
+
+  <p>Paragraph after empty images.</p>
+</body>
+</html>

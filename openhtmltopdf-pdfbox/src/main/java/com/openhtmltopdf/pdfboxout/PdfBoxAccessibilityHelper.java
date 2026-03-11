@@ -766,7 +766,9 @@ public class PdfBoxAccessibilityHelper {
 
             child.parentElem.appendKid(child.elem);
 
-            finishTreeItem(child.content, child);
+            if (child.content != null) {
+                finishTreeItem(child.content, child);
+            }
         }
     }
 

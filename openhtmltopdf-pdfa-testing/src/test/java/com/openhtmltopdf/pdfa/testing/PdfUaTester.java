@@ -119,4 +119,16 @@ public class PdfUaTester {
     public void testStructureWithRunningFooterLinks() throws Exception {
         assertTrue(run("pdfua-structure"));
     }
+
+    /**
+     * Verifies that empty img elements (no src or broken src) do not cause
+     * NPE in FigureStructualElement.finish() when building the PDF/UA
+     * structure tree. The FigureContentItem may be null if no content was
+     * painted for the replaced element.
+     */
+    @Test
+    public void testEmptyFigureDoesNotCauseNpe() throws Exception {
+        // Should not throw NPE — compliance is not required, just no crash.
+        run("pdfua-figure-empty");
+    }
 }
