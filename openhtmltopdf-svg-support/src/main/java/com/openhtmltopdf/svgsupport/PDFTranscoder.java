@@ -33,10 +33,10 @@ import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 public class PDFTranscoder extends SVGAbstractTranscoder {
@@ -82,7 +82,10 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 	}
 
     public static class OpenHtmlFontResolver implements FontFamilyResolver {
-		private final Map<String, OpenHtmlGvtFontFamily> families = new HashMap<>(4);
+		// Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
+		// section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
+		// Matches Batik's DefaultFontFamilyResolver which lowercases family names.
+		private final Map<String, OpenHtmlGvtFontFamily> families = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
 		@Override
 		public GVTFontFamily resolve(String arg0, FontFace arg1) {
