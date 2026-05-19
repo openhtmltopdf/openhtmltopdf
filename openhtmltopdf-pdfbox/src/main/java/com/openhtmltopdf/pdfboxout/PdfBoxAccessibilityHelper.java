@@ -1150,6 +1150,7 @@ public class PdfBoxAccessibilityHelper {
         // whose nearest tagged ancestor lives in such a dangling chain end up
         // with a null parentElem in the structure parent tree, which veraPDF
         // reports as PDF/UA-1 7.1-t3 ("Content not tagged").
+        AbstractTreeItem original = child;
         while (parent != null && parent.getAccessibilityObject() == null) {
             AbstractStructualElement parentItem = createStructureItem(null, parent);
             parent.setAccessiblityObject(parentItem);
@@ -1161,7 +1162,11 @@ public class PdfBoxAccessibilityHelper {
             parent = parent.getParent();
         }
 
-        if (parent != null && child.parent == null) {
+        // Only re-link if the loop actually created intermediates. For callers
+        // whose direct parent already has an accessibility object (e.g.
+        // createMarkedContentStructureItem) the caller adds `original` itself,
+        // so re-linking here would duplicate the entry under /K.
+        if (child != original && parent != null && child.parent == null) {
             AbstractStructualElement existing =
                     (AbstractStructualElement) parent.getAccessibilityObject();
             if (existing != null) {
