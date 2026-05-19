@@ -239,6 +239,13 @@ public class PdfBoxAccessibilityHelper {
                         return StandardStructureTypes.CAPTION;
                     case "blockquote":
                         return StandardStructureTypes.BLOCK_QUOTE;
+                    case "div":
+                        // HTML div is always a block-level container in the PDF
+                        // structure tree, regardless of CSS display:inline-block.
+                        // Falling through to guessBoxTag would emit Span for an
+                        // inline-block div, producing Span containing P which
+                        // PAC flags as inappropriate use of Span.
+                        return StandardStructureTypes.DIV;
                     }
                 }
 
