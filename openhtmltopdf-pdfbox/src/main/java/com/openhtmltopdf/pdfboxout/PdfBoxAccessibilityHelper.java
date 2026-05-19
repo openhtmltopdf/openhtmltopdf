@@ -1141,6 +1141,15 @@ public class PdfBoxAccessibilityHelper {
 
     private void ensureAncestorTree(AbstractTreeItem child, Box parent) {
         // Walk up the ancestor tree making sure they all have accessibility objects.
+        // When the walk terminates because an ancestor already has an accessibility
+        // object, the most-recently-created intermediate (`child` after the loop)
+        // must be linked into that existing ancestor's children list. Without this
+        // final step the just-created chain is reachable only via parent pointers
+        // and never traversed by finishTreeItems(_root.children, _root), so its
+        // elements never get their PDStructureElement created. Content items
+        // whose nearest tagged ancestor lives in such a dangling chain end up
+        // with a null parentElem in the structure parent tree, which veraPDF
+        // reports as PDF/UA-1 7.1-t3 ("Content not tagged").
         while (parent != null && parent.getAccessibilityObject() == null) {
             AbstractStructualElement parentItem = createStructureItem(null, parent);
             parent.setAccessiblityObject(parentItem);
@@ -1150,6 +1159,15 @@ public class PdfBoxAccessibilityHelper {
             child.parent = parentItem;
             child = parentItem;
             parent = parent.getParent();
+        }
+
+        if (parent != null && child.parent == null) {
+            AbstractStructualElement existing =
+                    (AbstractStructualElement) parent.getAccessibilityObject();
+            if (existing != null) {
+                existing.addChild(child);
+                child.parent = existing;
+            }
         }
     }
 

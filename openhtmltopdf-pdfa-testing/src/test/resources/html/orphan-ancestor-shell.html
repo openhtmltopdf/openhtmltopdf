@@ -1,0 +1,22 @@
+<html lang="EN-US"><head><title>orphan-ancestor reproducer</title>
+<meta name="description" content="Reproducer"/>
+<meta name="author" content="openhtmltopdf test"/>
+<style>
+  @page { size: A4; margin: 30pt 20pt;
+    @bottom-right { font-family: Inter; font-size: 9pt; content: counter(page) " / " counter(pages); } }
+  html { font-family: Inter, 'Noto Sans CJK'; }
+  body { margin: 0; font-size: 10pt; line-height: 14pt; }
+  h1 { font-size: 18pt; }
+  .outer { width: 100%; border-collapse: collapse; }
+  .outer > tbody > tr { page-break-inside: avoid; }
+  .outer > tbody > tr > td { padding: 4pt; vertical-align: top; border-bottom: 1pt solid #d8d8d8; }
+  .inner { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  .inner td { padding: 0 4pt 0 0; border: none; }
+  p { margin: 0; }
+</style></head><body>
+<h1>Orphan ancestor reproducer</h1>
+<table class="outer">
+  <thead><tr><th>desc</th><th>in</th><th>out</th><th>bal</th></tr></thead>
+  <tbody>{{rows}}</tbody>
+</table>
+</body></html>
