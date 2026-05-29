@@ -390,15 +390,21 @@ abstract class Condition {
             // This is much faster than calling `split()` and comparing individual values in a loop.
             // NOTE: In jQuery, for example, the attribute value first has whitespace normalized to spaces. But
             // in an XML DOM, space normalization in attributes is supposed to have happened already.
-            int idx = c.indexOf(_className);
-            if (idx == -1){
-                return false;
+            int from = 0;
+            while (true) {
+                int idx = c.indexOf(_className, from);
+                if (idx == -1) {
+                    return false;
+                }
+                int beforeMatch = idx - 1;
+                int afterMatch = idx + _className.length();
+                boolean delimitedBefore = beforeMatch < 0 || Character.isWhitespace(c.charAt(beforeMatch));
+                boolean delimitedAfter = afterMatch == c.length() || Character.isWhitespace(c.charAt(afterMatch));
+                if (delimitedBefore && delimitedAfter) {
+                    return true;
+                }
+                from = idx + 1;
             }
-            int beforeMatch = idx - 1;
-            int afterMatch = idx + _className.length();
-            boolean delimitedBefore = beforeMatch < 0 || Character.isWhitespace(c.charAt(beforeMatch));
-            boolean delimitedAfter = afterMatch == c.length() || Character.isWhitespace(c.charAt(afterMatch));
-            return delimitedBefore && delimitedAfter;
         }
 
         @Override
