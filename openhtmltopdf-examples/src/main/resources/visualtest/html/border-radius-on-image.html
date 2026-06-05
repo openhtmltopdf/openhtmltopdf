@@ -1,0 +1,45 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 360px;
+  margin: 0;
+  padding: 0;
+}
+body {
+  padding: 0;
+  margin: 0;
+}
+img {
+  display: block;
+  margin: 10px;
+  width: 150px;
+  height: 60px;
+}
+.one {
+  /* no border */
+  border-radius: 20px;
+}
+.two {
+  /* with border */
+  border-radius: 16px;
+  border: 4px solid red;
+}
+.three {
+  /* multiple value syntax */
+  border-radius: 30px 8px;
+}
+.four {
+  /* individual corner */
+  border-top-left-radius: 30px 15px;
+}
+</style>
+</head>
+<body>
+<!-- border-radius must clip the image (replaced element) content, like it does for div backgrounds. -->
+<img class="one"   src="../../demos/images/opaque-gradient.png" />
+<img class="two"   src="../../demos/images/opaque-gradient.png" />
+<img class="three" src="../../demos/images/opaque-gradient.png" />
+<img class="four"  src="../../demos/images/opaque-gradient.png" />
+</body>
+</html>
