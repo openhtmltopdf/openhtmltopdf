@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
@@ -55,6 +56,14 @@ import java.util.logging.Level;
  * @author Joshua Marinacci
  */
 public class Java2DFontResolver implements FontResolver {
+
+    /**
+     * Cache of Font objects created via Font.createFont(). Each call to
+     * Font.createFont() registers a new TrueTypeFont in the JDK's
+     * SunFontManager that is never released, so fonts must be cached
+     * to avoid a memory leak when rendering repeatedly.
+     */
+    private static final ConcurrentHashMap<String, Font> fontCache = new ConcurrentHashMap<>();
 
     private static abstract class FontDescription implements MinimalFontDescription {
         //protected static final String FAIL_MSG = "Couldn't load font. Please check that it is a valid truetype font.";
@@ -86,31 +95,46 @@ public class Java2DFontResolver implements FontResolver {
 
     private static class InputStreamFontDescription extends FontDescription {
         private FSSupplier<InputStream> _supplier;
+        private final String _cacheKey;
 
-        private InputStreamFontDescription(FSSupplier<InputStream> supplier, int weight, IdentValue style) {
+        private InputStreamFontDescription(FSSupplier<InputStream> supplier, int weight, IdentValue style, String cacheKey) {
             super(weight, style);
             this._supplier = supplier;
+            this._cacheKey = cacheKey;
         }
-        
+
         @Override
         protected boolean realizeFont() {
-            if (_font == null && _supplier != null) {
-                InputStream is = _supplier.supply();
-                _supplier = null; // We only try once.
-
-                if (is == null) {
-                    return false;
+            if (_font == null) {
+                if (_cacheKey != null) {
+                    _font = fontCache.get(_cacheKey);
+                    if (_font != null) {
+                        _supplier = null;
+                        return true;
+                    }
                 }
 
-                try {
-                    _font = Font.createFont(Font.TRUETYPE_FONT, is);
-                } catch (IOException|FontFormatException e) {
-                    XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_JAVA2D_COULD_NOT_LOAD_FONT, e);
-                    return false;
-                } finally {
+                if (_supplier != null) {
+                    InputStream is = _supplier.supply();
+                    _supplier = null; // We only try once.
+
+                    if (is == null) {
+                        return false;
+                    }
+
                     try {
-                        is.close();
-                    } catch (IOException e) {
+                        _font = Font.createFont(Font.TRUETYPE_FONT, is);
+                        if (_cacheKey != null) {
+                            fontCache.put(_cacheKey, _font);
+                        }
+                    } catch (IOException|FontFormatException e) {
+                        XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_JAVA2D_COULD_NOT_LOAD_FONT, e);
+                        return false;
+                    } finally {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                        }
                     }
                 }
             }
@@ -121,17 +145,30 @@ public class Java2DFontResolver implements FontResolver {
     
     private static class FileFontDescription extends FontDescription {
         private File _fontFile;
+        private final boolean _useCache;
 
-        private FileFontDescription(File fontFile, int weight, IdentValue style) {
+        private FileFontDescription(File fontFile, int weight, IdentValue style, boolean useCache) {
             super(weight, style);
             this._fontFile = fontFile;
+            this._useCache = useCache;
         }
-        
+
         @Override
         protected boolean realizeFont() {
             if (_font == null && _fontFile != null) {
+                if (_useCache) {
+                    String path = _fontFile.getAbsolutePath();
+                    _font = fontCache.get(path);
+                    if (_font != null) {
+                        _fontFile = null;
+                        return true;
+                    }
+                }
                 try {
                     _font = Font.createFont(Font.TRUETYPE_FONT, _fontFile);
+                    if (_useCache) {
+                        fontCache.put(_fontFile.getAbsolutePath(), _font);
+                    }
                     _fontFile = null;
                 } catch (IOException | FontFormatException e) {
                     XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_JAVA2D_COULD_NOT_LOAD_FONT, e);
@@ -157,13 +194,19 @@ public class Java2DFontResolver implements FontResolver {
     private final Map<String, Font> availableFontsHash = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
     private final SharedContext _sharedContext;
+    private final boolean _cacheFonts;
 
     // Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
     // section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
     private final Map<String, FontFamily<FontDescription>> _fontFamilies = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    
+
     public Java2DFontResolver(SharedContext sharedCtx, boolean useEnvironmentFonts) {
+        this(sharedCtx, useEnvironmentFonts, true);
+    }
+
+    public Java2DFontResolver(SharedContext sharedCtx, boolean useEnvironmentFonts, boolean cacheFonts) {
         _sharedContext = sharedCtx;
+        _cacheFonts = cacheFonts;
         if (useEnvironmentFonts) {
             init();
         }
@@ -229,27 +272,34 @@ public class Java2DFontResolver implements FontResolver {
     
     public void addInputStreamFont(FSSupplier<InputStream> fontSupplier, String fontFamilyNameOverride,
             Integer fontWeightOverride, IdentValue fontStyleOverride) {
-        
+        addInputStreamFont(fontSupplier, fontFamilyNameOverride, fontWeightOverride, fontStyleOverride, null);
+    }
+
+    private void addInputStreamFont(FSSupplier<InputStream> fontSupplier, String fontFamilyNameOverride,
+            Integer fontWeightOverride, IdentValue fontStyleOverride, String cacheKey) {
+
         FontFamily<FontDescription> fontFamily = getFontFamily(fontFamilyNameOverride);
-        
+
         FontDescription descr = new InputStreamFontDescription(
                 fontSupplier,
                 fontWeightOverride != null ? fontWeightOverride : 400,
-                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL); 
+                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL,
+                cacheKey);
 
        fontFamily.addFontDescription(descr);
     }
-    
+
     private void addFontFaceFont(
             String fontFamilyNameOverride, IdentValue fontWeightOverride, IdentValue fontStyleOverride,
             String uri) {
-        
+
         FSSupplier<InputStream> fontSupplier = new FontFaceFontSupplier(_sharedContext, uri);
         addInputStreamFont(
                 fontSupplier,
                 fontFamilyNameOverride,
-                fontWeightOverride != null ? FontResolverHelper.convertWeightToInt(fontWeightOverride) : 400, 
-                fontStyleOverride);
+                fontWeightOverride != null ? FontResolverHelper.convertWeightToInt(fontWeightOverride) : 400,
+                fontStyleOverride,
+                _cacheFonts ? uri : null);
     }
     
     /**
@@ -263,7 +313,8 @@ public class Java2DFontResolver implements FontResolver {
         FontDescription descr = new FileFontDescription(
                 fontFile,
                 fontWeightOverride != null ? fontWeightOverride : 400,
-                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL); 
+                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL,
+                _cacheFonts);
 
         fontFamily.addFontDescription(descr);
     }

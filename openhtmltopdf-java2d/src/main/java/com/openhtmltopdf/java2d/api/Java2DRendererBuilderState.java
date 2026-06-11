@@ -16,4 +16,5 @@ public class Java2DRendererBuilderState extends BaseRendererBuilder.BaseRenderer
 	public Graphics2D _layoutGraphics;
 	public FSPageProcessor _pageProcessor;
     public boolean _useEnvironmentFonts = false;
+    public boolean _cacheFonts = true;
 }

@@ -94,5 +94,6 @@ public class DefaultPageProcessor implements FSPageProcessor {
 		DefaultPage page = (DefaultPage) pg;
 		page.getGraphics().dispose();
 		page.save();
+		page._img.flush();
 	}
 }

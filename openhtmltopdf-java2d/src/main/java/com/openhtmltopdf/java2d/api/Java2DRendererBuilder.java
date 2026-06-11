@@ -47,6 +47,18 @@ public class Java2DRendererBuilder extends BaseRendererBuilder<Java2DRendererBui
     }
 
 	/**
+	 * Whether to cache fonts loaded via {@code @font-face} CSS rules and
+	 * {@link #useFont} across renders. Caching avoids repeated calls to
+	 * {@link java.awt.Font#createFont} which registers a new TrueTypeFont
+	 * in the JDK's SunFontManager on each call, leaking memory.
+	 * Enabled by default. Disable if fonts change between renders.
+	 */
+	public Java2DRendererBuilder cacheFonts(boolean cacheFonts) {
+		state._cacheFonts = cacheFonts;
+		return this;
+	}
+
+	/**
 	 * Render everything to a single page. I.e. only one big page is genereated, no
 	 * pagebreak will be done. The page is only as height as needed.
 	 */
