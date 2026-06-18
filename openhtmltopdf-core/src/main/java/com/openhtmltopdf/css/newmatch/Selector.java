@@ -219,6 +219,14 @@ public class Selector {
         _specificityC++;
         addCondition(Condition.createFirstChildCondition());
     }
+
+    /**
+     * the CSS condition that element has pseudo-class :root (the document root)
+     */
+    public void addRootCondition() {
+        _specificityC++;
+        addCondition(Condition.createRootCondition());
+    }
     
     /**
      * the CSS condition that element has pseudo-class :last-child

@@ -137,6 +137,15 @@ abstract class Condition {
     static Condition createFirstChildCondition() {
         return new FirstChildCondition();
     }
+
+    /**
+     * the CSS condition that element has pseudo-class :root (the document root)
+     *
+     * @return Returns
+     */
+    static Condition createRootCondition() {
+        return new RootCondition();
+    }
     
     /**
      * the CSS condition that element has pseudo-class :last-child
@@ -487,6 +496,23 @@ abstract class Condition {
         @Override
         void toCSS(StringBuilder sb) {
             sb.append(":first-child");
+        }
+    }
+
+    private static class RootCondition extends Condition {
+
+        RootCondition() {
+        }
+
+        @Override
+        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            // The root element is the one without a parent element.
+            return treeRes.getParentElement(e) == null;
+        }
+
+        @Override
+        void toCSS(StringBuilder sb) {
+            sb.append(":root");
         }
     }
     
