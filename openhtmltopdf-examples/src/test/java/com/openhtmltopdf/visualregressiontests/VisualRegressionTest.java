@@ -1008,6 +1008,15 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that border-radius clips replaced element (image) content, the same way
+     * it clips background boxes. Issue 173.
+     */
+    @Test
+    public void testBorderRadiusOnImage() throws IOException {
+        assertTrue(vt.runTest("border-radius-on-image"));
+    }
+
+    /**
      * Check counter style after page break, it should not be affected by a previous bolded text, see issue
      * https://github.com/danfickle/openhtmltopdf/issues/366
      */

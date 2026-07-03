@@ -88,7 +88,31 @@ public class BorderPainter {
         path.append(generateBorderShape(bounds, LEFT, border, false, inside ? 1 : 0, 1), true);
         return path;
     }
-    
+
+    /**
+     * Runs {@code painter} with the output device clipped to {@code box}'s rounded border
+     * (inside edge), the same way backgrounds are clipped in
+     * {@link AbstractOutputDevice#paintBackground(RenderingContext, Box)}. If {@code box} has
+     * no border-radius, {@code painter} is run without any extra clip.
+     *
+     * <p>This lets {@code border-radius} be honored for replaced elements (e.g. images), whose
+     * content would otherwise be painted with square corners.
+     */
+    public static void paintClippedToBorderRadius(RenderingContext c, BlockBox box, Runnable painter) {
+        BorderPropertySet border = box.getStyle().getBorder(c);
+        boolean roundedClip = border != null && border.hasBorderRadius();
+        if (roundedClip) {
+            Shape clip = generateBorderBounds(box.getPaintingBorderEdge(c), border, true);
+            c.getOutputDevice().pushClip(clip);
+        }
+        try {
+            painter.run();
+        } finally {
+            if (roundedClip) {
+                c.getOutputDevice().popClip();
+            }
+        }
+    }
 
     /**
      * Generates one side of a border
