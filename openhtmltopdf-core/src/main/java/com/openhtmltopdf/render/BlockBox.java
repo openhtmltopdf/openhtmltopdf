@@ -721,8 +721,11 @@ public class BlockBox extends Box {
         }
 
         if (isFloated()) {
-            _floatedBoxData.getManager().removeFloat(this);
-            _floatedBoxData.getDrawingLayer().removeFloat(this);
+            FloatManager manager = _floatedBoxData.getManager();
+            if (manager != null) {
+                manager.removeFloat(this);
+                _floatedBoxData.getDrawingLayer().removeFloat(this);
+            }
         }
 
         if (getStyle().isRunning()) {
