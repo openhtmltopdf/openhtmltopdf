@@ -507,6 +507,10 @@ public class PdfBoxAccessibilityHelper {
         void addChild(AbstractTreeItem child) {
             if (child instanceof TableBodyStructualElement) {
                 this.tbodies.add((TableBodyStructualElement) child);
+            } else if (child == this.thead || child == this.tfoot) {
+                // Nothing to collect: thead and tfoot are fixed fields that finish()
+                // visits directly. They are accepted here so that every caller can go
+                // through link() rather than special-casing these two.
             } else {
                 logIncompatibleChild(parent, child, TableBodyStructualElement.class);
             }
@@ -1146,6 +1150,17 @@ public class PdfBoxAccessibilityHelper {
         return dict;
     }
 
+    /**
+     * Attaches a child to its parent, setting both halves of the relationship at once:
+     * the parent's child collection and the child's back-pointer. Doing these separately
+     * is how items end up in a collection with no parent (or the reverse), which surfaces
+     * later as a structure element with no /P entry.
+     */
+    private static void link(AbstractTreeItem child, AbstractStructualElement parent) {
+        parent.addChild(child);
+        child.parent = parent;
+    }
+
     private void ensureAncestorTree(AbstractTreeItem child, Box parent) {
         // Walk up the ancestor tree making sure they all have accessibility objects.
         // When the walk terminates because an ancestor already has an accessibility
@@ -1156,9 +1171,7 @@ public class PdfBoxAccessibilityHelper {
             AbstractStructualElement parentItem = createStructureItem(null, parent);
             parent.setAccessiblityObject(parentItem);
 
-            parentItem.addChild(child);
-
-            child.parent = parentItem;
+            link(child, parentItem);
             child = parentItem;
             parent = parent.getParent();
         }
@@ -1171,8 +1184,7 @@ public class PdfBoxAccessibilityHelper {
             AbstractStructualElement existing =
                     (AbstractStructualElement) parent.getAccessibilityObject();
             if (existing != null) {
-                existing.addChild(child);
-                child.parent = existing;
+                link(child, existing);
             }
         }
     }
@@ -1245,19 +1257,10 @@ public class PdfBoxAccessibilityHelper {
 
     private void ensureParent(Box box, AbstractTreeItem child) {
         if (child.parent == null) {
-            if (child instanceof TableHeadStructualElement ||
-                child instanceof TableFootStructualElement) {
-                child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
-            } else if (child instanceof TableBodyStructualElement) {
-                child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
-                ((TableStructualElement) child.parent).tbodies.add((TableBodyStructualElement) child);
-            } else if (box.getParent() != null) {
-                AbstractStructualElement parent = (AbstractStructualElement) box.getParent().getAccessibilityObject();
-                parent.addChild(child);
-                child.parent = parent;
+            if (box.getParent() != null) {
+                link(child, (AbstractStructualElement) box.getParent().getAccessibilityObject());
             } else {
-                _root.children.add(child);
-                child.parent = _root;
+                link(child, _root);
             }
         }
     }
@@ -1267,10 +1270,8 @@ public class PdfBoxAccessibilityHelper {
 
         ensureAncestorTree(current, box.getParent());
 
-        AbstractStructualElement parent = (AbstractStructualElement) box.getAccessibilityObject();
-        parent.addChild(current);
+        link(current, (AbstractStructualElement) box.getAccessibilityObject());
 
-        current.parent = parent;
         current.mcid = _nextMcid;
         current.dict = createMarkedContentDictionary();
         current.page = _page;
@@ -1288,8 +1289,7 @@ public class PdfBoxAccessibilityHelper {
         current.page = _page;
 
         ListItemStructualElement li = (ListItemStructualElement) box.getAccessibilityObject();
-        li.label.addChild(current);
-        current.parent = li.label;
+        link(current, li.label);
 
         _pageItems._contentItems.add(current);
 
@@ -1310,12 +1310,10 @@ public class PdfBoxAccessibilityHelper {
 
         ensureAncestorTree(current, box.getParent());
 
-        current.parent = parent;
+        link(current, parent);
         current.mcid = _nextMcid;
         current.dict = createMarkedContentDictionary();
         current.page = _page;
-
-        parent.content = current;
 
         _pageItems._contentItems.add(current);
 
