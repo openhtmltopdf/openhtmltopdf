@@ -123,4 +123,24 @@ public class CSSVariableSubstitutionTest {
         Result r = CSSVariableSubstitution.substitute("var(--a", resolver("--a", "x"));
         assertFalse(r.isResolved());
     }
+
+    @Test
+    public void varInsideStringIsLiteralNotAReference() {
+        // A string token is opaque: "var(" inside it is literal text. Only the
+        // real var(--b) is substituted; the string is left untouched.
+        assertEquals("\"func(var(--a))\" YYY",
+                resolved("\"func(var(--a))\" var(--b)", resolver("--a", "XXX", "--b", "YYY")));
+    }
+
+    @Test
+    public void containsVarIgnoresVarInsideString() {
+        // The whole value is a single string that happens to contain "var(".
+        assertFalse(CSSVariableSubstitution.containsVar("\"hello var(--y)\""));
+    }
+
+    @Test
+    public void varRightAfterAClosedStringIsAReference() {
+        // The string closes at the quote, so the adjacent var( is a real function.
+        assertEquals("\"abc\"Z", resolved("\"abc\"var(--x)", resolver("--x", "Z")));
+    }
 }

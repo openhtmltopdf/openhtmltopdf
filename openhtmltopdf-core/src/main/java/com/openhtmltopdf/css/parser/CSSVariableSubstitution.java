@@ -136,30 +136,30 @@ public final class CSSVariableSubstitution {
     }
 
     /**
-     * Finds the next {@code var(} that begins a function token (i.e. not part of
-     * a longer identifier such as {@code sidebar(}), starting at {@code start}.
+     * Finds the next {@code var(} that begins a function token, starting at
+     * {@code start}. It must not be part of a longer identifier (e.g.
+     * {@code sidebar(}) nor lie inside a quoted string: a string token is opaque,
+     * so {@code var(} within it is literal text, not a reference (matching the
+     * quote-awareness of {@link #matchingParen}/{@link #topLevelComma}).
      * Returns the index of the {@code v}, or -1.
      */
     private static int indexOfVar(String s, int start) {
-        int i = start;
-        while (true) {
-            int idx = indexOfIgnoreCase(s, "var(", i);
-            if (idx < 0) {
-                return -1;
-            }
-            char prev = idx == 0 ? '\0' : s.charAt(idx - 1);
-            if (!isIdentChar(prev)) {
-                return idx;
-            }
-            i = idx + 1;
-        }
-    }
-
-    private static int indexOfIgnoreCase(String s, String needle, int from) {
-        int max = s.length() - needle.length();
-        for (int i = Math.max(from, 0); i <= max; i++) {
-            if (s.regionMatches(true, i, needle, 0, needle.length())) {
-                return i;
+        char quote = 0;
+        for (int i = Math.max(start, 0); i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (quote != 0) {
+                if (c == '\\') {
+                    i++; // skip escaped char
+                } else if (c == quote) {
+                    quote = 0;
+                }
+            } else if (c == '"' || c == '\'') {
+                quote = c;
+            } else if ((c == 'v' || c == 'V') && s.regionMatches(true, i, "var(", 0, 4)) {
+                char prev = i == 0 ? '\0' : s.charAt(i - 1);
+                if (!isIdentChar(prev)) {
+                    return i;
+                }
             }
         }
         return -1;
