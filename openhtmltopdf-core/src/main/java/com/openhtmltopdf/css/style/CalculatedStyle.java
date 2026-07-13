@@ -702,6 +702,11 @@ public class CalculatedStyle {
     private void resolvePendingVar(PendingVarPropertyDeclaration pd) {
         String substituted = substitutePendingVar(pd);
         if (substituted == null) {
+            // Known limitation: when a var()-bearing shorthand wins the cascade but
+            // is invalid at computed-value time, we leave the longhands as-is instead
+            // of unsetting them. So a lower-priority explicit longhand applied earlier
+            // (e.g. "padding-left: 5px; padding: var(--undefined)") survives, whereas
+            // per spec the whole shorthand should compute to unset. Rare in practice.
             return;
         }
 
