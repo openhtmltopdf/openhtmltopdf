@@ -107,11 +107,26 @@ public class PdfBoxBookmarkManager {
         List<PageBox> pages = root.getLayer().getPages();
         Rectangle bounds = PagedBoxCollector.findAdjustedBoundsForBorderBox(c, box, pages);
 
-        int pageBoxIndex = PagedBoxCollector.findPageForY(c, bounds.getMinY(), pages);
+        double destY = bounds.getMinY();
+
+        // When the box straddles a page break its first line of content may have been
+        // pushed to a later page than its top edge. In that case anchor the destination
+        // to the content start so it points at the page where the content actually paints.
+        // Content start is in untransformed document coordinates, so only use it when no
+        // transform is in effect.
+        if (box.getContainingLayer().getCurrentTransformMatrix() == null) {
+            int contentStartY = PagedBoxCollector.findContentStartY(box);
+            if (PagedBoxCollector.findPageForY(c, contentStartY, pages) >
+                    PagedBoxCollector.findPageForY(c, destY, pages)) {
+                destY = contentStartY;
+            }
+        }
+
+        int pageBoxIndex = PagedBoxCollector.findPageForY(c, destY, pages);
         PageBox page = pages.get(pageBoxIndex);
 
         int distanceFromTop = page.getMarginBorderPadding(c, CalculatedStyle.TOP);
-        distanceFromTop += bounds.getMinY() - page.getTop();
+        distanceFromTop += destY - page.getTop();
 
         int shadowPage = PagedBoxCollector.getShadowPageForBounds(c, bounds, page);
 
