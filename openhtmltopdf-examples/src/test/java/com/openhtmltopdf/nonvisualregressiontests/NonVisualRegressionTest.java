@@ -1,10 +1,12 @@
 package com.openhtmltopdf.nonvisualregressiontests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 
 import java.awt.Color;
@@ -210,6 +212,78 @@ public class NonVisualRegressionTest {
             assertEquals(doc.getPage(1).getMediaBox().getUpperRightY(), dest.getTop(), 1.0d);
 
             remove("bookmark-head-simple", doc);
+        }
+    }
+
+    /**
+     * Tests that target-counter(attr(href), page) prints the page where the target's
+     * content actually paints when the target block straddles a page break: the block's
+     * top edge lands in the last few pixels of page one, so its first line (and all
+     * of its content) is pushed to page two.
+     */
+    @Test
+    public void testTargetCounterPageStraddle() throws IOException {
+        try (PDDocument doc = run("target-counter-page-straddle")) {
+            assertEquals(2, doc.getNumberOfPages());
+
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setStartPage(1);
+            stripper.setEndPage(1);
+            String page1Text = stripper.getText(doc);
+
+            stripper.setStartPage(2);
+            stripper.setEndPage(2);
+            String page2Text = stripper.getText(doc);
+
+            // The target's content paints entirely on page two...
+            assertThat(page1Text, not(containsString("Target heading")));
+            assertThat(page2Text, containsString("Target heading"));
+
+            // ...so the link must print page two.
+            assertThat(page1Text, containsString("PAGE-2"));
+
+            remove("target-counter-page-straddle", doc);
+        }
+    }
+
+    /**
+     * Control case for {@link #testTargetCounterPageStraddle()}: the target does not
+     * straddle a page break, so target-counter prints the page of the target's top edge.
+     */
+    @Test
+    public void testTargetCounterPageControl() throws IOException {
+        try (PDDocument doc = run("target-counter-page-control")) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setStartPage(1);
+            stripper.setEndPage(1);
+            String page1Text = stripper.getText(doc);
+
+            assertThat(page1Text, containsString("Target heading"));
+            assertThat(page1Text, containsString("PAGE-1"));
+
+            remove("target-counter-page-control", doc);
+        }
+    }
+
+    /**
+     * Tests that a bookmark destination points at the page where the target's content
+     * actually paints when the target block straddles a page break (same geometry as
+     * {@link #testTargetCounterPageStraddle()}).
+     */
+    @Test
+    public void testBookmarkPageStraddle() throws IOException {
+        try (PDDocument doc = run("bookmark-page-straddle")) {
+            PDDocumentOutline outline = doc.getDocumentCatalog().getDocumentOutline();
+
+            PDOutlineItem bm = outline.getFirstChild();
+            assertThat(bm.getTitle(), equalTo("Test bookmark"));
+            assertThat(bm.getDestination(), instanceOf(PDPageXYZDestination.class));
+            PDPageXYZDestination dest = (PDPageXYZDestination) bm.getDestination();
+
+            // The target's content is pushed entirely to the second page.
+            assertEquals(doc.getPage(1), dest.getPage());
+
+            remove("bookmark-page-straddle", doc);
         }
     }
 
