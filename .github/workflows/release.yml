@@ -8,6 +8,14 @@ on:
     paths-ignore:
       - "**.md"
 
+# Serialize release runs: "Get next version" derives the version from git tags,
+# but the tag is only pushed after the slow Maven Central upload. Two overlapping
+# runs therefore compute the same version and the second deploy is rejected as a
+# duplicate (see run #76 vs #75, 2026-07-20).
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   build:
 
