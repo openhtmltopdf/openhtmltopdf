@@ -31,6 +31,8 @@ import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.OpenUtil;
 import com.openhtmltopdf.util.ThreadCtx;
 import com.openhtmltopdf.util.XRLog;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -192,6 +194,31 @@ public class PdfBoxTextRenderer implements TextRenderer {
         return replace;
     }
 
+    private static boolean containsCodePoint(PDFont pdFont, int codePoint) {
+        if (pdFont instanceof PDType0Font) {
+            return ((PDType0Font) pdFont).getCmapLookup().getGlyphId(codePoint) != 0;
+        }
+        try {
+            pdFont.getStringWidth(new String(Character.toChars(codePoint)));
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static boolean containsAllCodePoints(PDFont pdFont, String text) {
+        for (int i = 0; i < text.length(); ) {
+            int cp = text.codePointAt(i);
+            if (!containsCodePoint(pdFont, cp)) {
+                return false;
+            }
+            i += Character.charCount(cp);
+        }
+        return true;
+    }
+
     public static List<FontRun> divideIntoFontRuns(PdfBoxFSFont font, String str, BidiReorderer reorderer) {
         StringBuilder stringBuilder = new StringBuilder();
         List<FontDescription> fontDescriptions = font.getFontDescriptions();
@@ -211,33 +238,27 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
             FontDescription applicableDescription = null;
             for (FontDescription description : fontDescriptions) {
-                if (description.getFont() == null) {
+                PDFont pdFont = description.getFont();
+                if (pdFont == null) {
                     continue;
                 }
 
-                try {
-                    description.getFont().getStringWidth(ch);
-                    // We got here, so this font includes this character
+                if (containsCodePoint(pdFont, unicode)) {
                     applicableDescription = description;
-                } catch (IllegalArgumentException e) { // PDFont # getStringWidth throws IllegalArgumentException when a character in the string is not contained by the font
-                    if (!reorderer.isLiveImplementation()) {
-                        continue;
-                    }
-                    // Try to deshape the character before moving on to the next font
-                } catch (IOException e) {
-                    // Keep trying with next font.
+                } else if (!reorderer.isLiveImplementation()) {
                     continue;
                 }
 
                 if (applicableDescription == null) {
-                    // Character is not in font! Next, we try deshaping.
+                    // Character is not in font. Try deshaping (may expand one
+                    // code point into several, so all must match) before moving on.
+                    // e.g. Arabic ligature U+FEFB (lam-alef) deshapes to
+                    // U+0644 U+0627 (lam + alef).
                     String deshaped = reorderer.deshapeText(ch);
-                    try {
-                        description.getFont().getStringWidth(deshaped);
-                        // We got here, so this font has this deshaped character.
+                    if (containsAllCodePoints(pdFont, deshaped)) {
                         applicableDescription = description;
                         ch = deshaped;
-                    } catch (IllegalArgumentException | IOException e1) {
+                    } else {
                         // Keep trying with next font.
                         continue;
                     }
