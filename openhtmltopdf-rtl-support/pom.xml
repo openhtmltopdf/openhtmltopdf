@@ -56,7 +56,8 @@
     <dependency>
 	<groupId>com.ibm.icu</groupId>
 	<artifactId>icu4j</artifactId>
-	<version>59.1</version>
+	<!-- 77.1 is the newest ICU4J built for Java 8 (78.x requires Java 11). -->
+	<version>77.1</version>
    </dependency>
     <dependency>
         <groupId>io.github.openhtmltopdf</groupId>
