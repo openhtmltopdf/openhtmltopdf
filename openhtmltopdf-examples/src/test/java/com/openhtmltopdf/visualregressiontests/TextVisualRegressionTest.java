@@ -722,4 +722,18 @@ public class TextVisualRegressionTest {
                     EnumSet.of(FSFontUseCase.FALLBACK_PRE));
         }));
     }
+    /**
+     * Tests that inline boxes are sized from the fonts' typographic metrics rather than the
+     * font bounding box, which spans ~3em for CJK fonts such as Noto Sans JP and painted
+     * inline backgrounds over the neighbouring lines.
+     */
+    @Test
+    public void testInlineBackgroundFontBBoxMetrics() throws IOException {
+        TestSupport.makeFontFile("NotoSansJP-Regular.ttf");
+
+        assertTrue(vtester.runTest("inline-background-font-bbox-metrics", builder -> {
+            TestSupport.WITH_FONT.configure(builder);
+            builder.useFont(new File("target/test/visual-tests/NotoSansJP-Regular.ttf"), "notosansjp");
+        }));
+    }
 }

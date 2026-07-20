@@ -95,7 +95,7 @@ public class JsoupNonVisualRegressionTest {
     @Test
     public void testIssue551PageBreakAvoidStuck() throws IOException {
         try (PDDocument doc = run("issue-551-page-break-avoid-stuck", TestSupport.WITH_FONT)) {
-            assertEquals(3, doc.getNumberOfPages());
+            assertEquals(2, doc.getNumberOfPages());
         }
     }
 }

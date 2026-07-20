@@ -1,57 +1,15 @@
-%PDF-1.4
+%PDF-1.6
 %ˆ‰¸ﬂ
 1 0 obj
 <<
 /Type /Catalog
 /Version /1.7
-/Pages 2 0 R
+/Pages 3 0 R
 >>
 endobj
-3 0 obj
+8 0 obj
 <<
-/CreationDate (D:20210825164811+10'00')
-/Producer (openhtmltopdf.com)
->>
-endobj
-2 0 obj
-<<
-/Type /Pages
-/Kids [4 0 R 5 0 R 6 0 R]
-/Count 3
->>
-endobj
-4 0 obj
-<<
-/Type /Page
-/MediaBox [0.0 0.0 225.0 225.0]
-/Parent 2 0 R
-/Contents 7 0 R
-/Resources 8 0 R
-/Annots [9 0 R 10 0 R]
->>
-endobj
-5 0 obj
-<<
-/Type /Page
-/MediaBox [0.0 0.0 225.0 225.0]
-/Parent 2 0 R
-/Contents 11 0 R
-/Resources 12 0 R
->>
-endobj
-6 0 obj
-<<
-/Type /Page
-/MediaBox [0.0 0.0 225.0 225.0]
-/Parent 2 0 R
-/Contents 13 0 R
-/Resources 14 0 R
-/Annots [15 0 R]
->>
-endobj
-7 0 obj
-<<
-/Length 959
+/Length 952
 >>
 stream
 0.0375 w
@@ -71,109 +29,84 @@ n
 0 0 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 169.53751 Tm
+1 0 0 1 42 171.2625 Tm
 (This is some in-flow ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 152.77499 Tm
+1 0 0 1 42 154.7625 Tm
 (content. ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 131.21251 152.77499 Tm
+1 0 0 1 131.21251 154.7625 Tm
 (Even ) Tj
 ET
 0 0.50196 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 93.675 152.77499 Tm
+1 0 0 1 93.675 154.7625 Tm
 ([fn ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 114.9375 152.77499 Tm
+1 0 0 1 114.9375 154.7625 Tm
 (1) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 122.4375 152.77499 Tm
+1 0 0 1 122.4375 154.7625 Tm
 (] ) Tj
 ET
 0 0 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 136.0125 Tm
+1 0 0 1 42 138.2625 Tm
 (more in-flow content. ) Tj
 ET
 0 0.50196 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 114.33749 Tm
+1 0 0 1 42 116.0625 Tm
 (fn. ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 62.025 114.33749 Tm
+1 0 0 1 62.025 116.0625 Tm
 (1) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 69.525 114.33749 Tm
+1 0 0 1 69.525 116.0625 Tm
 ( This is a footnote ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 97.575 Tm
+1 0 0 1 42 99.5625 Tm
 (with a footnote inside.) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 80.8125 Tm
+1 0 0 1 42 83.0625 Tm
 (This is the inner ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 64.05 Tm
+1 0 0 1 42 66.5625 Tm
 (footnote.) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 47.28749 Tm
+1 0 0 1 42 50.0625 Tm
 (And another:) Tj
 ET
 Q
 
 endstream
 endobj
-8 0 obj
-<<
-/Font 16 0 R
->>
-endobj
-9 0 obj
-<<
-/Type /Annot
-/Subtype /Link
-/A 17 0 R
-/Rect [93.675 149.475 131.21251 166.2375]
-/F 4
-/BS 18 0 R
->>
-endobj
 10 0 obj
 <<
-/Type /Annot
-/Subtype /Link
-/A 19 0 R
-/Rect [176.21251 132.7125 176.21251 149.47499]
-/F 4
-/BS 20 0 R
->>
-endobj
-11 0 obj
-<<
-/Length 301
+/Length 299
 >>
 stream
 0.0375 w
@@ -193,17 +126,17 @@ n
 0 0.50196 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 175.53751 Tm
+1 0 0 1 42 177.2625 Tm
 (Another fn inside fn.) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 158.77499 Tm
+1 0 0 1 42 160.7625 Tm
 (Grandchild footnote in ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 42 142.0125 Tm
+1 0 0 1 42 144.2625 Tm
 (footnote.) Tj
 ET
 Q
@@ -212,12 +145,7 @@ endstream
 endobj
 12 0 obj
 <<
-/Font 21 0 R
->>
-endobj
-13 0 obj
-<<
-/Length 565
+/Length 569
 >>
 stream
 0.0375 w
@@ -237,163 +165,81 @@ n
 0 0 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 79.5375 175.53751 Tm
+1 0 0 1 79.5375 177.2625 Tm
 (End of ) Tj
 ET
 0 0.50196 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 175.53751 Tm
+1 0 0 1 42 177.2625 Tm
 ([fn ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 63.2625 175.53751 Tm
+1 0 0 1 63.2625 177.2625 Tm
 (2) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 70.7625 175.53751 Tm
+1 0 0 1 70.7625 177.2625 Tm
 (] ) Tj
 ET
 0 0 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 158.77499 Tm
+1 0 0 1 42 160.7625 Tm
 (document.) Tj
 ET
 0 0.50196 0 rg
 BT
 /F1 15 Tf
-1 0 0 1 42 39.3 Tm
+1 0 0 1 42 40.7625 Tm
 (fn. ) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 62.025 39.3 Tm
+1 0 0 1 62.025 40.7625 Tm
 (2) Tj
 ET
 BT
 /F1 15 Tf
-1 0 0 1 69.525 39.3 Tm
+1 0 0 1 69.525 40.7625 Tm
 ( Second footnote.) Tj
 ET
 Q
 
 endstream
 endobj
-14 0 obj
+26 0 obj
 <<
-/Font 22 0 R
+/Length 490
+/Type /ObjStm
+/N 21
+/Filter /FlateDecode
+/First 142
 >>
+stream
+xúΩS]k€@¸+ÛñÑRﬂÌ}J%ªÈC[(∂!mMTYMEÌ;c…–˛˚ÓIv‚(–}Z;∑;≥{Ã)HhxR9,î%8hì√√8á&„3Çï
+§aïXÌ@NkêÉOûª(Éwî#s\úE …˝ä)$W(.óﬁA1≥ÃÁ≤ÁÁbº≠ä∂éaR¥N'ØîTNzéZC/$ùHyrÒaóª≤⁄‚4n™≠]Ø⁄∏Y~ïq}ÜããD5ˇπ©∏∞∏´à∑ı≤¡¬∫Sﬁ2E◊≈[àq‹ÖñoaÿÒæZ÷≈U¸ÅÖI§üRˆ>ﬁ¶≤m’ı&*1≠ö∏€ñ,Á{`CÀÁ≤>ø!r∂†~≤˚ûQ9(ìÏÄgT`/$‘`ªÏ—Z◊\óúÛ0Fè∏'à?F(yh8z'1€}iª¸]æ3ö|∂ü≤l±»ı»±•…“à£¶ë¢dkr˚ÕÆŸÌ‚jñl˘◊ÍXÄº;pÍƒyîõå5è5Ùoñ˙«%ÕÒFu¬Ü£œGV{+˘If~ oü–ww˝¿û@‚⁄¢©˙ìyΩÆöó”∏.ƒÎP∆eÓ nÍpö˙x4qôû,ìBºâÛ19<5ÒÒ”gÑ›j≈.q˝«¡7\ê:f§r*æÁˇ¡ÙãJÁ
+endstream
 endobj
-15 0 obj
+27 0 obj
 <<
-/Type /Annot
-/Subtype /Link
-/A 23 0 R
-/Rect [42.0 172.2375 79.537506 189.0]
-/F 4
-/BS 24 0 R
->>
-endobj
-16 0 obj
-<<
-/F1 25 0 R
->>
-endobj
-17 0 obj
-<<
-/Type /Action
-/S /GoTo
-/D [4 0 R /XYZ null 127 null]
->>
-endobj
-18 0 obj
-<<
-/W 0
-/S /S
->>
-endobj
-19 0 obj
-<<
-/Type /Action
-/S /GoTo
-/D [6 0 R /XYZ null 52 null]
->>
-endobj
-20 0 obj
-<<
-/W 0
-/S /S
->>
-endobj
-21 0 obj
-<<
-/F1 25 0 R
->>
-endobj
-22 0 obj
-<<
-/F1 25 0 R
->>
-endobj
-23 0 obj
-<<
-/Type /Action
-/S /GoTo
-/D [6 0 R /XYZ null 52 null]
->>
-endobj
-24 0 obj
-<<
-/W 0
-/S /S
->>
-endobj
-25 0 obj
-<<
-/Type /Font
-/Subtype /Type1
-/BaseFont /Times-Roman
-/Encoding /WinAnsiEncoding
->>
-endobj
-xref
-0 26
-0000000000 65535 f
-0000000015 00000 n
-0000000169 00000 n
-0000000078 00000 n
-0000000238 00000 n
-0000000373 00000 n
-0000000487 00000 n
-0000000618 00000 n
-0000001630 00000 n
-0000001664 00000 n
-0000001781 00000 n
-0000001904 00000 n
-0000002259 00000 n
-0000002294 00000 n
-0000002913 00000 n
-0000002948 00000 n
-0000003062 00000 n
-0000003095 00000 n
-0000003170 00000 n
-0000003203 00000 n
-0000003277 00000 n
-0000003310 00000 n
-0000003343 00000 n
-0000003376 00000 n
-0000003450 00000 n
-0000003483 00000 n
-trailer
-<<
+/Length 71
 /Root 1 0 R
-/Info 3 0 R
-/ID [<FB76EFFC73D5EAB2D83AA4BD938ACCF4> <FB76EFFC73D5EAB2D83AA4BD938ACCF4>]
-/Size 26
+/Info 2 0 R
+/ID [<8EF6CF5C4FEE2DE081513029A2A9E008013EB910777E30C4C52348CFDA5FD9BB> <8EF6CF5C4FEE2DE081513029A2A9E008013EB910777E30C4C52348CFDA5FD9BB>]
+/Type /XRef
+/Size 28
+/Index [0 27]
+/W [1 2 1]
+/Filter /FlateDecode
 >>
+stream
+xú»K@0—˚"!âœ»VÏ¡
+Ìï~ÉS]’í>SU–Â"íÈÒﬂ[ºΩÉ•◊õ1bB¡å+*6Ï8pZ.˙HÕs
+endstream
+endobj
 startxref
-3583
+2655
 %%EOF
