@@ -379,7 +379,7 @@ public class NonVisualRegressionTest {
             PDAnnotationWidget widget = (PDAnnotationWidget) doc.getPage(0).getAnnotations().get(0);
             assertThat(widget.getRectangle(), rectEquals(new PDRectangle(23f, 23f, 100f, 20f), 200));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
             assertEquals(1, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
 
@@ -405,7 +405,7 @@ public class NonVisualRegressionTest {
             PDAnnotationWidget widget = (PDAnnotationWidget) doc.getPage(1).getAnnotations().get(0);
             assertThat(widget.getRectangle(), rectEquals(new PDRectangle(33f, 14f, 40f, 20f), 100));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
             assertEquals(1, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
 
@@ -444,7 +444,7 @@ public class NonVisualRegressionTest {
             assertTrue(page1.getMediaBox().contains(rectangle1.getLowerLeftX(), rectangle1.getLowerLeftY()));
             assertTrue(page1.getMediaBox().contains(rectangle1.getUpperRightX(), rectangle1.getUpperRightY()));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
             assertEquals(2, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
             assertThat(form.getFields().get(1), instanceOf(PDTextField.class));
@@ -473,7 +473,7 @@ public class NonVisualRegressionTest {
             PDAnnotationWidget widget = (PDAnnotationWidget) doc.getPage(2).getAnnotations().get(0);
             assertThat(widget.getRectangle(), rectEquals(new PDRectangle(13f, 13f, 60f, 30f), 100));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
             assertEquals(1, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
 
