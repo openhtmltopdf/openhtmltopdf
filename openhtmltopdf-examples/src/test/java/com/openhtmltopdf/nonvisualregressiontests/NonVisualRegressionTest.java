@@ -379,7 +379,7 @@ public class NonVisualRegressionTest {
             PDAnnotationWidget widget = (PDAnnotationWidget) doc.getPage(0).getAnnotations().get(0);
             assertThat(widget.getRectangle(), rectEquals(new PDRectangle(23f, 23f, 100f, 20f), 200));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
             assertEquals(1, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
 
@@ -405,7 +405,7 @@ public class NonVisualRegressionTest {
             PDAnnotationWidget widget = (PDAnnotationWidget) doc.getPage(1).getAnnotations().get(0);
             assertThat(widget.getRectangle(), rectEquals(new PDRectangle(33f, 14f, 40f, 20f), 100));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
             assertEquals(1, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
 
@@ -444,7 +444,7 @@ public class NonVisualRegressionTest {
             assertTrue(page1.getMediaBox().contains(rectangle1.getLowerLeftX(), rectangle1.getLowerLeftY()));
             assertTrue(page1.getMediaBox().contains(rectangle1.getUpperRightX(), rectangle1.getUpperRightY()));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
             assertEquals(2, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
             assertThat(form.getFields().get(1), instanceOf(PDTextField.class));
@@ -473,7 +473,7 @@ public class NonVisualRegressionTest {
             PDAnnotationWidget widget = (PDAnnotationWidget) doc.getPage(2).getAnnotations().get(0);
             assertThat(widget.getRectangle(), rectEquals(new PDRectangle(13f, 13f, 60f, 30f), 100));
 
-            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm();
             assertEquals(1, form.getFields().size());
             assertThat(form.getFields().get(0), instanceOf(PDTextField.class));
 
@@ -482,6 +482,24 @@ public class NonVisualRegressionTest {
             assertEquals("Hello World!", field.getValue());
 
             remove("form-control-after-overflow-page", doc);
+        }
+    }
+
+    /**
+     * Every font written to the AcroForm default resources must carry the
+     * required /BaseFont entry, even when the control's font is used by no
+     * page content (its subset would stay empty and be saved unnamed).
+     */
+    @Test
+    public void testFormControlFontHasBaseFont() throws IOException {
+        try (PDDocument doc = run("form-control-on-second-page")) {
+            // Pass null to inspect the raw written form, without fixups.
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
+            for (COSName fontName : form.getDefaultResources().getFontNames()) {
+                assertNotNull("/BaseFont missing for " + fontName.getName(),
+                        form.getDefaultResources().getFont(fontName).getName());
+            }
+            remove("form-control-on-second-page", doc);
         }
     }
 
