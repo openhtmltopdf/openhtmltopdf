@@ -14,4 +14,11 @@ public class ClassPathStreamFactoryTest {
     InputStream is = classPathStreamFactory.getUrl("classpath:/com/openhtmltopdf/swing/classPathStreamFactoryTest.txt").getStream();
     assertThat(is, notNullValue());
   }
+
+  @Test
+  public void testGetUrlWithoutLeadingSlash() {
+    // Without a leading slash the URI is opaque and URI.getPath() returns null (issue #137).
+    InputStream is = classPathStreamFactory.getUrl("classpath:com/openhtmltopdf/swing/classPathStreamFactoryTest.txt").getStream();
+    assertThat(is, notNullValue());
+  }
 }
