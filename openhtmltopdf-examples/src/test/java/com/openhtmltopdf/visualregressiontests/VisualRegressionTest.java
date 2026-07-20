@@ -1593,7 +1593,9 @@ public class VisualRegressionTest {
      */
     @Test
     public void testTargetCounterCustomAttr() throws IOException {
-        assertTrue(vt.runTest("target-counter-custom-attr"));
+        // Embedded font: with the default serif the comparison depends on the
+        // platform's standard-14 substitution, which differs per PDFBox version.
+        assertTrue(vt.runTest("target-counter-custom-attr", TestSupport.WITH_FONT));
     }
 
     /**
@@ -1601,7 +1603,8 @@ public class VisualRegressionTest {
      */
     @Test
     public void testTargetCounterFloat() throws IOException {
-        assertTrue(vt.runTest("target-counter-float"));
+        // Embedded font: see testTargetCounterCustomAttr.
+        assertTrue(vt.runTest("target-counter-float", TestSupport.WITH_FONT));
     }
 
     // TODO:
