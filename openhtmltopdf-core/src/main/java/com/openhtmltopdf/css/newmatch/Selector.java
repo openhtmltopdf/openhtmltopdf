@@ -56,6 +56,10 @@ public class Selector {
 
     private List<Condition> conditions;
 
+    /** Rightmost simple-selector requirements, recorded at parse time for {@link #mayMatch}. */
+    private String _requiredId;
+    private List<String> _requiredClasses;
+
     public final static int DESCENDANT_AXIS = 0;
     public final static int CHILD_AXIS = 1;
     public final static int IMMEDIATE_SIBLING_AXIS = 2;
@@ -103,6 +107,32 @@ public class Selector {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Conservative fast pre-check for {@link #matches}: returns false only when
+     * matches() certainly would, so Matcher.Mapper can skip the full match for
+     * most candidate selectors. {@code classes} are the element's class tokens
+     * (null if none); the namespace check is left to matches().
+     */
+    boolean mayMatch(String elementName, String id, Set<String> classes) {
+        if (_name != null && !_name.equals(elementName)) {
+            return false;
+        }
+        if (_requiredId != null && !_requiredId.equals(id)) {
+            return false;
+        }
+        if (_requiredClasses != null) {
+            if (classes == null) {
+                return false;
+            }
+            for (int i = 0; i < _requiredClasses.size(); i++) {
+                if (!classes.contains(_requiredClasses.get(i))) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
@@ -216,6 +246,9 @@ public class Selector {
     public void addIDCondition(String id) {
         _specificityB++;
         addCondition(Condition.createIDCondition(id));
+        if (_requiredId == null) {
+            _requiredId = id;
+        }
     }
 
     /**
@@ -224,6 +257,10 @@ public class Selector {
     public void addClassCondition(String className) {
         _specificityC++;
         addCondition(Condition.createClassCondition(className));
+        if (_requiredClasses == null) {
+            _requiredClasses = new java.util.ArrayList<>(2);
+        }
+        _requiredClasses.add(className);
     }
 
     /**

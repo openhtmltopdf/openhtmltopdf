@@ -229,6 +229,38 @@ public class Matcher {
         _map.put(e, m);
     }
 
+    /**
+     * Class attribute split into whitespace-delimited tokens (same semantics as
+     * ClassCondition); null when the attribute is absent.
+     */
+    static Set<String> classTokens(String classAttr) {
+        if (classAttr == null) {
+            return null;
+        }
+
+        Set<String> result = Collections.emptySet();
+        int length = classAttr.length();
+        int i = 0;
+
+        while (i < length) {
+            while (i < length && Character.isWhitespace(classAttr.charAt(i))) {
+                i++;
+            }
+            int start = i;
+            while (i < length && !Character.isWhitespace(classAttr.charAt(i))) {
+                i++;
+            }
+            if (i > start) {
+                if (result.isEmpty()) {
+                    result = new HashSet<>(8);
+                }
+                result.add(classAttr.substring(start, i));
+            }
+        }
+
+        return result;
+    }
+
     private Mapper getMapper(Object e) {
         Mapper m = _map.get(e);
         if (m != null) {
@@ -312,6 +344,11 @@ public class Matcher {
 
             StringBuilder key = new StringBuilder();
 
+            // Read once per element and reused by Selector.mayMatch for every candidate selector.
+            String elementName = _treeRes.getElementName(e);
+            String elementId = _attRes != null ? _attRes.getID(e) : null;
+            Set<String> elementClasses = classTokens(_attRes != null ? _attRes.getClass(e) : null);
+
             for (Selector sel : axes) {
                 if (sel.getAxis() == Selector.DESCENDANT_AXIS) {
                     if (childAxes == null) {
@@ -322,6 +359,10 @@ public class Matcher {
                     childAxes.add(sel);
                 } else if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
+                }
+
+                if (!sel.mayMatch(elementName, elementId, elementClasses)) {
+                    continue;
                 }
 
                 if (!sel.matches(e, _attRes, _treeRes)) {
