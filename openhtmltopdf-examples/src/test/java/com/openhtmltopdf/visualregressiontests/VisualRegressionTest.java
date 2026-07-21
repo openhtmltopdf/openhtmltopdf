@@ -1608,6 +1608,24 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests alpha blending with three overlapping rgba() circles: every
+     * pairwise overlap and the center must show the blended colors.
+     */
+    @Test
+    public void testRgbaOverlapCircles() throws IOException {
+        assertTrue(vt.runTest("rgba-overlap-circles"));
+    }
+
+    /**
+     * Tests semi-transparent color rectangles overlaying text and an image:
+     * both must shine through the color.
+     */
+    @Test
+    public void testRgbaOverlayRects() throws IOException {
+        assertTrue(vt.runTest("rgba-overlay-rects", TestSupport.WITH_FONT));
+    }
+
+    /**
      * CSS target-counter calling attr on a non-href attribute.
      */
     @Test
