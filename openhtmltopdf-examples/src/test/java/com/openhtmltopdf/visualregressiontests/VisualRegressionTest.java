@@ -1599,7 +1599,7 @@ public class VisualRegressionTest {
 
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
-        assertTrue(vt.runTest("fs-table-paginate-middle-space"));
+        assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
     }
 
     /**
