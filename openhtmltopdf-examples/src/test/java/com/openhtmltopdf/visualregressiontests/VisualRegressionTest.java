@@ -1578,7 +1578,16 @@ public class VisualRegressionTest {
     public void testFsTablePaginateHeader() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate"));
     }
-  
+
+    /**
+     * Tests the hsl() color function: legacy and modern syntax, deg/rad/grad
+     * hue units, hue wrap-around and saturation/lightness clamping.
+     */
+    @Test
+    public void testHslColor() throws IOException {
+        assertTrue(vt.runTest("hsl-color", TestSupport.WITH_FONT));
+    }
+
     /**
      * CSS target-counter calling attr on a non-href attribute.
      */

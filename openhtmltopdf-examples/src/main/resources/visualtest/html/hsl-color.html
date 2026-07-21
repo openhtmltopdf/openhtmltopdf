@@ -1,0 +1,120 @@
+<html>
+<head>
+<style>
+    @page { size: 600px 800px; margin: 20px; }
+    body { font-family: 'TestFont'; font-size: 9px; margin: 0; }
+    table { border-collapse: collapse; }
+    td, th { border: 1px solid #888888; padding: 2px 6px; }
+    td.swatch { width: 70px; }
+    td.sweep { width: 16px; height: 16px; padding: 0; border: none; }
+    h1 { font-size: 12px; }
+    h2 { font-size: 10px; }
+</style>
+</head>
+<body>
+<h1>hsl() colors</h1>
+<p>Each row shows the hsl() swatch next to the expected color given as hex.
+The swatches of a row must be identical.</p>
+
+<table>
+    <tr><th>CSS</th><th>hsl()</th><th>expected</th></tr>
+    <tr><td>hsl(210, 25%, 50%) - legacy commas</td>
+        <td class="swatch" style="background-color: hsl(210, 25%, 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(210 25 50) - modern, plain numbers</td>
+        <td class="swatch" style="background-color: hsl(210 25 50);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(210deg 25% 50%) - modern, deg</td>
+        <td class="swatch" style="background-color: hsl(210deg 25% 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(210deg, 25%, 50%) - legacy, deg</td>
+        <td class="swatch" style="background-color: hsl(210deg, 25%, 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(570, 25%, 50%) - hue wraps above 360</td>
+        <td class="swatch" style="background-color: hsl(570, 25%, 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(-150, 25%, 50%) - negative hue wraps</td>
+        <td class="swatch" style="background-color: hsl(-150, 25%, 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(3.66519rad 25% 50%) - radians</td>
+        <td class="swatch" style="background-color: hsl(3.66519rad 25% 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(233.333grad 25% 50%) - gradians</td>
+        <td class="swatch" style="background-color: hsl(233.333grad 25% 50%);"></td>
+        <td class="swatch" style="background-color: #60809f;"></td></tr>
+    <tr><td>hsl(0, 100%, 50%) - red</td>
+        <td class="swatch" style="background-color: hsl(0, 100%, 50%);"></td>
+        <td class="swatch" style="background-color: #ff0000;"></td></tr>
+    <tr><td>hsl(120, 100%, 25%) - green</td>
+        <td class="swatch" style="background-color: hsl(120, 100%, 25%);"></td>
+        <td class="swatch" style="background-color: #008000;"></td></tr>
+    <tr><td>hsl(240, 100%, 50%) - blue</td>
+        <td class="swatch" style="background-color: hsl(240, 100%, 50%);"></td>
+        <td class="swatch" style="background-color: #0000ff;"></td></tr>
+    <tr><td>hsl(480, 100%, 50%) - wraps to green</td>
+        <td class="swatch" style="background-color: hsl(480, 100%, 50%);"></td>
+        <td class="swatch" style="background-color: #00ff00;"></td></tr>
+    <tr><td>hsl(-120, 100%, 50%) - wraps to blue</td>
+        <td class="swatch" style="background-color: hsl(-120, 100%, 50%);"></td>
+        <td class="swatch" style="background-color: #0000ff;"></td></tr>
+    <tr><td>hsl(210.5, 100%, 50%) - fractional hue</td>
+        <td class="swatch" style="background-color: hsl(210.5, 100%, 50%);"></td>
+        <td class="swatch" style="background-color: #007dff;"></td></tr>
+    <tr><td>hsl(0, 0%, 50%) - grey</td>
+        <td class="swatch" style="background-color: hsl(0, 0%, 50%);"></td>
+        <td class="swatch" style="background-color: #808080;"></td></tr>
+    <tr><td>hsl(210, 120%, 50%) - saturation clamped to 100%</td>
+        <td class="swatch" style="background-color: hsl(210, 120%, 50%);"></td>
+        <td class="swatch" style="background-color: #0080ff;"></td></tr>
+</table>
+
+<h2>Hue sweep: hsl(H 100% 50%) for H = 0 to 345, step 15</h2>
+<table>
+    <tr>
+        <td class="sweep" style="background-color: hsl(0 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(15 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(30 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(45 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(60 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(75 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(90 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(105 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(120 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(135 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(150 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(165 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(180 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(195 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(210 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(225 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(240 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(255 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(270 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(285 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(300 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(315 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(330 100% 50%);"></td>
+        <td class="sweep" style="background-color: hsl(345 100% 50%);"></td>
+    </tr>
+</table>
+
+<h2>Lightness ramp: hsl(210, 25%, L) for L = 10% to 90%</h2>
+<table>
+    <tr>
+        <td class="sweep" style="background-color: hsl(210, 25%, 10%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 20%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 30%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 40%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 50%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 60%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 70%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 80%);"></td>
+        <td class="sweep" style="background-color: hsl(210, 25%, 90%);"></td>
+    </tr>
+</table>
+
+<h2>Other properties using hsl()</h2>
+<p style="color: hsl(210, 25%, 50%);">Text colored with hsl(210, 25%, 50%)</p>
+<p style="border: 3px solid hsl(120, 100%, 25%); padding: 4px;">Border colored with hsl(120, 100%, 25%)</p>
+</body>
+</html>
