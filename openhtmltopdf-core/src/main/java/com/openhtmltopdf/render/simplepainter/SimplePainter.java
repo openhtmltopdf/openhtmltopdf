@@ -11,6 +11,7 @@ import com.openhtmltopdf.layout.InlinePaintable;
 import com.openhtmltopdf.layout.Layer;
 import com.openhtmltopdf.newtable.TableCellBox;
 import com.openhtmltopdf.render.BlockBox;
+import com.openhtmltopdf.render.BorderPainter;
 import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.DisplayListItem;
 import com.openhtmltopdf.render.OperatorClip;
@@ -185,7 +186,9 @@ public class SimplePainter {
             replaced.getReplacedElement().setLocation(contentBounds.x, contentBounds.y);
         }
         
-        c.getOutputDevice().paintReplacedElement(c, replaced);
+        // Clip to the rounded border so border-radius is honored for replaced content (e.g. images).
+        BorderPainter.paintClippedToBorderRadius(c, replaced,
+                () -> c.getOutputDevice().paintReplacedElement(c, replaced));
     }
 
     private void paintReplacedElements(RenderingContext c, List<DisplayListItem> replaceds) {

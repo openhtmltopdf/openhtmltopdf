@@ -1008,6 +1008,15 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that border-radius clips replaced element (image) content, the same way
+     * it clips background boxes. Issue 173.
+     */
+    @Test
+    public void testBorderRadiusOnImage() throws IOException {
+        assertTrue(vt.runTest("border-radius-on-image"));
+    }
+
+    /**
      * Check counter style after page break, it should not be affected by a previous bolded text, see issue
      * https://github.com/danfickle/openhtmltopdf/issues/366
      */
@@ -1579,6 +1588,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("fs-table-paginate"));
     }
 
+    /**
+     * Tests the hsl() color function: legacy and modern syntax, deg/rad/grad
+     * hue units, hue wrap-around and saturation/lightness clamping.
+     */
+    @Test
+    public void testHslColor() throws IOException {
+        assertTrue(vt.runTest("hsl-color", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space"));
@@ -1589,7 +1607,9 @@ public class VisualRegressionTest {
      */
     @Test
     public void testTargetCounterCustomAttr() throws IOException {
-        assertTrue(vt.runTest("target-counter-custom-attr"));
+        // Embedded font: with the default serif the comparison depends on the
+        // platform's standard-14 substitution, which differs per PDFBox version.
+        assertTrue(vt.runTest("target-counter-custom-attr", TestSupport.WITH_FONT));
     }
 
     /**
@@ -1597,7 +1617,8 @@ public class VisualRegressionTest {
      */
     @Test
     public void testTargetCounterFloat() throws IOException {
-        assertTrue(vt.runTest("target-counter-float"));
+        // Embedded font: see testTargetCounterCustomAttr.
+        assertTrue(vt.runTest("target-counter-float", TestSupport.WITH_FONT));
     }
 
     // TODO:

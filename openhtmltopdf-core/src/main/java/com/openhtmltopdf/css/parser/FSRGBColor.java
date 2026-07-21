@@ -49,6 +49,29 @@ public class FSRGBColor implements FSColor {
         this(((color & 0xff0000) >> 16),((color & 0x00ff00) >> 8), color & 0xff);
     }
 
+    /**
+     * Create FSRGBColor from HSL (hue, saturation, lightness) values.
+     *
+     * @param hue        hue angle in degrees, normalized to the range [0,360) as
+     *                   defined in <a href="https://www.w3.org/TR/css-color-3/#hsl-color">CSS Color Module Level 3</a>
+     * @param saturation saturation (0..1)
+     * @param lightness  lightness (0..1)
+     * @return FSRGBColor from HSL
+     */
+    public static FSRGBColor fromHSL(float hue, float saturation, float lightness) {
+        // convert HSL to HSB (based on https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_HSV)
+        float hueHSB = (((hue % 360f) + 360f) % 360f) / 360f;
+        float brightness = lightness + saturation * Math.min(lightness, 1f - lightness);
+        float saturationHSB;
+        if (brightness == 0f) {
+            saturationHSB = 0f;
+        } else {
+            saturationHSB = (1f - lightness / brightness) * 2f;
+        }
+        int[] rgb = HSBtoRGB(hueHSB, saturationHSB, brightness);
+        return new FSRGBColor(rgb[0], rgb[1], rgb[2]);
+    }
+
     public int getBlue() {
         return _blue;
     }

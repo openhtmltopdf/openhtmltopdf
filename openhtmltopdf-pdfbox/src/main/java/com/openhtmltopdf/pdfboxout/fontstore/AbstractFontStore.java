@@ -31,7 +31,13 @@ public abstract class AbstractFontStore {
     }
 
     public static class BuiltinFontStore extends AbstractFontStore {
-        static final Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> _fontFamilies = createInitialFontMap();
+        // Must be per instance (ie. per document): the PDType1Font objects and
+        // their COS dictionaries end up in every document that uses them, and
+        // PDFBox (>= 3.0.4) caches object keys on the COS objects while saving,
+        // so a COS object shared between documents is written into the second
+        // document as a dangling reference ("found wrong object number"
+        // warnings, empty font dictionaries on read-back).
+        final Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> _fontFamilies = createInitialFontMap();
 
         public BuiltinFontStore() {
         }

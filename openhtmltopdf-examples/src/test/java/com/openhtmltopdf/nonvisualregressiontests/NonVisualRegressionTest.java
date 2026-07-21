@@ -486,6 +486,24 @@ public class NonVisualRegressionTest {
     }
 
     /**
+     * Every font written to the AcroForm default resources must carry the
+     * required /BaseFont entry, even when the control's font is used by no
+     * page content (its subset would stay empty and be saved unnamed).
+     */
+    @Test
+    public void testFormControlFontHasBaseFont() throws IOException {
+        try (PDDocument doc = run("form-control-on-second-page")) {
+            // Pass null to inspect the raw written form, without fixups.
+            PDAcroForm form = doc.getDocumentCatalog().getAcroForm(null);
+            for (COSName fontName : form.getDefaultResources().getFontNames()) {
+                assertNotNull("/BaseFont missing for " + fontName.getName(),
+                        form.getDefaultResources().getFont(fontName).getName());
+            }
+            remove("form-control-on-second-page", doc);
+        }
+    }
+
+    /**
      * Check that an input without name attribute does not launch a NPE.
      * Will now log a warning message.
      * See issue: https://github.com/danfickle/openhtmltopdf/issues/151
