@@ -52,14 +52,15 @@ public class FSRGBColor implements FSColor {
     /**
      * Create FSRGBColor from HSL (hue, saturation, lightness) values.
      *
-     * @param hue        hue (0..360)
+     * @param hue        hue angle in degrees, normalized to the range [0,360) as
+     *                   defined in <a href="https://www.w3.org/TR/css-color-3/#hsl-color">CSS Color Module Level 3</a>
      * @param saturation saturation (0..1)
      * @param lightness  lightness (0..1)
      * @return FSRGBColor from HSL
      */
-    public static FSRGBColor fromHSL(int hue, float saturation, float lightness) {
+    public static FSRGBColor fromHSL(float hue, float saturation, float lightness) {
         // convert HSL to HSB (based on https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_HSV)
-        float hueHSB = (float) (hue % 360) / 360f;
+        float hueHSB = (((hue % 360f) + 360f) % 360f) / 360f;
         float brightness = lightness + saturation * Math.min(lightness, 1f - lightness);
         float saturationHSB;
         if (brightness == 0f) {

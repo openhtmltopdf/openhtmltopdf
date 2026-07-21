@@ -45,10 +45,12 @@ public class CSSParserTest {
     @Test
     public void hsl_color() {
         Stylesheet stylesheet = parseStylesheet("hsl_color.css");
-        assertEquals(3, stylesheet.getContents().size());
-        assertEquals("#60809f", ((Ruleset) stylesheet.getContents().get(0)).getPropertyDeclarations().get(0).getValue().getCssText());
-        assertEquals("#60809f", ((Ruleset) stylesheet.getContents().get(1)).getPropertyDeclarations().get(0).getValue().getCssText());
-        assertEquals("#60809f", ((Ruleset) stylesheet.getContents().get(2)).getPropertyDeclarations().get(0).getValue().getCssText());
+        assertEquals(8, stylesheet.getContents().size());
+        for (Object content : stylesheet.getContents()) {
+            Ruleset ruleset = (Ruleset) content;
+            assertEquals(1, ruleset.getPropertyDeclarations().size());
+            assertEquals("#60809f", ruleset.getPropertyDeclarations().get(0).getValue().getCssText());
+        }
     }
 
 }

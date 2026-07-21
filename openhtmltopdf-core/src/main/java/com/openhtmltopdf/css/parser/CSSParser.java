@@ -1768,7 +1768,7 @@ public class CSSParser {
         return new FSRGBColor(red, green, blue);
     }
 
-    private FSRGBColor createRGBColorFromHSLFunction (List<PropertyValue> params) {
+    private FSRGBColor createRGBColorFromHSLFunction(List<PropertyValue> params) {
         if (params.size() != 3) {
             throw new CSSParseException(
                     "The hsl() function must have exactly three parameters",
@@ -1776,48 +1776,47 @@ public class CSSParser {
         }
 
         PropertyValue hueValue = params.get(0);
-        if (hueValue.getPrimitiveType() != CSSPrimitiveValue.CSS_NUMBER &&
-            hueValue.getPrimitiveType() != CSSPrimitiveValue.CSS_DEG) {
-            throw new CSSParseException(
-                    "Parameter 1 to the hsl() function is " +
-                    "not a number or deg", getCurrentLine());
-        }
-        int hue = (int) hueValue.getFloatValue();
-        if (hue < 0) {
-            hue = 0;
-        } else if (hue > 360) {
-            hue = 360;
-        }
-
-        PropertyValue saturationValue = params.get(1);
-        if (saturationValue.getPrimitiveType() != CSSPrimitiveValue.CSS_NUMBER &&
-            saturationValue.getPrimitiveType() != CSSPrimitiveValue.CSS_PERCENTAGE) {
-            throw new CSSParseException(
-                    "Parameter 2 to the hsl() function is " +
-                    "not a number or percentage", getCurrentLine());
-        }
-        float saturation = saturationValue.getFloatValue() / 100.0f;
-        if (saturation < 0f) {
-            saturation = 0f;
-        } else if (saturation > 1f) {
-            saturation = 1f;
+        float hue;
+        switch (hueValue.getPrimitiveType()) {
+            case CSSPrimitiveValue.CSS_NUMBER:
+            case CSSPrimitiveValue.CSS_DEG:
+                hue = hueValue.getFloatValue();
+                break;
+            case CSSPrimitiveValue.CSS_RAD:
+                hue = (float) Math.toDegrees(hueValue.getFloatValue());
+                break;
+            case CSSPrimitiveValue.CSS_GRAD:
+                hue = hueValue.getFloatValue() * 0.9f;
+                break;
+            default:
+                throw new CSSParseException(
+                        "Parameter 1 to the hsl() function is " +
+                        "not a number or angle", getCurrentLine());
         }
 
-        PropertyValue lightnessValue = params.get(2);
-        if (lightnessValue.getPrimitiveType() != CSSPrimitiveValue.CSS_NUMBER &&
-            lightnessValue.getPrimitiveType() != CSSPrimitiveValue.CSS_PERCENTAGE) {
-            throw new CSSParseException(
-                    "Parameter 3 to the hsl() function is " +
-                    "not a number or percentage", getCurrentLine());
-        }
-        float lightness = lightnessValue.getFloatValue() / 100.0f;
-        if (lightness < 0f) {
-            lightness = 0f;
-        } else if (lightness > 1f) {
-            lightness = 1f;
-        }
+        float saturation = parseHSLColorComponent(params.get(1), 2);
+        float lightness = parseHSLColorComponent(params.get(2), 3);
 
         return FSRGBColor.fromHSL(hue, saturation, lightness);
+    }
+
+    private float parseHSLColorComponent(PropertyValue value, int paramNo) {
+        short type = value.getPrimitiveType();
+        if (type != CSSPrimitiveValue.CSS_NUMBER &&
+            type != CSSPrimitiveValue.CSS_PERCENTAGE) {
+            throw new CSSParseException(
+                    "Parameter " + paramNo + " to the hsl() function is " +
+                    "not a number or percentage", getCurrentLine());
+        }
+
+        float result = value.getFloatValue() / 100.0f;
+        if (result < 0f) {
+            result = 0f;
+        } else if (result > 1f) {
+            result = 1f;
+        }
+
+        return result;
     }
 
     //  /*
