@@ -1,0 +1,24 @@
+.hsl-legacy {
+    color: hsl(210, 25%, 50%);
+}
+.hsl-number-number {
+    color: hsl(210 25 50);
+}
+.hsl-deg-percent {
+    color: hsl(210deg 25% 50%);
+}
+.hsl-deg-legacy {
+    color: hsl(210deg, 25%, 50%);
+}
+.hsl-hue-wraps-above-360 {
+    color: hsl(570, 25%, 50%);
+}
+.hsl-negative-hue-wraps {
+    color: hsl(-150, 25%, 50%);
+}
+.hsl-rad {
+    color: hsl(3.66519rad 25% 50%);
+}
+.hsl-grad {
+    color: hsl(233.333grad 25% 50%);
+}

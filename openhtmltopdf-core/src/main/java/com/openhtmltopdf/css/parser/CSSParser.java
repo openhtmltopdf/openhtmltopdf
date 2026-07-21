@@ -1662,6 +1662,8 @@ public class CSSParser {
 
             if (f.equals("rgb(")) {
                 result = new PropertyValue(createRGBColorFromFunction(params));
+            } else if (f.equals("hsl(")) {
+                result = new PropertyValue(createRGBColorFromHSLFunction(params));
             } else if (f.equals("cmyk(")) {
                 if (!isSupportCMYKColors()) {
                     throw new CSSParseException(
@@ -1764,6 +1766,57 @@ public class CSSParser {
         }
 
         return new FSRGBColor(red, green, blue);
+    }
+
+    private FSRGBColor createRGBColorFromHSLFunction(List<PropertyValue> params) {
+        if (params.size() != 3) {
+            throw new CSSParseException(
+                    "The hsl() function must have exactly three parameters",
+                    getCurrentLine());
+        }
+
+        PropertyValue hueValue = params.get(0);
+        float hue;
+        switch (hueValue.getPrimitiveType()) {
+            case CSSPrimitiveValue.CSS_NUMBER:
+            case CSSPrimitiveValue.CSS_DEG:
+                hue = hueValue.getFloatValue();
+                break;
+            case CSSPrimitiveValue.CSS_RAD:
+                hue = (float) Math.toDegrees(hueValue.getFloatValue());
+                break;
+            case CSSPrimitiveValue.CSS_GRAD:
+                hue = hueValue.getFloatValue() * 0.9f;
+                break;
+            default:
+                throw new CSSParseException(
+                        "Parameter 1 to the hsl() function is " +
+                        "not a number or angle", getCurrentLine());
+        }
+
+        float saturation = parseHSLColorComponent(params.get(1), 2);
+        float lightness = parseHSLColorComponent(params.get(2), 3);
+
+        return FSRGBColor.fromHSL(hue, saturation, lightness);
+    }
+
+    private float parseHSLColorComponent(PropertyValue value, int paramNo) {
+        short type = value.getPrimitiveType();
+        if (type != CSSPrimitiveValue.CSS_NUMBER &&
+            type != CSSPrimitiveValue.CSS_PERCENTAGE) {
+            throw new CSSParseException(
+                    "Parameter " + paramNo + " to the hsl() function is " +
+                    "not a number or percentage", getCurrentLine());
+        }
+
+        float result = value.getFloatValue() / 100.0f;
+        if (result < 0f) {
+            result = 0f;
+        } else if (result > 1f) {
+            result = 1f;
+        }
+
+        return result;
     }
 
     //  /*
