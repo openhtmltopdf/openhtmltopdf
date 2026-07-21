@@ -1,0 +1,67 @@
+<html>
+    <head>
+        <style>
+            @page {
+                @bottom-center {
+                    content: counter(page) " / " counter(pages)
+                }
+            }
+            body {
+                font-family: 'TestFont';
+            }
+            td {
+                border: black 1px solid;
+                font-size: 28px;
+                text-align: center;
+                padding: 10px;
+            }
+            thead td {
+                background-color: #D4E9FF;
+            }
+        </style>
+    </head>
+<body>
+    <div style="height: 300px"></div>
+    <table style="-fs-table-paginate: paginate; width: 100%; border-collapse: collapse;">
+        <colgroup>
+            <col style="width: 10%"/>
+            <col style="width: 15%"/>
+            <col style="width: 15%"/>
+            <col style="width: 15%"/>
+            <col style="width: 15%"/>
+            <col style="width: 15%"/>
+            <col style="width: 15%"/>
+        </colgroup>
+        <thead>
+            <tr>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>1</td>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>2</td>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>3</td>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>4</td>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>5</td>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>6</td>
+                <td>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>H<br/>e<br/>a<br/>d<br/> <br/>7</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td rowspan="2">B</td>
+                <td>Body 2</td>
+                <td>Body 3</td>
+                <td>Body 4</td>
+                <td>Body 5</td>
+                <td>Body 6</td>
+                <td>Body 7</td>
+            </tr>
+            <tr>
+                <td>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y <br/>8</td>
+                <td>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>9</td>
+                <td>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>10</td>
+                <td>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>11</td>
+                <td>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>12</td>
+                <td>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>B<br/>o<br/>d<br/>y<br/> <br/>13</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

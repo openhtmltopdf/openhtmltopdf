@@ -289,6 +289,25 @@ public class TableCellBox extends BlockBox {
     }
 
     /**
+     * Gets the bottom Y position of the thead section in the table.
+     *
+     * @param table The table containing the thead
+     * @return the absolute Y position of thead's bottom, or -1 if no thead found
+     */
+    private int getTheadBottom(TableBox table) {
+        for (int i = 0; i < table.getChildCount(); i++) {
+            Box child = table.getChild(i);
+            if (child instanceof TableSectionBox) {
+                TableSectionBox tableSection = (TableSectionBox) child;
+                if (tableSection.isHeader()) {
+                    return tableSection.getAbsY() + tableSection.getHeight();
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Adjusts the bounds of a rowspan cell on continuation pages to avoid overlapping with thead.
      * For rowspan cells that span multiple pages, this ensures the cell's rendering starts
      * after the thead section on subsequent pages.
@@ -307,28 +326,13 @@ public class TableCellBox extends BlockBox {
         }
 
         // This is a continuation page - check for thead overlap
-        TableBox table = getTable();
-        if (table == null) {
-            return bounds;
-        }
-
-        for (int i = 0; i < table.getChildCount(); i++) {
-            Box child = table.getChild(i);
-            if (child instanceof TableSectionBox) {
-                TableSectionBox tableSection = (TableSectionBox) child;
-                if (tableSection.isHeader()) {
-                    // Found thead - get its bottom position
-                    int theadBottom = tableSection.getAbsY() + tableSection.getHeight();
-                    if (bounds.y < theadBottom) {
-                        // Adjust bounds to start after thead
-                        int overlap = theadBottom - bounds.y;
-                        bounds = new Rectangle(bounds); // Create a copy to avoid modifying original
-                        bounds.y = theadBottom;
-                        bounds.height = Math.max(0, bounds.height - overlap);
-                    }
-                    break;
-                }
-            }
+        int theadBottom = getTheadBottom(getTable());
+        if (theadBottom != -1 && bounds.y < theadBottom) {
+            // Adjust bounds to start after thead
+            int overlap = theadBottom - bounds.y;
+            bounds = new Rectangle(bounds); // Create a copy to avoid modifying original
+            bounds.y = theadBottom;
+            bounds.height = Math.max(0, bounds.height - overlap);
         }
 
         return bounds;
@@ -418,7 +422,17 @@ public class TableCellBox extends BlockBox {
             if (c.getPageNo() == contentLimitContainer.getInitialPageNo()) {
                 top = result.y;
             } else {
-                top = limit.getTop() - ((TableRowBox)getParent()).getExtraSpaceTop() ;
+                top = limit.getTop() - ((TableRowBox)getParent()).getExtraSpaceTop();
+
+                // For a rowspan cell, the parent row's content limit tracks where the
+                // cell's own content landed on this page rather than the top of the
+                // table's content area, so anchor the cell to the repeated header instead.
+                if (getStyle().getRowSpan() > 1) {
+                    int theadBottom = getTheadBottom(getTable());
+                    if (theadBottom != -1) {
+                        top = theadBottom;
+                    }
+                }
             }
             
             int bottom;

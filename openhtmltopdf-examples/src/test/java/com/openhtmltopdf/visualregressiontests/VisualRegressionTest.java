@@ -1597,6 +1597,11 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("hsl-color", TestSupport.WITH_FONT));
     }
 
+    @Test
+    public void testFsTablePaginateMiddleSpace() throws IOException {
+        assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
+    }
+
     /**
      * CSS target-counter calling attr on a non-href attribute.
      */
