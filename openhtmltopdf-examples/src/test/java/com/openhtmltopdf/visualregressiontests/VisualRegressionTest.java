@@ -1598,6 +1598,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests the alpha of rgba()/hsla() colors: blending of overlapping
+     * content, alpha reset for opaque content following transparent content,
+     * and alpha on text, filled borders and stroked (dashed) borders.
+     */
+    @Test
+    public void testRgbaColor() throws IOException {
+        assertTrue(vt.runTest("rgba-color", TestSupport.WITH_FONT));
+    }
+
+    /**
      * CSS target-counter calling attr on a non-href attribute.
      */
     @Test

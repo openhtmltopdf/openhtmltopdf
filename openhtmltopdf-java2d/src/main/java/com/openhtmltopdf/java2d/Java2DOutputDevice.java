@@ -83,7 +83,7 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
     public void setColor(FSColor color) {
         if (color instanceof FSRGBColor) {
             FSRGBColor rgb = (FSRGBColor) color;
-            _graphics.setColor(new Color(rgb.getRed(), rgb.getGreen(), rgb.getBlue()));
+            _graphics.setColor(new Color(rgb.getRed(), rgb.getGreen(), rgb.getBlue(), Math.round(rgb.getAlpha() * 255f)));
         } else {
             throw new RuntimeException("internal error: unsupported color class " + color.getClass().getName());
         }

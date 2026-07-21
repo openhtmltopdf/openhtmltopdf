@@ -56,6 +56,7 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.graphics.shading.PDShading;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.pdmodel.graphics.state.RenderingMode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -94,13 +95,20 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         // We keep these so we don't bloat the PDF with unneeded color calls.
         private FSColor fillColor;
         private FSColor strokeColor;
-        
+
+        // The alpha constants (/ca and /CA) currently applied on the PDF
+        // graphics stream. The PDF default is fully opaque.
+        private float fillAlpha = 1f;
+        private float strokeAlpha = 1f;
+
         private PageState copy() {
             PageState ret = new PageState();
-            
+
             ret.fillColor = this.fillColor;
             ret.strokeColor = this.strokeColor;
-            
+            ret.fillAlpha = this.fillAlpha;
+            ret.strokeAlpha = this.strokeAlpha;
+
             return ret;
         }
     }
@@ -200,12 +208,31 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     private final boolean _pdfUaConform;
     
     private final boolean _pdfAConform;
-    
+
+    private final PdfRendererBuilder.PdfAConformance _pdfAConformance;
+
+    // Cached ExtGState resources per alpha value, so the same alpha reuses
+    // one graphics state object per document. Must not outlive this device
+    // (one document) as COS objects can not be shared between documents.
+    private final Map<Float, PDExtendedGraphicsState> _fillAlphaStates = new HashMap<>();
+    private final Map<Float, PDExtendedGraphicsState> _strokeAlphaStates = new HashMap<>();
+
+    // Whether we already warned that transparency is not allowed in PDF/A-1.
+    private boolean _transparencyNotAllowedWarned;
+
     public PdfBoxFastOutputDevice(float dotsPerPoint, boolean testMode, boolean pdfUaConform, boolean pdfAConform) {
+        // Without knowing the PDF/A part, conservatively assume PDF/A-1 which
+        // does not allow transparency.
+        this(dotsPerPoint, testMode, pdfUaConform,
+                pdfAConform ? PdfRendererBuilder.PdfAConformance.PDFA_1_B : PdfRendererBuilder.PdfAConformance.NONE);
+    }
+
+    public PdfBoxFastOutputDevice(float dotsPerPoint, boolean testMode, boolean pdfUaConform, PdfRendererBuilder.PdfAConformance pdfAConformance) {
         _dotsPerPoint = dotsPerPoint;
         _testMode = testMode;
         _pdfUaConform = pdfUaConform;
-        _pdfAConform = pdfAConform;
+        _pdfAConformance = pdfAConformance;
+        _pdfAConform = pdfAConformance != PdfRendererBuilder.PdfAConformance.NONE;
     }
 
     @Override
@@ -538,9 +565,11 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             if (state.fillColor instanceof FSRGBColor) {
                 FSRGBColor rgb = (FSRGBColor) state.fillColor;
                 _cp.setFillColor(rgb.getRed(), rgb.getGreen(), rgb.getBlue());
+                ensureFillAlpha(effectiveAlpha(rgb));
             } else if (state.fillColor instanceof FSCMYKColor) {
                 FSCMYKColor cmyk = (FSCMYKColor) state.fillColor;
                 _cp.setFillColor(cmyk.getCyan(), cmyk.getMagenta(), cmyk.getYellow(), cmyk.getBlack());
+                ensureFillAlpha(1f);
             }
             else {
                 assert(state.fillColor instanceof FSRGBColor || state.fillColor instanceof FSCMYKColor);
@@ -556,13 +585,68 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             if (state.strokeColor instanceof FSRGBColor) {
                 FSRGBColor rgb = (FSRGBColor) state.strokeColor;
                 _cp.setStrokingColor(rgb.getRed(), rgb.getGreen(), rgb.getBlue());
+                ensureStrokeAlpha(effectiveAlpha(rgb));
             } else if (state.strokeColor instanceof FSCMYKColor) {
                 FSCMYKColor cmyk = (FSCMYKColor) state.strokeColor;
                 _cp.setStrokingColor(cmyk.getCyan(), cmyk.getMagenta(), cmyk.getYellow(), cmyk.getBlack());
+                ensureStrokeAlpha(1f);
             }
             else {
                 assert(state.strokeColor instanceof FSRGBColor || state.strokeColor instanceof FSCMYKColor);
             }
+        }
+    }
+
+    /**
+     * The alpha to actually render with: the color's alpha, unless the
+     * conformance target does not allow transparency (PDF/A-1), in which case
+     * we render fully opaque and warn once.
+     */
+    private float effectiveAlpha(FSRGBColor color) {
+        float alpha = color.getAlpha();
+
+        if (alpha != 1f && !isTransparencyAllowed()) {
+            if (!_transparencyNotAllowedWarned) {
+                XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_ALPHA_NOT_ALLOWED_IN_PDFA1);
+                _transparencyNotAllowedWarned = true;
+            }
+            return 1f;
+        }
+
+        return alpha;
+    }
+
+    /**
+     * PDF/A-1 forbids transparency; PDF/A-2 and later allow it.
+     */
+    private boolean isTransparencyAllowed() {
+        return _pdfAConformance == PdfRendererBuilder.PdfAConformance.NONE
+                || _pdfAConformance.getPart() >= 2;
+    }
+
+    private void ensureFillAlpha(float alpha) {
+        PageState state = currentState();
+        if (state.fillAlpha != alpha) {
+            state.fillAlpha = alpha;
+            PDExtendedGraphicsState gs = _fillAlphaStates.computeIfAbsent(alpha, a -> {
+                PDExtendedGraphicsState ret = new PDExtendedGraphicsState();
+                ret.setNonStrokingAlphaConstant(a);
+                return ret;
+            });
+            _cp.setExtGState(gs);
+        }
+    }
+
+    private void ensureStrokeAlpha(float alpha) {
+        PageState state = currentState();
+        if (state.strokeAlpha != alpha) {
+            state.strokeAlpha = alpha;
+            PDExtendedGraphicsState gs = _strokeAlphaStates.computeIfAbsent(alpha, a -> {
+                PDExtendedGraphicsState ret = new PDExtendedGraphicsState();
+                ret.setStrokingAlphaConstant(a);
+                return ret;
+            });
+            _cp.setExtGState(gs);
         }
     }
 

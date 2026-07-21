@@ -53,4 +53,26 @@ public class CSSParserTest {
         }
     }
 
+    @Test
+    public void rgba_hsla_color() {
+        Stylesheet stylesheet = parseStylesheet("rgba_hsla_color.css");
+        assertEquals(6, stylesheet.getContents().size());
+        for (Object content : stylesheet.getContents()) {
+            Ruleset ruleset = (Ruleset) content;
+            assertEquals(1, ruleset.getPropertyDeclarations().size());
+            assertEquals("rgba(96, 128, 159, 0.5)", ruleset.getPropertyDeclarations().get(0).getValue().getCssText());
+        }
+    }
+
+    @Test
+    public void rgba_hsla_opaque_color() {
+        Stylesheet stylesheet = parseStylesheet("rgba_hsla_opaque.css");
+        assertEquals(5, stylesheet.getContents().size());
+        for (Object content : stylesheet.getContents()) {
+            Ruleset ruleset = (Ruleset) content;
+            assertEquals(1, ruleset.getPropertyDeclarations().size());
+            assertEquals("#60809f", ruleset.getPropertyDeclarations().get(0).getValue().getCssText());
+        }
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.openhtmltopdf.pdfboxout;
 
 import java.util.List;
+import java.util.logging.Level;
 import java.awt.geom.*;
 import java.awt.Rectangle;
 import java.awt.Shape;
@@ -8,6 +9,8 @@ import java.awt.Shape;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient.StopPoint;
+import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.XRLog;
 
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSBoolean;
@@ -31,6 +34,13 @@ public class GradientHelper {
         PDShadingType2 shading = new PDShadingType2(new COSDictionary());
         shading.setShadingType(PDShading.SHADING_TYPE2);
         shading.setColorSpace(PDDeviceRGB.INSTANCE);
+
+        for (StopPoint stop : gradient.getStopPoints()) {
+            if (stop.getColor() instanceof FSRGBColor && ((FSRGBColor) stop.getColor()).hasAlpha()) {
+                XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_GRADIENT_STOP_ALPHA_NOT_SUPPORTED);
+                break;
+            }
+        }
 
         Rectangle rect = bounds.getBounds();
 

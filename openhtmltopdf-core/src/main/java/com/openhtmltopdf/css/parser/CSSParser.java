@@ -1660,9 +1660,9 @@ public class CSSParser {
                 throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
             }
 
-            if (f.equals("rgb(")) {
+            if (f.equals("rgb(") || f.equals("rgba(")) {
                 result = new PropertyValue(createRGBColorFromFunction(params));
-            } else if (f.equals("hsl(")) {
+            } else if (f.equals("hsl(") || f.equals("hsla(")) {
                 result = new PropertyValue(createRGBColorFromHSLFunction(params));
             } else if (f.equals("cmyk(")) {
                 if (!isSupportCMYKColors()) {
@@ -1723,22 +1723,22 @@ public class CSSParser {
     }
 
     private FSRGBColor createRGBColorFromFunction(List<PropertyValue> params) {
-        if (params.size() != 3) {
+        if (params.size() != 3 && params.size() != 4) {
             throw new CSSParseException(
-                    "The rgb() function must have exactly three parameters",
+                    "The rgb()/rgba() function must have three or four parameters",
                     getCurrentLine());
         }
 
         int red = 0;
         int green = 0;
         int blue = 0;
-        for (int i = 0; i < params.size(); i++) {
+        for (int i = 0; i < 3; i++) {
             PropertyValue value = params.get(i);
             short type = value.getPrimitiveType();
             if (type != CSSPrimitiveValue.CSS_PERCENTAGE &&
                     type != CSSPrimitiveValue.CSS_NUMBER) {
                 throw new CSSParseException(
-                        "Parameter " + (i + 1) + " to the rgb() function is " +
+                        "Parameter " + (i + 1) + " to the rgb()/rgba() function is " +
                                 "not a number or percentage", getCurrentLine());
             }
 
@@ -1765,13 +1765,44 @@ public class CSSParser {
             }
         }
 
+        if (params.size() == 4) {
+            return new FSRGBColor(red, green, blue, parseAlphaComponent(params.get(3), "rgb()/rgba()"));
+        }
         return new FSRGBColor(red, green, blue);
     }
 
-    private FSRGBColor createRGBColorFromHSLFunction(List<PropertyValue> params) {
-        if (params.size() != 3) {
+    /**
+     * Parses the optional fourth (alpha) parameter of the rgb()/rgba() and
+     * hsl()/hsla() functions: either a number (0..1) or a percentage
+     * (0%..100%), clamped to that range as defined in
+     * <a href="https://www.w3.org/TR/css-color-4/#alpha-syntax">CSS Color Module Level 4</a>.
+     */
+    private float parseAlphaComponent(PropertyValue value, String function) {
+        short type = value.getPrimitiveType();
+        float result;
+        if (type == CSSPrimitiveValue.CSS_NUMBER) {
+            result = value.getFloatValue();
+        } else if (type == CSSPrimitiveValue.CSS_PERCENTAGE) {
+            result = value.getFloatValue() / 100.0f;
+        } else {
             throw new CSSParseException(
-                    "The hsl() function must have exactly three parameters",
+                    "The alpha parameter to the " + function + " function is " +
+                    "not a number or percentage", getCurrentLine());
+        }
+
+        if (result < 0f) {
+            result = 0f;
+        } else if (result > 1f) {
+            result = 1f;
+        }
+
+        return result;
+    }
+
+    private FSRGBColor createRGBColorFromHSLFunction(List<PropertyValue> params) {
+        if (params.size() != 3 && params.size() != 4) {
+            throw new CSSParseException(
+                    "The hsl()/hsla() function must have three or four parameters",
                     getCurrentLine());
         }
 
@@ -1797,7 +1828,11 @@ public class CSSParser {
         float saturation = parseHSLColorComponent(params.get(1), 2);
         float lightness = parseHSLColorComponent(params.get(2), 3);
 
-        return FSRGBColor.fromHSL(hue, saturation, lightness);
+        FSRGBColor color = FSRGBColor.fromHSL(hue, saturation, lightness);
+        if (params.size() == 4) {
+            return color.withAlpha(parseAlphaComponent(params.get(3), "hsl()/hsla()"));
+        }
+        return color;
     }
 
     private float parseHSLColorComponent(PropertyValue value, int paramNo) {
