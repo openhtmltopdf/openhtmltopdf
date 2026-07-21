@@ -1,0 +1,34 @@
+<html>
+<head>
+<style>
+    @page { size: 500px 620px; margin: 20px; }
+    body { font-family: 'TestFont'; font-size: 24px; margin: 0; }
+    div { margin: 0 0 14px 0; }
+    .default    { text-decoration: underline; }
+    .auto       { text-decoration: underline; text-underline-position: auto; }
+    .under      { text-decoration: underline; text-underline-position: under; }
+    .offset-px  { text-decoration: underline; text-underline-offset: 3px; }
+    .offset-em  { text-decoration: underline; text-underline-offset: 0.25em; }
+    .offset-pct { text-decoration: underline; text-underline-offset: 25%; }
+    .offset-neg { text-decoration: underline; text-underline-offset: -2px; }
+    .under-offset { text-decoration: underline; text-underline-position: under; text-underline-offset: 3px; }
+    .inherited  { text-underline-position: under; }
+    .inherited span { text-decoration: underline; }
+    .strike     { text-decoration: line-through; text-underline-position: under; text-underline-offset: 6px; }
+    .over       { text-decoration: overline; text-underline-position: under; text-underline-offset: 6px; }
+</style>
+</head>
+<body>
+<div class="default">Default underline: gjpqy</div>
+<div class="auto">Explicit auto: gjpqy</div>
+<div class="under">Position under: gjpqy</div>
+<div class="offset-px">Offset 3px: gjpqy</div>
+<div class="offset-em">Offset 0.25em: gjpqy</div>
+<div class="offset-pct">Offset 25 percent: gjpqy</div>
+<div class="offset-neg">Offset -2px: gjpqy</div>
+<div class="under-offset">Under plus 3px: gjpqy</div>
+<div class="inherited">Inherited: <span>under from parent</span></div>
+<div class="strike">Line-through unaffected: gjpqy</div>
+<div class="over">Overline unaffected: gjpqy</div>
+</body>
+</html>
