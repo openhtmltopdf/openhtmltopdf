@@ -206,7 +206,10 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
     }
 
     /**
-     * Sets the color profile, needed for PDF/A conformance.
+     * Sets the color profile, written to the PDF as an OutputIntent so
+     * viewers know how to interpret the device colors (e.g. display them
+     * like a browser displays the equivalent HTML). Needed for PDF/A
+     * conformance, but also honored for all other documents.
      * <p>
      * You can use the sRGB.icc from <a href="https://svn.apache.org/viewvc/pdfbox/trunk/examples/src/main/resources/org/apache/pdfbox/resources/pdfa/">Apache PdfBox</a>
      */

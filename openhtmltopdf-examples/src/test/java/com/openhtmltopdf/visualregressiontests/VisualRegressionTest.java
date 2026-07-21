@@ -38,6 +38,7 @@ import com.openhtmltopdf.svgsupport.BatikSVGDrawer.SvgScriptMode;
 import com.openhtmltopdf.testlistener.PrintingRunner;
 import com.openhtmltopdf.visualtest.TestSupport;
 import com.openhtmltopdf.visualtest.VisualTester;
+import com.openhtmltopdf.visualtest.VisualTester.BuilderConfig;
 
 @RunWith(PrintingRunner.class)
 public class VisualRegressionTest {
@@ -1598,13 +1599,22 @@ public class VisualRegressionTest {
     }
 
     /**
+     * The rgba tests get an sRGB OutputIntent so viewers display the
+     * documents like a browser displays the equivalent HTML.
+     */
+    private static final BuilderConfig WITH_FONT_AND_SRGB = (builder) -> {
+        TestSupport.WITH_FONT.configure(builder);
+        TestSupport.WITH_SRGB.configure(builder);
+    };
+
+    /**
      * Tests the alpha of rgba()/hsla() colors: blending of overlapping
      * content, alpha reset for opaque content following transparent content,
      * and alpha on text, filled borders and stroked (dashed) borders.
      */
     @Test
     public void testRgbaColor() throws IOException {
-        assertTrue(vt.runTest("rgba-color", TestSupport.WITH_FONT));
+        assertTrue(vt.runTest("rgba-color", WITH_FONT_AND_SRGB));
     }
 
     /**
@@ -1613,7 +1623,7 @@ public class VisualRegressionTest {
      */
     @Test
     public void testRgbaOverlapCircles() throws IOException {
-        assertTrue(vt.runTest("rgba-overlap-circles"));
+        assertTrue(vt.runTest("rgba-overlap-circles", TestSupport.WITH_SRGB));
     }
 
     /**
@@ -1622,7 +1632,7 @@ public class VisualRegressionTest {
      */
     @Test
     public void testRgbaOverlayRects() throws IOException {
-        assertTrue(vt.runTest("rgba-overlay-rects", TestSupport.WITH_FONT));
+        assertTrue(vt.runTest("rgba-overlay-rects", WITH_FONT_AND_SRGB));
     }
 
     /**

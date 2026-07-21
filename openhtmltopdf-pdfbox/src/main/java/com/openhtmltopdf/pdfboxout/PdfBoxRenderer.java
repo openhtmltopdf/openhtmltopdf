@@ -582,6 +582,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
                         addPdfASchema(doc, _pdfAConformance, _pdfUaConformance);
                     }
 
+                    if (_colorProfile != null) {
+                        addColorProfileOutputIntent(doc);
+                    }
+
                     DisplayListCollector dlCollector = new DisplayListCollector(_root.getLayer().getPages());
                     dlPages = dlCollector.collectRoot(c, _root.getLayer());
                 }
@@ -782,16 +786,27 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             xmp = xmp.replace(" lang=\"x-default\"", " xml:lang=\"x-default\"");
             metadataStream.importXMPMetadata(xmp.getBytes(StandardCharsets.UTF_8));
 
-            if (_colorProfile != null) {
-                ByteArrayInputStream colorProfile = new ByteArrayInputStream(_colorProfile);
-                PDOutputIntent oi = new PDOutputIntent(document, colorProfile);
-                oi.setInfo("sRGB IEC61966-2.1");
-                oi.setOutputCondition("sRGB IEC61966-2.1");
-                oi.setOutputConditionIdentifier("sRGB IEC61966-2.1");
-                oi.setRegistryName("http://www.color.org");
-                catalog.addOutputIntent(oi);
-            }
         } catch (BadFieldValueException | IOException | TransformerException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Adds an OutputIntent with the color profile set via
+     * {@link PdfRendererBuilder#useColorProfile(byte[])}, so viewers know how
+     * to interpret the device colors. Required for PDF/A conformance, but
+     * also honored for all other documents.
+     */
+    private void addColorProfileOutputIntent(PDDocument document) {
+        try {
+            ByteArrayInputStream colorProfile = new ByteArrayInputStream(_colorProfile);
+            PDOutputIntent oi = new PDOutputIntent(document, colorProfile);
+            oi.setInfo("sRGB IEC61966-2.1");
+            oi.setOutputCondition("sRGB IEC61966-2.1");
+            oi.setOutputConditionIdentifier("sRGB IEC61966-2.1");
+            oi.setRegistryName("http://www.color.org");
+            document.getDocumentCatalog().addOutputIntent(oi);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
