@@ -308,6 +308,10 @@ public class PdfBoxFastLinkManager {
 
             annotationFileAttachment.setFile(fs);
             annotationFileAttachment.setAppearance(this._embeddedFileAppearance);
+            String fileName = elem.getAttribute("download");
+            if ( fileName != null && !fileName.isEmpty()) {
+                annotationFileAttachment.setContents(fileName);
+            }
 
             return new AnnotationContainer.PDAnnotationFileAttachmentContainer(annotationFileAttachment);
         }
@@ -361,6 +365,7 @@ public class PdfBoxFastLinkManager {
 
                 annotationFileAttachment.setFile(fs);
                 annotationFileAttachment.setAppearance(this._embeddedFileAppearance);
+                annotationFileAttachment.setContents(fileName);
 
                 // PDF/A3 requires we explicitly list this link as associated with file.
                 if (elem.hasAttribute("relationship")) {
