@@ -135,6 +135,21 @@ public class Selector {
         return true;
     }
 
+    /** This selector's required id, for Matcher's rule index; null if none. */
+    String indexId() {
+        return _requiredId;
+    }
+
+    /** One of this selector's required classes, for Matcher's rule index; null if none. */
+    String indexClass() {
+        return _requiredClasses != null ? _requiredClasses.get(0) : null;
+    }
+
+    /** This selector's element name, for Matcher's rule index; null if none. */
+    String indexName() {
+        return _name;
+    }
+
     /**
      * Check if the given Element matches this selector's dynamic properties.
      * Note: the parser should give all class

@@ -22,12 +22,14 @@ package com.openhtmltopdf.css.newmatch;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +54,12 @@ public class Matcher {
     private final StylesheetFactory _styleFactory;
 
     private final Map<Object, Mapper> _map = new HashMap<>();
+
+    /**
+     * RuleIndex per axes list (by identity). Child Mappers usually share their
+     * parent's descendant selectors as their axes, so they share one index.
+     */
+    private final Map<List<Selector>, RuleIndex> _indexCache = new IdentityHashMap<>();
 
     private final Set<Object> _hoverElements = new HashSet<>();
     private final Set<Object> _activeElements = new HashSet<>();
@@ -94,7 +102,7 @@ public class Matcher {
         Object parent = _treeRes.getParentElement(e);
         Mapper child = parent != null ? getMapper(parent) : docMapper;
 
-        AllDescendantMapper descendants = new AllDescendantMapper(child.axes, _attRes, _treeRes);
+        AllDescendantMapper descendants = new AllDescendantMapper(child.axes(), _attRes, _treeRes);
         descendants.map(e);
 
         return descendants.toCSS();
@@ -303,17 +311,207 @@ public class Matcher {
     }
 
     /**
+     * Index of a Mapper's axes by each selector's own simple selector (the
+     * {@link Selector#mayMatch} fields: name, id, classes), so that mapChild
+     * only visits selectors that may match an element. Buckets hold positions
+     * in the indexed list; candidates are returned in ascending position
+     * (cascade) order.
+     */
+    private static class RuleIndex {
+        private final Selector[] selectors;
+        private final Map<String, int[]> byId;
+        private final Map<String, int[]> byClass;
+        private final Map<String, int[]> byName;
+        /** Selectors with no name/id/class requirement; checked for every element. */
+        private final int[] universal;
+
+        /**
+         * The descendant-axis selectors in order: the childAxes of an element
+         * that activates no chained selector. Shared, never mutated; the
+         * indexed list itself when every selector is descendant-axis, so
+         * Mappers below share this index.
+         */
+        final List<Selector> defaultChildAxes;
+        /** Positions (in the indexed list) of the defaultChildAxes selectors. */
+        private final int[] descendantPositions;
+
+        RuleIndex(List<Selector> axes) {
+            int size = axes.size();
+            selectors = axes.toArray(new Selector[size]);
+
+            Map<String, List<Integer>> id = new HashMap<>();
+            // Sized for class-heavy stylesheets, where most selectors get
+            // their own byClass bucket.
+            Map<String, List<Integer>> cls = new HashMap<>(Math.max(16, size * 2));
+            Map<String, List<Integer>> name = new HashMap<>();
+            int[] universalTmp = new int[size];
+            int universalCount = 0;
+            int[] descendantsTmp = new int[size];
+            int descendantCount = 0;
+
+            for (int i = 0; i < size; i++) {
+                Selector sel = selectors[i];
+
+                if (sel.getAxis() == Selector.DESCENDANT_AXIS) {
+                    descendantsTmp[descendantCount++] = i;
+                }
+
+                if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+                    // Always visited, so mapChild still throws on it.
+                    universalTmp[universalCount++] = i;
+                } else if (sel.indexId() != null) {
+                    id.computeIfAbsent(sel.indexId(), k -> new ArrayList<>()).add(i);
+                } else if (sel.indexClass() != null) {
+                    cls.computeIfAbsent(sel.indexClass(), k -> new ArrayList<>()).add(i);
+                } else if (sel.indexName() != null) {
+                    name.computeIfAbsent(sel.indexName(), k -> new ArrayList<>()).add(i);
+                } else {
+                    universalTmp[universalCount++] = i;
+                }
+            }
+
+            byId = freeze(id);
+            byClass = freeze(cls);
+            byName = freeze(name);
+            universal = Arrays.copyOf(universalTmp, universalCount);
+            descendantPositions = Arrays.copyOf(descendantsTmp, descendantCount);
+
+            if (descendantCount == size) {
+                defaultChildAxes = axes;
+            } else {
+                List<Selector> dca = new ArrayList<>(descendantCount);
+                for (int pos : descendantPositions) {
+                    dca.add(selectors[pos]);
+                }
+                defaultChildAxes = dca;
+            }
+        }
+
+        Selector selector(int pos) {
+            return selectors[pos];
+        }
+
+        /**
+         * Positions of the selectors that may match an element with the given
+         * name, id and class tokens, in ascending (cascade) order. A selector
+         * is in exactly one bucket, so there are no duplicates.
+         */
+        int[] candidates(String name, String id, Set<String> classes) {
+            int[] nameBucket = name != null ? byName.get(name) : null;
+            int[] idBucket = id != null ? byId.get(id) : null;
+
+            int total = universal.length
+                    + (nameBucket != null ? nameBucket.length : 0)
+                    + (idBucket != null ? idBucket.length : 0);
+
+            int[][] classBuckets = null;
+            int classBucketCount = 0;
+            if (classes != null && !classes.isEmpty() && !byClass.isEmpty()) {
+                classBuckets = new int[classes.size()][];
+                for (String c : classes) {
+                    int[] b = byClass.get(c);
+                    if (b != null) {
+                        classBuckets[classBucketCount++] = b;
+                        total += b.length;
+                    }
+                }
+            }
+
+            if (total == universal.length) {
+                // No bucket hit; universal is already in ascending order.
+                return universal;
+            }
+
+            int[] result = new int[total];
+            int n = copy(universal, result, 0);
+            if (nameBucket != null) {
+                n = copy(nameBucket, result, n);
+            }
+            if (idBucket != null) {
+                n = copy(idBucket, result, n);
+            }
+            for (int i = 0; i < classBucketCount; i++) {
+                n = copy(classBuckets[i], result, n);
+            }
+            Arrays.sort(result);
+            return result;
+        }
+
+        /**
+         * defaultChildAxes with the chained selectors spliced in at their
+         * producers' positions. Both inputs are in ascending position order;
+         * on equal position the carried descendant selector (the chain's
+         * producer) comes first, as in the original single-pass loop.
+         */
+        List<Selector> mergeChained(List<Selector> chainedSelectors, int[] chainedPositions, int chainedCount) {
+            List<Selector> result = new ArrayList<>(defaultChildAxes.size() + chainedCount);
+            int d = 0;
+            for (int c = 0; c < chainedCount; c++) {
+                int pos = chainedPositions[c];
+                while (d < descendantPositions.length && descendantPositions[d] <= pos) {
+                    result.add(defaultChildAxes.get(d));
+                    d++;
+                }
+                result.add(chainedSelectors.get(c));
+            }
+            while (d < descendantPositions.length) {
+                result.add(defaultChildAxes.get(d));
+                d++;
+            }
+            return result;
+        }
+
+        private static Map<String, int[]> freeze(Map<String, List<Integer>> src) {
+            if (src.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            Map<String, int[]> result = new HashMap<>(src.size() * 2);
+            for (Map.Entry<String, List<Integer>> en : src.entrySet()) {
+                result.put(en.getKey(), toIntArray(en.getValue()));
+            }
+            return result;
+        }
+
+        private static int[] toIntArray(List<Integer> src) {
+            int[] result = new int[src.size()];
+            for (int i = 0; i < result.length; i++) {
+                result[i] = src.get(i);
+            }
+            return result;
+        }
+
+        private static int copy(int[] src, int[] dst, int at) {
+            System.arraycopy(src, 0, dst, at, src.length);
+            return at + src.length;
+        }
+    }
+
+    /**
      * Mapper represents a local CSS for a Node that is used to match the Node's
      * children.
      *
      * @author Torbjoern Gannholm
      */
     class Mapper {
-        private final List<Selector> axes;
+        private List<Selector> axes;
         private final Map<String, List<Selector>> pseudoSelectors;
         private final List<Selector> mappedSelectors;
 
         private Map<String, Mapper> children;
+
+        /** Lazily built (and shared through Matcher._indexCache) index of axes. */
+        private RuleIndex index;
+
+        /**
+         * Deferred axes: the parent's index and the chained selectors this
+         * Mapper's element activated. Merged into {@link #axes} only when
+         * first needed, i.e. if this Mapper ever maps children of its own;
+         * cleared after the merge.
+         */
+        private RuleIndex mergeSource;
+        private List<Selector> mergeChains;
+        private int[] mergeChainPositions;
+        private int mergeChainCount;
 
         Mapper(Collection<Selector> selectors) {
             this.axes = new ArrayList<>(selectors);
@@ -330,6 +528,31 @@ public class Matcher {
             this.pseudoSelectors = pseudoSelectors;
         }
 
+        private Mapper(
+                RuleIndex mergeSource,
+                List<Selector> mergeChains,
+                int[] mergeChainPositions,
+                int mergeChainCount,
+                List<Selector> mappedSelectors,
+                Map<String,List<Selector>> pseudoSelectors) {
+            this.mergeSource = mergeSource;
+            this.mergeChains = mergeChains;
+            this.mergeChainPositions = mergeChainPositions;
+            this.mergeChainCount = mergeChainCount;
+            this.mappedSelectors = mappedSelectors;
+            this.pseudoSelectors = pseudoSelectors;
+        }
+
+        List<Selector> axes() {
+            if (axes == null) {
+                axes = mergeSource.mergeChained(mergeChains, mergeChainPositions, mergeChainCount);
+                mergeSource = null;
+                mergeChains = null;
+                mergeChainPositions = null;
+            }
+            return axes;
+        }
+
         /**
          * Side effect: creates and stores a Mapper for the element
          *
@@ -338,26 +561,32 @@ public class Matcher {
          *         (more correct: preserves the sort order from Matcher creation)
          */
         Mapper mapChild(Object e) {
-            List<Selector> childAxes = null;
             List<Selector> mappedSelectors = null;
             Map<String, List<Selector>> pseudoSelectors = null;
 
             StringBuilder key = new StringBuilder();
 
-            // Read once per element and reused by Selector.mayMatch for every candidate selector.
+            // Read once per element and reused for every candidate selector.
             String elementName = _treeRes.getElementName(e);
             String elementId = _attRes != null ? _attRes.getID(e) : null;
             Set<String> elementClasses = classTokens(_attRes != null ? _attRes.getClass(e) : null);
 
-            for (Selector sel : axes) {
-                if (sel.getAxis() == Selector.DESCENDANT_AXIS) {
-                    if (childAxes == null) {
-                        childAxes = new ArrayList<>();
-                    }
+            if (index == null) {
+                index = _indexCache.computeIfAbsent(axes(), RuleIndex::new);
+            }
 
-                    // Carry it forward to other descendants
-                    childAxes.add(sel);
-                } else if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+            // Chained selectors activated by this element, with their
+            // producers' positions in axes; spliced into defaultChildAxes.
+            List<Selector> chainedSelectors = null;
+            int[] chainedPositions = null;
+            int chainedCount = 0;
+
+            int[] candidates = index.candidates(elementName, elementId, elementClasses);
+
+            for (int pos : candidates) {
+                Selector sel = index.selector(pos);
+
+                if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
                 }
 
@@ -417,11 +646,15 @@ public class Matcher {
                 } else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
                     throw new RuntimeException();
                 } else {
-                    if (childAxes == null) {
-                        childAxes = new ArrayList<>();
+                    if (chainedSelectors == null) {
+                        chainedSelectors = new ArrayList<>();
+                        chainedPositions = new int[8];
+                    } else if (chainedCount == chainedPositions.length) {
+                        chainedPositions = Arrays.copyOf(chainedPositions, chainedCount * 2);
                     }
 
-                    childAxes.add(chain);
+                    chainedSelectors.add(chain);
+                    chainedPositions[chainedCount++] = pos;
                 }
             }
 
@@ -429,16 +662,26 @@ public class Matcher {
                 children = new HashMap<>();
             }
 
-            List<Selector> normalisedChildAxes = childAxes == null ? Collections.emptyList() : childAxes;
-            List<Selector> normalisedMappedSelectors = mappedSelectors == null ? Collections.emptyList() : mappedSelectors;
-            Map<String, List<Selector>> normalisedPseudoSelectors = pseudoSelectors == null ? Collections.emptyMap() : pseudoSelectors;
+            String childKey = key.toString();
+            Mapper childMapper = children.get(childKey);
+            if (childMapper == null) {
+                List<Selector> normalisedMappedSelectors = mappedSelectors == null ? Collections.emptyList() : mappedSelectors;
+                Map<String, List<Selector>> normalisedPseudoSelectors = pseudoSelectors == null ? Collections.emptyMap() : pseudoSelectors;
 
-            Mapper childMapper = children.computeIfAbsent(
-                    key.toString(),
-                    kee -> new Mapper(
-                        normalisedChildAxes,
-                        normalisedMappedSelectors,
-                        normalisedPseudoSelectors));
+                childMapper = chainedSelectors == null
+                        ? new Mapper(
+                            index.defaultChildAxes,
+                            normalisedMappedSelectors,
+                            normalisedPseudoSelectors)
+                        : new Mapper(
+                            index,
+                            chainedSelectors,
+                            chainedPositions,
+                            chainedCount,
+                            normalisedMappedSelectors,
+                            normalisedPseudoSelectors);
+                children.put(childKey, childMapper);
+            }
 
             link(e, childMapper);
 
