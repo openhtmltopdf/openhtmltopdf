@@ -588,6 +588,27 @@ public class NonVisualRegressionTest {
         return true;
     }
 
+    @Test
+    public void testIssue64MissingGlyphIsReplaced() throws IOException {
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.useFont(
+                () -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+                        "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"),
+                "Liberation Sans");
+        builder.withHtmlContent(
+                "<html><body style=\"font-family: 'Liberation Sans'\">A天B</body></html>",
+                null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            String text = new PDFTextStripper().getText(doc).replaceAll("[\r\n]", "");
+            assertEquals("A#B", text);
+        }
+    }
+
     /**
      * Tests that there is no repeated text in the page margin area as
      * reported in issue 458.
