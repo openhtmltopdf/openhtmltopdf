@@ -601,7 +601,10 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
         }
 
         private String createFontMetricsCacheKey(String family, int weight, IdentValue style) {
-            return "font-metrics:" + family + ":" + weight + ":" + style.toString();
+            // font-metrics2: underline position semantics changed from the
+            // typographic descent to the font's designed underline position,
+            // so entries cached by older versions must not be reused.
+            return "font-metrics2:" + family + ":" + weight + ":" + style.toString();
         }
         
         private PdfBoxRawPDFontMetrics getFontMetricsFromCache(String family, int weight, IdentValue style) {

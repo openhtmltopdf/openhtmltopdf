@@ -35,6 +35,16 @@ public interface FSFontMetrics {
      * positive for values below the baseline.
      */
     public float getUnderlineOffset();
-    
+
     public float getUnderlineThickness();
+
+    /**
+     * The distance from the baseline to the bottom of the font's em box (its
+     * typographic descent). Positive for values below the baseline, in keeping
+     * with the JDK {@link java.awt.font.LineMetrics} convention. Used for
+     * <code>text-underline-position: under</code>.
+     */
+    default float getTypoDescent() {
+        return getDescent();
+    }
 }

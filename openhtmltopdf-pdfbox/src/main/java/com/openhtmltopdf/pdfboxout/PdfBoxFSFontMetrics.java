@@ -28,6 +28,7 @@ public class PdfBoxFSFontMetrics implements FSFontMetrics {
     private float _strikethroughThickness;
     private float _underlineOffset;
     private float _underlineThickness;
+    private float _typoDescent;
     
     @Override
     public float getAscent() {
@@ -80,5 +81,14 @@ public class PdfBoxFSFontMetrics implements FSFontMetrics {
 
     public void setUnderlineThickness(float underlineThickness) {
         _underlineThickness = underlineThickness;
+    }
+
+    @Override
+    public float getTypoDescent() {
+        return _typoDescent;
+    }
+
+    public void setTypoDescent(float typoDescent) {
+        _typoDescent = typoDescent;
     }
 }

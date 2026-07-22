@@ -1598,6 +1598,16 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("hsl-color", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the text-underline-position (auto/under, including inheritance)
+     * and text-underline-offset (px/em/percentage/negative) properties, and
+     * that they leave line-through and overline alone.
+     */
+    @Test
+    public void testTextUnderlinePosition() throws IOException {
+        assertTrue(vt.runTest("text-underline-position", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
