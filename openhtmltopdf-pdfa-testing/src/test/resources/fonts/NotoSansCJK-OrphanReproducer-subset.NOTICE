@@ -1,0 +1,17 @@
+Subset of Noto Sans CJK Regular, used only by
+PdfBoxAccessibilityHelperOrphanAncestorTester as a fixture.
+
+Original font: Noto Sans CJK
+Copyright (c) 2014, 2015 Adobe Systems Incorporated (http://www.adobe.com/).
+"Noto" is a trademark of Google Inc.
+
+Licensed under the SIL Open Font License, Version 1.1.
+License terms: https://scripts.sil.org/OFL
+Full text bundled alongside this file as OFL.txt.
+
+This subset retains only the glyphs needed by the test fixture's
+multi-language tags (Latin extended, Cyrillic, Hiragana, Han, Hangul:
+86 codepoints in total). It was produced with fonttools subset and is
+not intended for any use other than reproducing the page-break-inside
+ancestor-walk bug fixed in
+PdfBoxAccessibilityHelper.ensureAncestorTree.

@@ -239,6 +239,13 @@ public class PdfBoxAccessibilityHelper {
                         return StandardStructureTypes.CAPTION;
                     case "blockquote":
                         return StandardStructureTypes.BLOCK_QUOTE;
+                    case "div":
+                        // HTML div is always a block-level container in the PDF
+                        // structure tree, regardless of CSS display:inline-block.
+                        // Falling through to guessBoxTag would emit Span for an
+                        // inline-block div, producing Span containing P which
+                        // PAC flags as inappropriate use of Span.
+                        return StandardStructureTypes.DIV;
                     }
                 }
 
@@ -1141,6 +1148,10 @@ public class PdfBoxAccessibilityHelper {
 
     private void ensureAncestorTree(AbstractTreeItem child, Box parent) {
         // Walk up the ancestor tree making sure they all have accessibility objects.
+        // When the walk terminates because an ancestor already has an accessibility
+        // object, the most-recently-created intermediate (`child` after the loop)
+        // must be linked into that existing ancestor's children list.
+        AbstractTreeItem original = child;
         while (parent != null && parent.getAccessibilityObject() == null) {
             AbstractStructualElement parentItem = createStructureItem(null, parent);
             parent.setAccessiblityObject(parentItem);
@@ -1150,6 +1161,19 @@ public class PdfBoxAccessibilityHelper {
             child.parent = parentItem;
             child = parentItem;
             parent = parent.getParent();
+        }
+
+        // Only re-link if the loop actually created intermediates. For callers
+        // whose direct parent already has an accessibility object (e.g.
+        // createMarkedContentStructureItem) the caller adds `original` itself,
+        // so re-linking here would duplicate the entry under /K.
+        if (child != original && parent != null && child.parent == null) {
+            AbstractStructualElement existing =
+                    (AbstractStructualElement) parent.getAccessibilityObject();
+            if (existing != null) {
+                existing.addChild(child);
+                child.parent = existing;
+            }
         }
     }
 

@@ -248,7 +248,7 @@ public class PdfBoxFastLinkManager {
 
                 PDAnnotationLink annot = new PDAnnotationLink();
                 annot.setAction(action);
-                setLinkContents(annot, elem);
+                setLinkAnnotationContents(annot, elem, uri);
 
                 AnnotationContainer annotContainer = new AnnotationContainer.PDAnnotationLinkContainer(annot);
 
@@ -268,7 +268,7 @@ public class PdfBoxFastLinkManager {
 
                 PDAnnotationLink annot = new PDAnnotationLink();
                 annot.setAction(uriAct);
-                setLinkContents(annot, elem);
+                setLinkAnnotationContents(annot, elem, uri);
 
                 annotContainer = new AnnotationContainer.PDAnnotationLinkContainer(annot);
             } else {
@@ -286,6 +286,26 @@ public class PdfBoxFastLinkManager {
 
                 addLinkToPage(linkDetails.page, annotContainer, linkDetails.box, null);
             }
+        }
+    }
+
+    /**
+     * Set the link annotation's /Contents entry so PDF/UA-1 (ISO 14289-1
+     * clause 7.18.5) is satisfied. Prefers the element's `title` attribute,
+     * falls back to the visible text, then to the URI itself, so every
+     * link annotation has an alternate description.
+     */
+    private static void setLinkAnnotationContents(PDAnnotationLink annot, Element elem, String uri) {
+        String contents = elem.getAttribute("title");
+        if (contents == null || contents.isEmpty()) {
+            contents = elem.getTextContent();
+        }
+        if (contents == null || contents.isEmpty()) {
+            contents = uri;
+        }
+        contents = contents.trim();
+        if (!contents.isEmpty()) {
+            annot.setContents(contents);
         }
     }
 
@@ -545,23 +565,6 @@ public class PdfBoxFastLinkManager {
             }
         } catch (IOException e) {
             throw new PdfContentStreamAdapter.PdfException("processLink", e);
-        }
-    }
-
-    /**
-     * Sets the Contents key on a link annotation for PDF/UA-1 compliance
-     * (ISO 14289-1, 14.9.3). Uses the title attribute if available,
-     * otherwise falls back to the text content of the element.
-     */
-    private static void setLinkContents(PDAnnotationLink annot, Element elem) {
-        String title = elem.getAttribute("title");
-        if (title != null && !title.isEmpty()) {
-            annot.setContents(title);
-        } else {
-            String text = elem.getTextContent();
-            if (text != null && !text.isEmpty()) {
-                annot.setContents(text.trim());
-            }
         }
     }
 
