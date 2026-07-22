@@ -45,6 +45,16 @@ public class PdfBoxRawPDFontMetrics implements FSCacheValue {
     }
 
     public static PdfBoxRawPDFontMetrics fromPdfBox(PDFont font, PDFontDescriptor descriptor) throws IOException {
+        // Size inline boxes from the descriptor's typographic ascent/descent.
+        // Some fonts ship descriptors without usable ascent/descent (eg. the built-in Symbol
+        // and ZapfDingbats); fall back to the bounding box unless both values are usable.
+        float ascent = descriptor.getAscent();
+        float descent = -descriptor.getDescent();
+        if (!(ascent > 0f && descent > 0f)) {
+            ascent = font.getBoundingBox().getUpperRightY();
+            descent = -font.getBoundingBox().getLowerLeftY();
+        }
+
         // The typographic descent marks the bottom of the em box. It is used
         // for text-underline-position: under and as the fallback underline
         // position for fonts without underline metrics.
@@ -57,8 +67,8 @@ public class PdfBoxRawPDFontMetrics implements FSCacheValue {
         float underlineThickness = underline != null && underline[1] > 0f ? underline[1] : 50f;
 
         return new PdfBoxRawPDFontMetrics(
-            font.getBoundingBox().getUpperRightY(),                 // Ascent
-            -font.getBoundingBox().getLowerLeftY(),                 // Descent
+            ascent,
+            descent,
             -descriptor.getFontBoundingBox().getUpperRightY() / 3f, // Strikethrough offset
             100f,                                                   // FIXME: Strikethrough thickness
             underlinePosition,
