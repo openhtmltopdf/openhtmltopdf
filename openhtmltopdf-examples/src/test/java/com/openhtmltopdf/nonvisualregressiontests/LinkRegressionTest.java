@@ -53,6 +53,22 @@ public class LinkRegressionTest {
     }
 
     /**
+     * Tests that an internal link's GoTo destination points at the page where the
+     * target's content actually paints when the target block straddles a page break:
+     * the block's top edge lands in the last few pixels of page one, so its first
+     * line (and all of its content) is pushed to page two.
+     */
+    @Test
+    public void testLinkDestPageStraddle() throws IOException {
+        try (TestDocument doc = support.run("link-dest-page-straddle")) {
+            assertEquals(1, doc.pd.getPage(0).getAnnotations().size());
+
+            // The target's content is pushed entirely to the second page.
+            assertThat(linkDestinationPageNo(doc.pd, 0, 0), equalTo(1));
+        }
+    }
+
+    /**
      * Tests that an inline link with multiple inline boxes generates one link annotation for each line.
      * ie. Multiple inline boxes are concatenated into one rect for the purposes of creating a link area.
      */

@@ -1,0 +1,40 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 200px;
+  margin: 0;
+}
+body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 20px;
+}
+h2, p {
+  margin: 0;
+  font-size: 12px;
+}
+h2 {
+  page-break-after: avoid;
+}
+.spacer {
+  height: 170px;
+}
+a::after {
+  content: "PAGE-" target-counter(attr(href), page);
+}
+</style>
+</head>
+<body>
+  <p><a href="#target">Link:</a></p>
+  <!-- The link line (20px) plus the spacer (170px) leave only 10px on the first
+       page, less than one line height, so the target's first line is pushed to
+       the second page while the target block's top edge stays on the first. -->
+  <div class="spacer"></div>
+  <div id="target">
+    <h2>Target heading</h2>
+    <p>First paragraph.</p>
+    <p>Second paragraph.</p>
+  </div>
+</body>
+</html>

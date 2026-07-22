@@ -39,6 +39,7 @@ import com.openhtmltopdf.render.InlineLayoutBox;
 import com.openhtmltopdf.render.InlineText;
 import com.openhtmltopdf.render.LineBox;
 import com.openhtmltopdf.render.RenderingContext;
+import com.openhtmltopdf.render.displaylist.PagedBoxCollector;
 
 public class ContentFunctionFactory {
     private final List<ContentFunction> _functions = new ArrayList<>();
@@ -204,7 +205,10 @@ public class ContentFunctionFactory {
                 String anchor = uri.substring(1);
                 Box target = c.getBoxById(anchor);
                 if (target != null) {
-                    int pageNo = c.getRootLayer().getRelativePageNo(c, target.getAbsY());
+                    // Use the start of the target's line content rather than its top edge:
+                    // when the target straddles a page break its first line may have been
+                    // pushed to a later page than its top edge.
+                    int pageNo = c.getRootLayer().getRelativePageNo(c, PagedBoxCollector.findContentStartY(target));
                     IdentValue counterStyle = IdentValue.DECIMAL; // default type
                     List<PropertyValue> params = function != null ? function.getParameters() : Collections.emptyList();
                     if (params.size() > 2) {

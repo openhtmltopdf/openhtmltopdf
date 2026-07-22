@@ -777,6 +777,33 @@ public class PagedBoxCollector {
         PageFinder finder = new PageFinder(pages);
         return finder.findPageAdjusted(c, (int) y);
     }
+
+    /**
+     * Finds the document Y coordinate where the box's content actually starts: the absolute Y
+     * of its first laid-out line box descendant (depth-first), falling back to the box's own
+     * top edge for boxes without line content (empty blocks, replaced elements).
+     * <br><br>
+     * Pagination moves line boxes, not the top edges of their parent blocks, so when a block
+     * straddles a page break its first line may sit on a later page than its top edge. Use
+     * this rather than {@link Box#getAbsY()} to resolve the page a box's content starts on.
+     */
+    public static int findContentStartY(Box box) {
+        Box firstLine = findFirstLineBox(box);
+        return firstLine != null ? firstLine.getAbsY() : box.getAbsY();
+    }
+
+    private static Box findFirstLineBox(Box box) {
+        if (box instanceof LineBox) {
+            return box;
+        }
+        for (int i = 0; i < box.getChildCount(); i++) {
+            Box result = findFirstLineBox(box.getChild(i));
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
     
     public static int getShadowPageForBounds(CssContext c, Rectangle bounds, PageBox page) {
         if (!page.shouldInsertPages()) {
