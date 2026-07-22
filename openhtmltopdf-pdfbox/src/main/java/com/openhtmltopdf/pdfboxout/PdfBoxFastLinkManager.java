@@ -248,6 +248,7 @@ public class PdfBoxFastLinkManager {
 
                 PDAnnotationLink annot = new PDAnnotationLink();
                 annot.setAction(action);
+                setLinkContents(annot, elem);
 
                 AnnotationContainer annotContainer = new AnnotationContainer.PDAnnotationLinkContainer(annot);
 
@@ -267,6 +268,7 @@ public class PdfBoxFastLinkManager {
 
                 PDAnnotationLink annot = new PDAnnotationLink();
                 annot.setAction(uriAct);
+                setLinkContents(annot, elem);
 
                 annotContainer = new AnnotationContainer.PDAnnotationLinkContainer(annot);
             } else {
@@ -543,6 +545,23 @@ public class PdfBoxFastLinkManager {
             }
         } catch (IOException e) {
             throw new PdfContentStreamAdapter.PdfException("processLink", e);
+        }
+    }
+
+    /**
+     * Sets the Contents key on a link annotation for PDF/UA-1 compliance
+     * (ISO 14289-1, 14.9.3). Uses the title attribute if available,
+     * otherwise falls back to the text content of the element.
+     */
+    private static void setLinkContents(PDAnnotationLink annot, Element elem) {
+        String title = elem.getAttribute("title");
+        if (title != null && !title.isEmpty()) {
+            annot.setContents(title);
+        } else {
+            String text = elem.getTextContent();
+            if (text != null && !text.isEmpty()) {
+                annot.setContents(text.trim());
+            }
         }
     }
 

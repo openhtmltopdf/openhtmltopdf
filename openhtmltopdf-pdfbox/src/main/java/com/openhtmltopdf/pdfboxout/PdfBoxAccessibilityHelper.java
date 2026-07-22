@@ -3,6 +3,8 @@ package com.openhtmltopdf.pdfboxout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +28,7 @@ import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedConte
 import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
@@ -61,6 +64,21 @@ public class PdfBoxAccessibilityHelper {
     private AffineTransform _transform;
 
     private int _runningLevel;
+
+    /**
+     * When non-null, we are inside a running element that contains a link.
+     * Text content that is a DOM descendant of this link will get proper
+     * /Link structure elements instead of being marked as artifact.
+     */
+    private AnchorStuctualElement _runningLinkStructure;
+    private org.w3c.dom.Element _runningLinkDomElement;
+
+    /**
+     * Maps anchor DOM elements in running content to their /Link structure elements.
+     * Running content box objects are re-created per page, so we track by DOM element
+     * to reuse the same structure element across pages.
+     */
+    private final Map<org.w3c.dom.Element, AnchorStuctualElement> _runningLinkCache = new HashMap<>();
 
     private static Map<String, Supplier<AbstractStructualElement>> createTagSuppliers() {
         Map<String, Supplier<AbstractStructualElement>> suppliers = new HashMap<>();
@@ -748,7 +766,9 @@ public class PdfBoxAccessibilityHelper {
 
             child.parentElem.appendKid(child.elem);
 
-            finishTreeItem(child.content, child);
+            if (child.content != null) {
+                finishTreeItem(child.content, child);
+            }
         }
     }
 
@@ -839,6 +859,7 @@ public class PdfBoxAccessibilityHelper {
             root.appendKid(rootElem);
 
             _root.elem = rootElem;
+            sortChildrenByDomOrder(_root);
             finishTreeItems(_root.children, _root);
 
             _od.getWriter().getDocumentCatalog().setStructureTreeRoot(root);
@@ -894,6 +915,211 @@ public class PdfBoxAccessibilityHelper {
         } else {
             return StandardStructureTypes.SPAN;
         }
+    }
+
+    /**
+     * Recursively sorts children of GenericStructualElement nodes by DOM document order.
+     * This fixes PDF/UA-1 rule 7.4.2-1 where structure tree order must follow logical
+     * reading order (DOM order), not CSS paint order.
+     *
+     * Table and list structures are excluded as they have their own semantic ordering.
+     */
+    private static void sortChildrenByDomOrder(AbstractStructualElement element) {
+        if (element instanceof GenericStructualElement) {
+            GenericStructualElement generic = (GenericStructualElement) element;
+            sortByDomOrder(generic.children);
+            for (AbstractTreeItem child : generic.children) {
+                if (child instanceof AbstractStructualElement) {
+                    sortChildrenByDomOrder((AbstractStructualElement) child);
+                }
+            }
+        } else if (element instanceof ListStructualElement) {
+            ListStructualElement list = (ListStructualElement) element;
+            sortByDomOrder(list.listItems);
+            for (ListItemStructualElement item : list.listItems) {
+                sortChildrenByDomOrder(item);
+            }
+        } else if (element instanceof ListItemStructualElement) {
+            ListItemStructualElement item = (ListItemStructualElement) element;
+            sortChildrenByDomOrder(item.body);
+        } else if (element instanceof TableStructualElement) {
+            TableStructualElement table = (TableStructualElement) element;
+            sortByDomOrder(table.tbodies);
+            sortChildrenByDomOrder(table.thead);
+            for (TableBodyStructualElement tbody : table.tbodies) {
+                sortChildrenByDomOrder(tbody);
+            }
+            sortChildrenByDomOrder(table.tfoot);
+        }
+    }
+
+    /**
+     * Sorts items that have a DOM node by document order, leaving items
+     * without a DOM node (anonymous boxes, text runs) in their original
+     * positions. This avoids Comparator transitivity issues that arise
+     * when mixing DOM-based and index-based ordering in a single sort.
+     */
+    private static <T extends AbstractTreeItem> void sortByDomOrder(List<T> children) {
+        if (children.size() < 2) {
+            return;
+        }
+
+        // Collect anchored items (those with a DOM node) and their positions.
+        List<Integer> anchoredIndices = new ArrayList<>();
+        List<T> anchoredItems = new ArrayList<>();
+
+        for (int i = 0; i < children.size(); i++) {
+            if (getDomNode(children.get(i)) != null) {
+                anchoredIndices.add(i);
+                anchoredItems.add(children.get(i));
+            }
+        }
+
+        if (anchoredItems.size() < 2) {
+            return;
+        }
+
+        // Sort anchored items by DOM document order.
+        Collections.sort(anchoredItems, new Comparator<T>() {
+            @Override
+            public int compare(T a, T b) {
+                Node nodeA = getDomNode(a);
+                Node nodeB = getDomNode(b);
+
+                short pos = nodeA.compareDocumentPosition(nodeB);
+                if ((pos & Node.DOCUMENT_POSITION_FOLLOWING) != 0) {
+                    return -1;
+                } else if ((pos & Node.DOCUMENT_POSITION_PRECEDING) != 0) {
+                    return 1;
+                }
+                return 0;
+            }
+        });
+
+        // Write sorted anchored items back into their original slots.
+        for (int i = 0; i < anchoredIndices.size(); i++) {
+            children.set(anchoredIndices.get(i), anchoredItems.get(i));
+        }
+    }
+
+    private static Node getDomNode(AbstractTreeItem item) {
+        if (item instanceof AbstractStructualElement) {
+            Box box = ((AbstractStructualElement) item).box;
+            if (box != null && box.getElement() != null) {
+                return box.getElement();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Walks up the DOM from the box's element looking for an {@code <a>} ancestor.
+     * Returns the anchor element or null if not found.
+     */
+    private static org.w3c.dom.Element findAnchorAncestor(Box box) {
+        if (box == null || box.getElement() == null) {
+            return null;
+        }
+        org.w3c.dom.Node node = box.getElement();
+        while (node != null) {
+            if (node instanceof org.w3c.dom.Element && "a".equals(((org.w3c.dom.Element) node).getTagName())) {
+                return (org.w3c.dom.Element) node;
+            }
+            node = node.getParentNode();
+        }
+        return null;
+    }
+
+    /**
+     * Ensures a /Link structure element exists for a running content anchor.
+     * On the first page, creates the structure element and attaches it to the root.
+     * On subsequent pages, reuses the existing one.
+     */
+    private void ensureRunningLinkStructure(Box box, org.w3c.dom.Element anchorElem) {
+        if (_runningLinkStructure != null && _runningLinkDomElement == anchorElem) {
+            return; // Already set up for this anchor on this page.
+        }
+
+        // Running content box objects are re-created per page, so we track by DOM element.
+        AnchorStuctualElement cached = _runningLinkCache.get(anchorElem);
+        if (cached != null) {
+            _runningLinkStructure = cached;
+        } else {
+            AnchorStuctualElement struct = new AnchorStuctualElement();
+            struct.page = _page;
+            struct.box = box;
+            struct.setPdfVersion(_od.getWriter().getVersion());
+            _root.addChild(struct);
+            struct.parent = _root;
+            _runningLinkCache.put(anchorElem, struct);
+            _runningLinkStructure = struct;
+        }
+        _runningLinkDomElement = anchorElem;
+
+        // Set the accessibility object on the current page's anchor box so that
+        // addLink() can find the /Link structure element via getStructualElementForBox().
+        // Running content re-creates box objects per page, so this must be done every time.
+        Box anchorBox = findAnchorBox(box, anchorElem);
+        if (anchorBox != null) {
+            anchorBox.setAccessiblityObject(_runningLinkStructure);
+        }
+    }
+
+    /**
+     * Walks up from a box to find the box whose element matches the anchor element.
+     */
+    private static Box findAnchorBox(Box box, org.w3c.dom.Element anchorElem) {
+        Box current = box;
+        while (current != null) {
+            if (current.getElement() == anchorElem) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        return null;
+    }
+
+    private GenericContentItem createRunningLinkContentItem() {
+        GenericContentItem current = new GenericContentItem();
+        _runningLinkStructure.addChild(current);
+        current.parent = _runningLinkStructure;
+        current.mcid = _nextMcid;
+        current.dict = createMarkedContentDictionary();
+        current.page = _page;
+        _pageItems._contentItems.add(current);
+        return current;
+    }
+
+    /**
+     * Creates a /Figure structure element under the running /Link for REPLACED (image) content.
+     * This preserves alt text and BBox semantics that would be lost with a plain GenericContentItem.
+     */
+    private FigureContentItem createRunningLinkFigureItem(Box box) {
+        FigureStructualElement figure = new FigureStructualElement();
+        figure.page = _page;
+        figure.box = box;
+
+        Rectangle2D rect = PdfBoxFastLinkManager.createTargetArea(
+                _ctx, box, _pageHeight, _transform, _ctx.getPage(), _od);
+        figure.boundingBox = new PDRectangle(
+                (float) rect.getMinX(),
+                (float) rect.getMinY(),
+                (float) rect.getWidth(),
+                (float) rect.getHeight());
+
+        _runningLinkStructure.addChild(figure);
+        figure.parent = _runningLinkStructure;
+
+        FigureContentItem content = new FigureContentItem();
+        figure.addChild(content);
+        content.parent = figure;
+        content.mcid = _nextMcid;
+        content.dict = createMarkedContentDictionary();
+        content.page = _page;
+        figure.content = content;
+
+        _pageItems._contentItems.add(content);
+        return content;
     }
 
     private static void finishTreeItems(List<? extends AbstractTreeItem> children, AbstractStructualElement parent) {
@@ -1083,7 +1309,7 @@ public class PdfBoxAccessibilityHelper {
         return dict;
     }
 
-    private COSDictionary createPaginationArtifact(StructureType type, Box box) {
+    private COSDictionary createPaginationArtifact() {
         COSDictionary dict = new COSDictionary();
         dict.setItem(COSName.TYPE, COSName.getPDFName("Pagination"));
         return dict;
@@ -1097,6 +1323,7 @@ public class PdfBoxAccessibilityHelper {
     private static final Token INSIDE_RUNNING = new Token();
     private static final Token STARTING_RUNNING = new Token();
     private static final Token NESTED_RUNNING = new Token();
+    private static final Token RUNNING_LINK_TEXT = new Token();
 
     public Token startStructure(StructureType type, Box box) {
             // Check for items that appear on every page (fixed, running, page margins).
@@ -1105,7 +1332,7 @@ public class PdfBoxAccessibilityHelper {
                 // nested fixed elements).
                 if (_runningLevel == 0) {
                     _runningLevel++;
-                    COSDictionary run = createPaginationArtifact(type, box);
+                    COSDictionary run = createPaginationArtifact();
                     _cs.beginMarkedContent(COSName.ARTIFACT, run);
                     return STARTING_RUNNING;
                 }
@@ -1114,6 +1341,31 @@ public class PdfBoxAccessibilityHelper {
                 return NESTED_RUNNING;
             } else if (_runningLevel > 0) {
                 // We are in a running artifact.
+                // Detect content inside anchor elements to create /Link structure (PDF/UA-1 §7.18).
+                // Note: SimplePainter (used for running content) doesn't emit INLINE structure
+                // calls, so we detect anchors at the TEXT/REPLACED level via DOM ancestry.
+                if (type == StructureType.TEXT || type == StructureType.REPLACED) {
+                    org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
+                    if (anchorElem != null) {
+                        ensureRunningLinkStructure(box, anchorElem);
+                        // Temporarily close the artifact BMC.
+                        _cs.endMarkedContent();
+                        // Create content item attached to the /Link structure element.
+                        GenericContentItem current;
+                        String tag;
+                        if (type == StructureType.REPLACED) {
+                            // Use FigureStructualElement to preserve alt text and BBox.
+                            current = createRunningLinkFigureItem(box);
+                            tag = StandardStructureTypes.Figure;
+                        } else {
+                            current = createRunningLinkContentItem();
+                            tag = StandardStructureTypes.SPAN;
+                        }
+                        _cs.beginMarkedContent(COSName.getPDFName(tag), current.dict);
+                        return RUNNING_LINK_TEXT;
+                    }
+                }
+
                 return INSIDE_RUNNING;
             }
 
@@ -1198,7 +1450,15 @@ public class PdfBoxAccessibilityHelper {
             _runningLevel--;
         } else if (value == STARTING_RUNNING) {
             _runningLevel--;
+            _runningLinkStructure = null;
+            _runningLinkDomElement = null;
             _cs.endMarkedContent();
+        } else if (value == RUNNING_LINK_TEXT) {
+            // Close the Span marked content for the link text.
+            _cs.endMarkedContent();
+            // Re-open the pagination artifact BMC.
+            COSDictionary dict = createPaginationArtifact();
+            _cs.beginMarkedContent(COSName.ARTIFACT, dict);
         }
     }
 
@@ -1211,6 +1471,8 @@ public class PdfBoxAccessibilityHelper {
         this._transform = transform;
         this._pageItems = new PageItems();
         this._pageItemsMap.put(page, this._pageItems);
+        this._runningLinkStructure = null;
+        this._runningLinkDomElement = null;
     }
 
     public void endPage() {
@@ -1224,6 +1486,20 @@ public class PdfBoxAccessibilityHelper {
 
     public void addLink(Box anchor, Box target, PDAnnotation pdAnnotation, PDPage page) {
         PDStructureElement struct = getStructualElementForBox(anchor);
+
+        // For running content links, the anchor box may not have its accessibility object set
+        // (e.g. image-only links where the <a> box is in a different parent chain than the <img> box).
+        // Fall back to the running link cache using the DOM element.
+        if (struct == null && anchor.getElement() != null) {
+            org.w3c.dom.Element anchorElem = findAnchorAncestor(anchor);
+            if (anchorElem != null) {
+                AnchorStuctualElement cached = _runningLinkCache.get(anchorElem);
+                if (cached != null) {
+                    struct = cached.elem;
+                }
+            }
+        }
+
         if (struct != null) {
             // We have to append the link annotationobject reference as a kid of its associated structure element.
             PDObjectReference ref = new PDObjectReference();

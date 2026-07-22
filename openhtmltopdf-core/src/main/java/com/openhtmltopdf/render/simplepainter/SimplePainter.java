@@ -19,6 +19,7 @@ import com.openhtmltopdf.render.OperatorSetClip;
 import com.openhtmltopdf.render.RenderingContext;
 import com.openhtmltopdf.render.displaylist.DisplayListCollector;
 import com.openhtmltopdf.render.displaylist.TransformCreator;
+import com.openhtmltopdf.extend.StructureType;
 
 public class SimplePainter {
     private final int xTranslate;
@@ -175,20 +176,22 @@ public class SimplePainter {
     }
     
     private void paintReplacedElement(RenderingContext c, BlockBox replaced) {
-        
+
         Rectangle contentBounds = replaced.getContentAreaEdge(
                 replaced.getAbsX(), replaced.getAbsY(), c);
-        
+
         // Minor hack:  It's inconvenient to adjust for margins, border, padding during
         // layout so just do it here.
         Point loc = replaced.getReplacedElement().getLocation();
         if (contentBounds.x != loc.x || contentBounds.y != loc.y) {
             replaced.getReplacedElement().setLocation(contentBounds.x, contentBounds.y);
         }
-        
+
         // Clip to the rounded border so border-radius is honored for replaced content (e.g. images).
+        Object token = c.getOutputDevice().startStructure(StructureType.REPLACED, replaced);
         BorderPainter.paintClippedToBorderRadius(c, replaced,
                 () -> c.getOutputDevice().paintReplacedElement(c, replaced));
+        c.getOutputDevice().endStructure(token);
     }
 
     private void paintReplacedElements(RenderingContext c, List<DisplayListItem> replaceds) {
