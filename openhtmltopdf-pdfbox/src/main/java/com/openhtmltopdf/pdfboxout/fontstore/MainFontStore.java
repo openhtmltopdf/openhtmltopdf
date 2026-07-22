@@ -4,9 +4,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.fontbox.ttf.TrueTypeCollection;
 import org.apache.fontbox.ttf.TrueTypeFont;
@@ -27,7 +27,13 @@ import com.openhtmltopdf.pdfboxout.PDFontSupplier;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
 
 public class MainFontStore extends AbstractFontStore implements Closeable {
-    private final Map<String, FontFamily<FontDescription>> _fontFamilies = new HashMap<>();
+    // Family-name lookup must be case-insensitive per the CSS spec. CSS Fonts Level 3,
+    // section 5.1 "Case sensitivity of font family names"
+    // (https://www.w3.org/TR/css-fonts-3/#font-family-casing):
+    //   "User agents must match these names case insensitively, using the
+    //    'Default Caseless Matching' algorithm outlined in the Unicode specification."
+    // A CASE_INSENSITIVE_ORDER map keeps this locale-independent (unlike String.toLowerCase()).
+    private final Map<String, FontFamily<FontDescription>> _fontFamilies = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     private final FSCacheEx<String, FSCacheValue> _fontMetricsCache;
     private final PDDocument _doc;
     private final SharedContext _sharedContext;

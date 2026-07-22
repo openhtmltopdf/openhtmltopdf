@@ -9,8 +9,8 @@ import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public abstract class AbstractFontStore {
     public abstract FontDescription resolveFont(
@@ -43,7 +43,9 @@ public abstract class AbstractFontStore {
         }
 
         static Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> createInitialFontMap() {
-            HashMap<String, FontFamily<PdfBoxFontResolver.FontDescription>> result = new HashMap<>();
+            // Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
+            // section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
+            Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             addCourier(result);
             addTimes(result);
             addHelvetica(result);
@@ -53,7 +55,7 @@ public abstract class AbstractFontStore {
             return result;
         }
 
-        static void addCourier(HashMap<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
+        static void addCourier(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> courier = new FontFamily<>("Courier");
 
             courier.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD_OBLIQUE), IdentValue.OBLIQUE, 700));
@@ -66,7 +68,7 @@ public abstract class AbstractFontStore {
             result.put("Courier", courier);
         }
 
-        static void addTimes(HashMap<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
+        static void addTimes(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> times = new FontFamily<>("Times");
 
             times.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD_ITALIC), IdentValue.ITALIC, 700));
@@ -78,7 +80,7 @@ public abstract class AbstractFontStore {
             result.put("TimesRoman", times);
         }
 
-        static void addHelvetica(HashMap<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
+        static void addHelvetica(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> helvetica = new FontFamily<>("Helvetica");
 
             helvetica.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE), IdentValue.OBLIQUE, 700));

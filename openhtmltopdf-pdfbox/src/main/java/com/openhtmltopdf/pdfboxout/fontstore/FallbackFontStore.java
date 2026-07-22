@@ -66,14 +66,25 @@ public class FallbackFontStore implements Closeable {
     }
 
     private int getFamilyPriority(String fontFamily, List<String> desiredFamilies) {
+        // Family-name comparison is case-insensitive per the CSS spec (CSS Fonts Level 3,
+        // section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
         if (!desiredFamilies.isEmpty() &&
-            desiredFamilies.get(0).equals(fontFamily)) {
+            desiredFamilies.get(0).equalsIgnoreCase(fontFamily)) {
             return 1;
-        } else if (desiredFamilies.contains(fontFamily)) {
+        } else if (containsIgnoreCase(desiredFamilies, fontFamily)) {
             return 2;
         } else {
             return 3;
         }
+    }
+
+    private static boolean containsIgnoreCase(List<String> list, String value) {
+        for (String s : list) {
+            if (s.equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<FontDescription> resolveFonts(

@@ -45,6 +45,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 
 /**
@@ -149,12 +151,16 @@ public class Java2DFontResolver implements FontResolver {
     /**
      * Map of base fonts, from which we can derive a concrete instance at the correct size, weight, etc.
      * Note: The value is initially null until we need the given base font.
+     * Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
+     * section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
      */
-    private final HashMap<String, Font> availableFontsHash = new HashMap<>();
-    
+    private final Map<String, Font> availableFontsHash = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+
     private final SharedContext _sharedContext;
 
-    private final HashMap<String, FontFamily<FontDescription>> _fontFamilies = new HashMap<>();
+    // Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
+    // section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
+    private final Map<String, FontFamily<FontDescription>> _fontFamilies = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     
     public Java2DFontResolver(SharedContext sharedCtx, boolean useEnvironmentFonts) {
         _sharedContext = sharedCtx;

@@ -30,6 +30,7 @@ import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachment;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
@@ -1609,6 +1610,41 @@ public class NonVisualRegressionTest {
             assertEquals("Second heading should be H2", "H2", headingTags.get(1));
             assertEquals("Third heading should be H3", "H3", headingTags.get(2));
         }
+    }
+
+    /**
+     * Verifies CSS font-family matching is case-insensitive. A font
+     * registered as "Karla" must be selected when CSS asks for "karla"
+     * (any case).
+     */
+    @Test
+    public void testFontFamilyCaseInsensitive() throws IOException {
+        TestSupport.makeFontFiles();
+
+        String html = "<html><body style='font-family: karla'>Hello case insensitive font</body></html>";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(baos);
+        builder.testMode(true);
+        builder.useFont(new File("target/test/visual-tests/Karla-Bold.ttf"), "Karla");
+        builder.run();
+
+        boolean karlaEmbedded = false;
+        try (PDDocument doc = Loader.loadPDF(baos.toByteArray())) {
+            for (PDPage page : doc.getPages()) {
+                for (COSName fontKey : page.getResources().getFontNames()) {
+                    PDFont font = page.getResources().getFont(fontKey);
+                    if (font != null && font.getName() != null &&
+                        font.getName().toLowerCase(Locale.ROOT).contains("karla")) {
+                        karlaEmbedded = true;
+                        break;
+                    }
+                }
+                if (karlaEmbedded) break;
+            }
+        }
+        assertTrue("Karla must be selected when CSS font-family is lowercase 'karla'", karlaEmbedded);
     }
 
     // TODO:
