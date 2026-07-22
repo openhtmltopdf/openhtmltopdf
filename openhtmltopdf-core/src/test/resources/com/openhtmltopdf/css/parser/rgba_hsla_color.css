@@ -1,0 +1,18 @@
+.rgba-legacy {
+    color: rgba(96, 128, 159, 0.5);
+}
+.rgba-percent-alpha {
+    color: rgba(96, 128, 159, 50%);
+}
+.rgb-slash-alpha {
+    color: rgb(96 128 159 / 0.5);
+}
+.hsla-legacy {
+    color: hsla(210, 25%, 50%, 0.5);
+}
+.hsl-slash-alpha {
+    color: hsl(210 25% 50% / 0.5);
+}
+.hsl-slash-percent-alpha {
+    color: hsl(210deg 25% 50% / 50%);
+}

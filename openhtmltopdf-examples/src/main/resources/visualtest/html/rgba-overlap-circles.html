@@ -1,0 +1,19 @@
+<html>
+<head>
+<style>
+    @page { size: 420px 420px; margin: 20px; }
+    body { margin: 0; }
+    .venn { position: relative; width: 380px; height: 360px; }
+    .circle { position: absolute; width: 180px; height: 180px; border-radius: 90px; }
+</style>
+</head>
+<body>
+<!-- Three overlapping primary color circles at half alpha. Every pairwise
+     overlap and the center must show the blended colors. -->
+<div class="venn">
+    <div class="circle" style="left: 60px; top: 0; background-color: rgba(255, 0, 0, 0.5);"></div>
+    <div class="circle" style="left: 0; top: 110px; background-color: rgba(0, 255, 0, 0.5);"></div>
+    <div class="circle" style="left: 120px; top: 110px; background-color: rgba(0, 0, 255, 0.5);"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+.rgba-opaque {
+    color: rgba(96, 128, 159, 1);
+}
+.rgba-alpha-clamped-high {
+    color: rgba(96, 128, 159, 1.5);
+}
+.hsla-opaque {
+    color: hsla(210, 25%, 50%, 100%);
+}
+.rgba-three-params {
+    color: rgba(96, 128, 159);
+}
+.hsla-three-params {
+    color: hsla(210, 25%, 50%);
+}

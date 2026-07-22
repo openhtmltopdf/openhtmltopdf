@@ -1,0 +1,47 @@
+<html>
+<head>
+<style>
+    @page { size: 500px 500px; margin: 20px; }
+    body { font-family: 'TestFont'; font-size: 10px; margin: 0; }
+    h1 { font-size: 12px; }
+    .stripes { position: relative; width: 440px; height: 90px; }
+    .stripe { position: absolute; top: 0; width: 140px; height: 40px; }
+    .overlay { position: absolute; top: 20px; height: 50px; width: 420px; left: 10px; }
+</style>
+</head>
+<body>
+<h1>rgba() and hsla() colors</h1>
+
+<div class="stripes">
+    <div class="stripe" style="left: 0; background-color: #ff0000;"></div>
+    <div class="stripe" style="left: 150px; background-color: #00ff00;"></div>
+    <div class="stripe" style="left: 300px; background-color: #0000ff;"></div>
+    <div class="overlay" style="background-color: rgba(0, 0, 0, 0.5);"></div>
+</div>
+
+<div class="stripes">
+    <div class="stripe" style="left: 0; background-color: rgba(255, 0, 0, 0.5);"></div>
+    <div class="stripe" style="left: 70px; background-color: rgba(0, 0, 255, 0.5);"></div>
+    <div class="stripe" style="left: 210px; background-color: hsla(120, 100%, 50%, 0.25);"></div>
+    <div class="stripe" style="left: 280px; background-color: hsl(120 100% 50% / 0.75);"></div>
+</div>
+
+<!-- Opaque content after transparent content: the alpha must be reset,
+     this box must render fully opaque. -->
+<div style="width: 440px; height: 30px; background-color: #60809f;"></div>
+
+<p style="color: rgba(0, 0, 0, 0.4);">Text with rgba(0, 0, 0, 0.4) - light grey looking</p>
+<p style="color: rgb(0 0 0 / 100%);">Text with rgb(0 0 0 / 100%) - fully opaque black</p>
+
+<div style="border: 6px solid rgba(255, 0, 0, 0.5); width: 400px; padding: 4px;">
+    Solid border with rgba(255, 0, 0, 0.5)
+</div>
+<div style="border: 3px dashed hsla(240, 100%, 50%, 0.5); width: 400px; padding: 4px; margin-top: 6px;">
+    Dashed (stroked) border with hsla(240, 100%, 50%, 0.5)
+</div>
+
+<div style="margin-top: 6px; width: 440px; height: 24px; background-color: rgba(96, 128, 159, 0);">
+    Fully transparent background (alpha 0) - only this text visible
+</div>
+</body>
+</html>

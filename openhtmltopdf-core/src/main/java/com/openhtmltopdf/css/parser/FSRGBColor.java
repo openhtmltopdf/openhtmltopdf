@@ -20,7 +20,7 @@
 package com.openhtmltopdf.css.parser;
 
 public class FSRGBColor implements FSColor {
-    public static final FSRGBColor TRANSPARENT = new FSRGBColor(0, 0, 0);
+    public static final FSRGBColor TRANSPARENT = new FSRGBColor(0, 0, 0, 0f);
     public static final FSRGBColor RED = new FSRGBColor(255, 0, 0);
     public static final FSRGBColor GREEN = new FSRGBColor(0, 255, 0);
     public static final FSRGBColor BLUE = new FSRGBColor(0, 0, 255);
@@ -29,8 +29,13 @@ public class FSRGBColor implements FSColor {
     private final int _red;
     private final int _green;
     private final int _blue;
+    private final float _alpha;
 
     public FSRGBColor(int red, int green, int blue) {
+        this(red, green, blue, 1f);
+    }
+
+    public FSRGBColor(int red, int green, int blue, float alpha) {
         if (red < 0 || red > 255) {
             throw new IllegalArgumentException();
         }
@@ -40,9 +45,13 @@ public class FSRGBColor implements FSColor {
         if (blue < 0 || blue > 255) {
             throw new IllegalArgumentException();
         }
+        if (alpha < 0f || alpha > 1f) {
+            throw new IllegalArgumentException();
+        }
         _red = red;
         _green = green;
         _blue = blue;
+        _alpha = alpha;
     }
 
     public FSRGBColor(int color) {
@@ -72,6 +81,13 @@ public class FSRGBColor implements FSColor {
         return new FSRGBColor(rgb[0], rgb[1], rgb[2]);
     }
 
+    /**
+     * Returns a copy of this color with the given alpha value (0..1).
+     */
+    public FSRGBColor withAlpha(float alpha) {
+        return new FSRGBColor(_red, _green, _blue, alpha);
+    }
+
     public int getBlue() {
         return _blue;
     }
@@ -83,12 +99,37 @@ public class FSRGBColor implements FSColor {
     public int getRed() {
         return _red;
     }
-    
+
+    /**
+     * The alpha value of this color in the range 0 (fully transparent)
+     * to 1 (fully opaque).
+     */
+    public float getAlpha() {
+        return _alpha;
+    }
+
+    /**
+     * Whether this color has an alpha value other than fully opaque.
+     */
+    public boolean hasAlpha() {
+        return _alpha != 1f;
+    }
+
     @Override
     public String toString() {
+        if (hasAlpha()) {
+            return "rgba(" + _red + ", " + _green + ", " + _blue + ", " + alphaToString(_alpha) + ")";
+        }
         return '#' + toString(_red) + toString(_green) + toString(_blue);
     }
-    
+
+    private static String alphaToString(float alpha) {
+        if (alpha == (int) alpha) {
+            return Integer.toString((int) alpha);
+        }
+        return Float.toString(alpha);
+    }
+
     private String toString(int color) {
         String result = Integer.toHexString(color);
         if (result.length() == 1) {
@@ -108,6 +149,7 @@ public class FSRGBColor implements FSColor {
         if (_blue != that._blue) return false;
         if (_green != that._green) return false;
         if (_red != that._red) return false;
+        if (_alpha != that._alpha) return false;
 
         return true;
     }
@@ -117,6 +159,7 @@ public class FSRGBColor implements FSColor {
         int result = _red;
         result = 31 * result + _green;
         result = 31 * result + _blue;
+        result = 31 * result + Float.floatToIntBits(_alpha);
         return result;
     }
 
@@ -132,7 +175,7 @@ public class FSRGBColor implements FSColor {
         float bLighter = 0.6999f + 0.3f*bBase;
         
         int[] rgb = HSBtoRGB(hLighter, sLighter, bLighter);
-        return new FSRGBColor(rgb[0], rgb[1], rgb[2]);
+        return new FSRGBColor(rgb[0], rgb[1], rgb[2], _alpha);
     }
     
     @Override
@@ -147,7 +190,7 @@ public class FSRGBColor implements FSColor {
         float bDarker = 0.56f*bBase;
         
         int[] rgb = HSBtoRGB(hDarker, sDarker, bDarker);
-        return new FSRGBColor(rgb[0], rgb[1], rgb[2]);
+        return new FSRGBColor(rgb[0], rgb[1], rgb[2], _alpha);
     }
     
     // Taken from java.awt.Color to avoid dependency on it

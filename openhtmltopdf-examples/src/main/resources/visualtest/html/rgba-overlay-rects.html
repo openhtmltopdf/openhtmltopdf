@@ -1,0 +1,38 @@
+<html>
+<head>
+<style>
+    @page { size: 500px 500px; margin: 20px; }
+    body { font-family: 'TestFont'; font-size: 11px; margin: 0; }
+    h1 { font-size: 13px; }
+    .box { position: relative; width: 440px; }
+    .overlay { position: absolute; }
+</style>
+</head>
+<body>
+<h1>Color rectangles over text and image</h1>
+
+<!-- Semi-transparent rectangles over text, like highlighter marks.
+     The text must stay readable through the color. -->
+<div class="box">
+    <p>Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy
+    eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam
+    voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet
+    clita kasd gubergren, no sea takimata sanctus est.</p>
+    <div class="overlay" style="left: 0; top: 0; width: 200px; height: 30px; background-color: rgba(255, 255, 0, 0.5);"></div>
+    <div class="overlay" style="left: 150px; top: 20px; width: 200px; height: 30px; background-color: rgba(0, 255, 255, 0.4);"></div>
+    <div class="overlay" style="left: 60px; top: 40px; width: 260px; height: 20px; background-color: hsla(300, 100%, 50%, 0.3);"></div>
+</div>
+
+<!-- Semi-transparent rectangles over an image. The image must shine
+     through the colors. -->
+<div class="box" style="margin-top: 20px;">
+    <img src="../../demos/images/flyingsaucer.png" style="width: 290px; height: 246px;"/>
+    <div class="overlay" style="left: 0; top: 0; width: 145px; height: 246px; background-color: rgba(255, 0, 0, 0.4);"></div>
+    <div class="overlay" style="left: 145px; top: 0; width: 145px; height: 123px; background-color: rgba(0, 0, 255, 0.4);"></div>
+    <div class="overlay" style="left: 200px; top: 60px; width: 160px; height: 140px; background-color: rgba(0, 255, 0, 0.35);"></div>
+</div>
+
+<!-- Fully opaque rectangle after the transparent ones: alpha must be reset. -->
+<div style="margin-top: 20px; width: 440px; height: 20px; background-color: #60809f;"></div>
+</body>
+</html>

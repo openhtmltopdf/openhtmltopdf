@@ -165,6 +165,18 @@ public class TestSupport {
         builder.useFont(new File("target/test/visual-tests/Karla-Bold.ttf"), "TestFont");
         builder.useUnicodeLineBreaker(new SimpleTextBreaker());
     };
+
+    /**
+     * Adds an sRGB OutputIntent, so color managed viewers display the
+     * document like a browser displays the equivalent HTML.
+     */
+    public static final BuilderConfig WITH_SRGB = (builder) -> {
+        try (InputStream is = TestSupport.class.getResourceAsStream("/visualtest/colorspaces/sRGB.icc")) {
+            builder.useColorProfile(IOUtils.toByteArray(is));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    };
     
     public static final Java2DBuilderConfig J2D_WITH_FONT = (builder) -> {
         builder.useFont(new File("target/test/visual-tests/Karla-Bold.ttf"), "TestFont");
