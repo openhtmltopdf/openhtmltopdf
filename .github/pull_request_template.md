@@ -23,8 +23,8 @@
 <summary>Why we ask</summary>
 
 Relaying review notes into a code generator and waiting for a regenerated patch
-is slow for everyone. When we know a change is AI-assisted and we have your
-permission to push, we usually just fix the small stuff ourselves and merge.
+is time consuming for everyone. When we know a change is AI-assisted and we have
+your permission to push, we usually just fix the small stuff ourselves and merge.
 
 Pushing needs GitHub's *Allow edits by maintainers*, which is on by default for
 pull requests from forks. Either answer is fine — it is knowing which that
