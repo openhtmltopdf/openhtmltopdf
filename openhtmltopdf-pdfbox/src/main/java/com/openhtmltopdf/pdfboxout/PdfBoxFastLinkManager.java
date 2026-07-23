@@ -34,6 +34,8 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageXYZDestination;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import java.awt.*;
 import java.awt.geom.*;
@@ -291,22 +293,67 @@ public class PdfBoxFastLinkManager {
 
     /**
      * Set the link annotation's /Contents entry so PDF/UA-1 (ISO 14289-1
-     * clause 7.18.5) is satisfied. Prefers the element's `title` attribute,
-     * falls back to the visible text, then to the URI itself, so every
-     * link annotation has an alternate description.
+     * clause 7.18) is satisfied. Prefers the element's `title` attribute,
+     * falls back to the visible text, then to the `alt` of a descendant image
+     * (for image-only links, whose accessible name lives on the image), and
+     * finally to the URI itself, so every link annotation has an alternate
+     * description.
+     * <p>
+     * Each candidate is trimmed before it is considered, so an anchor whose
+     * only "text" is layout whitespace (e.g. newlines and indentation around a
+     * block-level child image) does not shadow the later fallbacks.
      */
     private static void setLinkAnnotationContents(PDAnnotationLink annot, Element elem, String uri) {
-        String contents = elem.getAttribute("title");
-        if (contents == null || contents.isEmpty()) {
-            contents = elem.getTextContent();
+        // Nested (rather than a varargs helper) so the later candidates - in
+        // particular firstImageAlt, which forces a deep DOM traversal - are only
+        // computed when the earlier, cheaper ones did not already win.
+        String contents = nonBlank(elem.getAttribute("title"));
+        if (contents == null) {
+            contents = nonBlank(elem.getTextContent());
         }
-        if (contents == null || contents.isEmpty()) {
-            contents = uri;
+        if (contents == null) {
+            contents = nonBlank(firstImageAlt(elem));
         }
-        contents = contents.trim();
-        if (!contents.isEmpty()) {
+        if (contents == null) {
+            contents = nonBlank(uri);
+        }
+        if (contents != null) {
             annot.setContents(contents);
         }
+    }
+
+    /**
+     * Return the candidate trimmed, or {@code null} if it is null or blank.
+     * Besides the ASCII whitespace {@link String#trim()} removes, a non-breaking
+     * space (U+00A0) is treated as blank: it is common as layout filler around a
+     * block-level child image, yet {@code trim()} (which only strips chars
+     * &lt;= U+0020) would leave it behind and let it shadow the later fallbacks.
+     */
+    private static String nonBlank(String candidate) {
+        if (candidate == null) {
+            return null;
+        }
+        String trimmed = candidate.replace('\u00A0', ' ').trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * The `alt` text of the first descendant image that carries one, or
+     * {@code null}. This is the accessible name of an image-only link, matching
+     * the description the engine puts on the image's /Figure structure element.
+     */
+    private static String firstImageAlt(Element elem) {
+        NodeList images = elem.getElementsByTagName("img");
+        for (int i = 0; i < images.getLength(); i++) {
+            Node image = images.item(i);
+            if (image instanceof Element) {
+                String alt = ((Element) image).getAttribute("alt");
+                if (alt != null && !alt.trim().isEmpty()) {
+                    return alt;
+                }
+            }
+        }
+        return null;
     }
 
     /**

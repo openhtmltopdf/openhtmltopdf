@@ -31,6 +31,7 @@ import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.interactive.action.PDActionURI;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachment;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
@@ -1645,6 +1646,182 @@ public class NonVisualRegressionTest {
             }
         }
         assertTrue("Karla must be selected when CSS font-family is lowercase 'karla'", karlaEmbedded);
+    }
+
+    /**
+     * A block-level link whose only child is an image (with the anchor markup
+     * spread across several indented lines, so the anchor's text content is
+     * whitespace only) must still get an annotation /Contents so PDF/UA-1
+     * (ISO 14289-1 clause 7.18) is satisfied. The accessible name comes from
+     * the image's alt text.
+     */
+    @Test
+    public void testBlockImageLinkAnnotationHasContents() throws IOException {
+        String html =
+            "<html lang='en'><head>" +
+            "<title>Block Image Link Test</title>" +
+            "<meta name='description' content='Test block image link contents'/>" +
+            "<style>" +
+            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+            ".linkblock a { display: block; }" +
+            ".linkblock img { display: block; }" +
+            "</style></head><body>" +
+            "<div class='linkblock'>\n" +
+            "  <a href='https://www.example.com/target'>\n" +
+            "    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+            "alt='Banner: apply for an assessment' style='width:50px;height:20px;'/>\n" +
+            "  </a>\n" +
+            "</div>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDAnnotationLink link = linkAnnotationForUri(doc, 0, "https://www.example.com/target");
+            assertNotNull("Should find a link annotation", link);
+            assertNotNull("Block image link annotation must have /Contents", link.getContents());
+            assertThat(link.getContents(), equalTo("Banner: apply for an assessment"));
+        }
+    }
+
+    /**
+     * A link with neither text, title, nor a usable image alt (the anchor's
+     * text is whitespace only) must fall back to the URI for its annotation
+     * /Contents rather than being left without one.
+     */
+    @Test
+    public void testImageLinkWithoutAltFallsBackToUri() throws IOException {
+        String html =
+            "<html lang='en'><head>" +
+            "<title>Image Link Uri Fallback Test</title>" +
+            "<meta name='description' content='Test image link uri fallback'/>" +
+            "<style>" +
+            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+            "a, img { display: block; }" +
+            "</style></head><body>" +
+            "<div>\n" +
+            "  <a href='https://www.example.com/fallback'>\n" +
+            "    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+            "alt='' style='width:50px;height:20px;'/>\n" +
+            "  </a>\n" +
+            "</div>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDAnnotationLink link = linkAnnotationForUri(doc, 0, "https://www.example.com/fallback");
+            assertNotNull("Should find a link annotation", link);
+            assertThat(link.getContents(), equalTo("https://www.example.com/fallback"));
+        }
+    }
+
+    /**
+     * A non-breaking space between the anchor and its child image is layout
+     * filler, not an accessible name: it must not shadow the image alt.
+     * {@code String.trim()} does not strip U+00A0, so this exercises the
+     * dedicated blank-handling in setLinkAnnotationContents.
+     */
+    @Test
+    public void testImageLinkWithNbspTextUsesAlt() throws IOException {
+        String html =
+            "<html lang='en'><head>" +
+            "<title>Nbsp Image Link Test</title>" +
+            "<meta name='description' content='Test nbsp image link contents'/>" +
+            "<style>body { margin: 0; font-family: 'TestFont'; font-size: 12px; }</style>" +
+            "</head><body>" +
+            "<div><a href='https://www.example.com/nbsp'>&#160;" +
+            "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+            "alt='Banner: apply for an assessment' style='width:50px;height:20px;'/></a></div>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDAnnotationLink link = linkAnnotationForUri(doc, 0, "https://www.example.com/nbsp");
+            assertNotNull("Should find a link annotation", link);
+            assertThat(link.getContents(), equalTo("Banner: apply for an assessment"));
+        }
+    }
+
+    /**
+     * Guards 1.1.58 behaviour: a plain inline text link keeps its visible text
+     * as the annotation /Contents (title still wins when present).
+     */
+    @Test
+    public void testInlineTextLinkContentsPreserved() throws IOException {
+        String html =
+            "<html lang='en'><head>" +
+            "<title>Inline Text Link Test</title>" +
+            "<meta name='description' content='Test inline text link contents'/>" +
+            "<style>body { margin: 0; font-family: 'TestFont'; font-size: 12px; }</style>" +
+            "</head><body>" +
+            "<p><a href='https://www.example.com/text'>Visible link text</a></p>" +
+            "<p><a href='https://www.example.com/titled' title='Title wins'>Some text</a></p>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDAnnotationLink textLink = linkAnnotationForUri(doc, 0, "https://www.example.com/text");
+            assertNotNull(textLink);
+            assertThat(textLink.getContents(), equalTo("Visible link text"));
+
+            PDAnnotationLink titledLink = linkAnnotationForUri(doc, 0, "https://www.example.com/titled");
+            assertNotNull(titledLink);
+            assertThat(titledLink.getContents(), equalTo("Title wins"));
+        }
+    }
+
+    /**
+     * The link annotation on the given page whose URI action targets {@code uri},
+     * or {@code null} if there is none. Identifying links by URI rather than by
+     * annotation index avoids depending on annotation ordering, which is not
+     * stable in general (e.g. image-map areas iterate a HashMap).
+     */
+    private static PDAnnotationLink linkAnnotationForUri(PDDocument doc, int page, String uri) throws IOException {
+        for (PDAnnotation a : doc.getPage(page).getAnnotations()) {
+            if (a instanceof PDAnnotationLink) {
+                PDAnnotationLink link = (PDAnnotationLink) a;
+                if (link.getAction() instanceof PDActionURI
+                        && uri.equals(((PDActionURI) link.getAction()).getURI())) {
+                    return link;
+                }
+            }
+        }
+        return null;
     }
 
     // TODO:
