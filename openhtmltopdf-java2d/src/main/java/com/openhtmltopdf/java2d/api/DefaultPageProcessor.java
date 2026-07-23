@@ -45,6 +45,14 @@ public class DefaultPageProcessor implements FSPageProcessor {
 			return _g2d;
 		}
 		
+		/**
+		 * Releases the native resources behind the page image. Only call this once the page has
+		 * been saved, as the image is unusable afterwards.
+		 */
+		public void flush() {
+			_img.flush();
+		}
+
 		public void save() {
 			OutputStream os = null;
 			try {
@@ -94,5 +102,6 @@ public class DefaultPageProcessor implements FSPageProcessor {
 		DefaultPage page = (DefaultPage) pg;
 		page.getGraphics().dispose();
 		page.save();
+		page.flush();
 	}
 }

@@ -28,6 +28,7 @@ import com.openhtmltopdf.css.value.FontSpecification;
 import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.extend.FontResolver;
 import com.openhtmltopdf.layout.SharedContext;
+import com.openhtmltopdf.outputdevice.helper.FontCache;
 import com.openhtmltopdf.outputdevice.helper.FontFaceFontSupplier;
 import com.openhtmltopdf.outputdevice.helper.FontFamily;
 import com.openhtmltopdf.outputdevice.helper.FontResolverHelper;
@@ -86,52 +87,52 @@ public class Java2DFontResolver implements FontResolver {
 
     private static class InputStreamFontDescription extends FontDescription {
         private FSSupplier<InputStream> _supplier;
+        private final boolean _cacheFonts;
 
-        private InputStreamFontDescription(FSSupplier<InputStream> supplier, int weight, IdentValue style) {
+        private InputStreamFontDescription(FSSupplier<InputStream> supplier, int weight, IdentValue style, boolean cacheFonts) {
             super(weight, style);
             this._supplier = supplier;
+            this._cacheFonts = cacheFonts;
         }
-        
+
         @Override
         protected boolean realizeFont() {
             if (_font == null && _supplier != null) {
-                InputStream is = _supplier.supply();
+                FSSupplier<InputStream> supplier = _supplier;
                 _supplier = null; // We only try once.
 
-                if (is == null) {
-                    return false;
-                }
-
                 try {
-                    _font = Font.createFont(Font.TRUETYPE_FONT, is);
+                    // Suppliers that can not identify their font have a null cache key, in which
+                    // case the font is created without being cached.
+                    _font = FontCache.getTrueTypeFont(
+                            _cacheFonts ? supplier.cacheKey() : null, supplier.lastModified(), supplier);
                 } catch (IOException|FontFormatException e) {
                     XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_JAVA2D_COULD_NOT_LOAD_FONT, e);
                     return false;
-                } finally {
-                    try {
-                        is.close();
-                    } catch (IOException e) {
-                    }
                 }
             }
 
             return _font != null;
         }
     }
-    
+
     private static class FileFontDescription extends FontDescription {
         private File _fontFile;
+        private final boolean _cacheFonts;
 
-        private FileFontDescription(File fontFile, int weight, IdentValue style) {
+        private FileFontDescription(File fontFile, int weight, IdentValue style, boolean cacheFonts) {
             super(weight, style);
             this._fontFile = fontFile;
+            this._cacheFonts = cacheFonts;
         }
-        
+
         @Override
         protected boolean realizeFont() {
             if (_font == null && _fontFile != null) {
                 try {
-                    _font = Font.createFont(Font.TRUETYPE_FONT, _fontFile);
+                    _font = _cacheFonts ?
+                            FontCache.getTrueTypeFont(_fontFile) :
+                            Font.createFont(Font.TRUETYPE_FONT, _fontFile);
                     _fontFile = null;
                 } catch (IOException | FontFormatException e) {
                     XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_JAVA2D_COULD_NOT_LOAD_FONT, e);
@@ -158,12 +159,23 @@ public class Java2DFontResolver implements FontResolver {
 
     private final SharedContext _sharedContext;
 
+    private final boolean _cacheFonts;
+
     // Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
     // section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
     private final Map<String, FontFamily<FontDescription>> _fontFamilies = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    
+
     public Java2DFontResolver(SharedContext sharedCtx, boolean useEnvironmentFonts) {
+        this(sharedCtx, useEnvironmentFonts, true);
+    }
+
+    /**
+     * @param cacheFonts whether fonts may be taken from and put into the process wide
+     * {@link FontCache}. See {@code Java2DRendererBuilder#cacheFonts(boolean)}.
+     */
+    public Java2DFontResolver(SharedContext sharedCtx, boolean useEnvironmentFonts, boolean cacheFonts) {
         _sharedContext = sharedCtx;
+        _cacheFonts = cacheFonts;
         if (useEnvironmentFonts) {
             init();
         }
@@ -235,7 +247,8 @@ public class Java2DFontResolver implements FontResolver {
         FontDescription descr = new InputStreamFontDescription(
                 fontSupplier,
                 fontWeightOverride != null ? fontWeightOverride : 400,
-                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL); 
+                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL,
+                _cacheFonts);
 
        fontFamily.addFontDescription(descr);
     }
@@ -263,7 +276,8 @@ public class Java2DFontResolver implements FontResolver {
         FontDescription descr = new FileFontDescription(
                 fontFile,
                 fontWeightOverride != null ? fontWeightOverride : 400,
-                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL); 
+                fontStyleOverride != null ? fontStyleOverride : IdentValue.NORMAL,
+                _cacheFonts);
 
         fontFamily.addFontDescription(descr);
     }

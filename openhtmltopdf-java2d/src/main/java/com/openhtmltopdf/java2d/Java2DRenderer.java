@@ -115,7 +115,7 @@ public class Java2DRenderer implements Closeable {
 //        uac.setSharedContext(_sharedContext);
 //        _outputDevice.setSharedContext(_sharedContext);
 
-        Java2DFontResolver fontResolver = new Java2DFontResolver(_sharedContext, state._useEnvironmentFonts);
+        Java2DFontResolver fontResolver = new Java2DFontResolver(_sharedContext, state._useEnvironmentFonts, state._cacheFonts);
         _sharedContext.setFontResolver(fontResolver);
         
         /*

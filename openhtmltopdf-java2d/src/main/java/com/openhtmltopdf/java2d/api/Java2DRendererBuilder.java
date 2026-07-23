@@ -47,6 +47,22 @@ public class Java2DRendererBuilder extends BaseRendererBuilder<Java2DRendererBui
     }
 
 	/**
+	 * Whether fonts used by this renderer may be taken from and put into the process wide
+	 * {@link com.openhtmltopdf.outputdevice.helper.FontCache}. Caching is on by default and
+	 * avoids leaking memory, as every font created with {@link Font#createFont(int, java.io.File)}
+	 * stays registered with the JDK font manager forever.
+	 *
+	 * <p>Fonts added with {@link #useFont(java.io.File, String)} are reloaded when the file
+	 * changes, so caching only has to be turned off for fonts whose content changes behind a
+	 * stable URI. {@link com.openhtmltopdf.outputdevice.helper.FontCache#invalidateAll()} can be
+	 * used to drop such fonts instead.</p>
+	 */
+	public Java2DRendererBuilder cacheFonts(boolean cacheFonts) {
+		state._cacheFonts = cacheFonts;
+		return this;
+	}
+
+	/**
 	 * Render everything to a single page. I.e. only one big page is genereated, no
 	 * pagebreak will be done. The page is only as height as needed.
 	 */
