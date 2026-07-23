@@ -4,12 +4,12 @@ import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.font.FontRenderContext;
 import java.awt.font.TextAttribute;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.text.CharacterIterator;
 import java.util.logging.Level;
 
+import com.openhtmltopdf.outputdevice.helper.FontCache;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
 import org.apache.batik.gvt.font.GVTFont;
@@ -46,7 +46,7 @@ public class OpenHtmlGvtFont implements GVTFont {
     }
 
     public OpenHtmlGvtFont(File fontFile, GVTFontFamily family, float size, Float fontWeight, Float fontStyle) throws IOException, FontFormatException {
-        Font font = Font.createFont(Font.TRUETYPE_FONT, fontFile);
+        Font font = FontCache.getTrueTypeFont(fontFile);
 
         this.baseFont = font;
         this.fontFamily = family;
@@ -54,9 +54,9 @@ public class OpenHtmlGvtFont implements GVTFont {
 
 	public OpenHtmlGvtFont(byte[] fontBytes, GVTFontFamily family, float size, Float fontWeight, Float fontStyle) throws FontFormatException {
 		Font font;
-		
+
 		try {
-			font = Font.createFont(Font.TRUETYPE_FONT, new ByteArrayInputStream(fontBytes)).deriveFont(toFontWeight(fontWeight) | toStyle(fontStyle) , size);
+			font = FontCache.getTrueTypeFont(fontBytes).deriveFont(toFontWeight(fontWeight) | toStyle(fontStyle) , size);
 		} catch (IOException e) {
 			// Shouldn't happen
 			XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_SVG_CREATE_FONT, family != null ? family.getFamilyName() : "", e);
