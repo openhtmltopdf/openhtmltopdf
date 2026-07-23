@@ -3,6 +3,7 @@ package com.openhtmltopdf.svgsupport;
 import java.awt.FontFormatException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.w3c.dom.Element;
 import com.openhtmltopdf.css.sheet.FontFaceRule;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
+import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.extend.SVGDrawer;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
@@ -112,5 +114,10 @@ public class BatikSVGDrawer implements SVGDrawer {
     @Override
     public void addFontFile(File fontFile, String family, Integer weight, FontStyle style) throws IOException, FontFormatException {
         this.fontResolver.addFontFile(fontFile, family, weight, style);
+    }
+
+    @Override
+    public void addFontStream(FSSupplier<InputStream> supplier, String family, Integer weight, FontStyle style) throws IOException, FontFormatException {
+        this.fontResolver.addFontStream(supplier, family, weight, style);
     }
 }

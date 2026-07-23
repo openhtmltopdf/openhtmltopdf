@@ -5,6 +5,7 @@ import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.sheet.FontFaceRule;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.FSDerivedValue;
+import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.extend.OutputDevice;
 import com.openhtmltopdf.extend.OutputDeviceGraphicsDrawer;
 import com.openhtmltopdf.extend.UserAgentCallback;
@@ -15,6 +16,7 @@ import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.RenderingContext;
 import com.openhtmltopdf.simple.extend.ReplacedElementScaleHelper;
 import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.OpenUtil;
 import com.openhtmltopdf.util.XRLog;
 
 import org.apache.batik.bridge.BridgeContext;
@@ -258,6 +260,22 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
             OpenHtmlGvtFontFamily fontFamily = this.families.computeIfAbsent(family, fam -> new OpenHtmlGvtFontFamily(fam));
             // 12 seems to be the default font-size for SVG so use it as our base font size.
             fontFamily.addFont(fontFile, 12, getWeight(weight), getStyle(style));
+        }
+
+        public void addFontStream(FSSupplier<InputStream> supplier, String family, Integer weight, FontStyle style) throws IOException, FontFormatException {
+            byte[] fontBytes;
+
+            try (InputStream is = supplier.supply()) {
+                if (is == null) {
+                    // The supplier has already logged why.
+                    return;
+                }
+                fontBytes = OpenUtil.readAll(is);
+            }
+
+            OpenHtmlGvtFontFamily fontFamily = this.families.computeIfAbsent(family, fam -> new OpenHtmlGvtFontFamily(fam));
+            // 12 seems to be the default font-size for SVG so use it as our base font size.
+            fontFamily.addFont(fontBytes, 12, getWeight(weight), getStyle(style));
         }
     }
 

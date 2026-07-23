@@ -5,6 +5,7 @@ import java.awt.FontFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import com.openhtmltopdf.css.sheet.FontFaceRule;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.FSDerivedValue;
+import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.extend.SVGDrawer;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
@@ -42,6 +44,7 @@ public class MathMLDrawer implements SVGDrawer {
     private static class FontEntry {
         String src;
         File file;
+        FSSupplier<InputStream> supplier;
     }
 
 	public MathMLDrawer() {
@@ -111,6 +114,16 @@ public class MathMLDrawer implements SVGDrawer {
                 } catch (IOException | FontFormatException e) {
                     XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_MATHML_COULD_NOT_REGISTER_FONT, e);
                 }
+            } else if (entry.supplier != null) {
+                try (InputStream is = entry.supplier.supply()) {
+                    if (is == null) {
+                        // The supplier has already logged why.
+                        continue;
+                    }
+                    _fontFactory.registerFont(Font.TRUETYPE_FONT, is);
+                } catch (IOException | FontFormatException e) {
+                    XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.EXCEPTION_MATHML_COULD_NOT_REGISTER_FONT, e);
+                }
             }
         }
     }
@@ -143,6 +156,14 @@ public class MathMLDrawer implements SVGDrawer {
     public void addFontFile(File fontFile, String family, Integer weight, FontStyle style) {
         FontEntry entry = new FontEntry();
         entry.file = fontFile;
+
+        this._availabelFontFamilies.computeIfAbsent(family, f -> new ArrayList<>()).add(entry);
+    }
+
+    @Override
+    public void addFontStream(FSSupplier<InputStream> supplier, String family, Integer weight, FontStyle style) {
+        FontEntry entry = new FontEntry();
+        entry.supplier = supplier;
 
         this._availabelFontFamilies.computeIfAbsent(family, f -> new ArrayList<>()).add(entry);
     }

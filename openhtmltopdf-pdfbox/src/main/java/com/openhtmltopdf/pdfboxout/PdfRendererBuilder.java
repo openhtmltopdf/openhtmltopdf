@@ -6,6 +6,7 @@ import com.openhtmltopdf.extend.FSCacheValue;
 import com.openhtmltopdf.extend.FSSupplier;
 import com.openhtmltopdf.extend.Hyphenator;
 import com.openhtmltopdf.extend.NamespaceHandler;
+import com.openhtmltopdf.extend.SVGDrawer;
 import com.openhtmltopdf.extend.impl.FSNoOpCacheStore;
 import com.openhtmltopdf.outputdevice.helper.*;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontGroup;
@@ -76,23 +77,13 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
             for (AddedFont font : state._fonts) {
 
                 if (state._svgImpl != null &&
-                        font.fontFile != null &&
                         font.usedFor.contains(FSFontUseCase.SVG)) {
-                    try {
-                        state._svgImpl.addFontFile(font.fontFile, font.family, font.weight, font.style);
-                    } catch (IOException | FontFormatException e) {
-                        XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.INIT_FONT_COULD_NOT_BE_LOADED, font.fontFile.getPath(), e);
-                    }
+                    addFontToDrawer(state._svgImpl, font);
                 }
 
                 if (state._mathmlImpl != null &&
-                        font.fontFile != null &&
                         font.usedFor.contains(FSFontUseCase.MATHML)) {
-                    try {
-                        state._mathmlImpl.addFontFile(font.fontFile, font.family, font.weight, font.style);
-                    } catch (IOException | FontFormatException e) {
-                        XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.INIT_FONT_COULD_NOT_BE_LOADED, font.fontFile.getPath(), e);
-                    }
+                    addFontToDrawer(state._mathmlImpl, font);
                 }
 
                 if (font.usedFor.contains(FSFontUseCase.DOCUMENT) ||
@@ -150,6 +141,23 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
         }
 
         return renderer;
+    }
+
+    /**
+     * Registers a font with a SVG or MathML drawer. Fonts added as a PDFont supplier are
+     * skipped, as those drawers can not make use of a PDFont.
+     */
+    private static void addFontToDrawer(SVGDrawer drawer, AddedFont font) {
+        try {
+            if (font.fontFile != null) {
+                drawer.addFontFile(font.fontFile, font.family, font.weight, font.style);
+            } else if (font.supplier != null) {
+                drawer.addFontStream(font.supplier, font.family, font.weight, font.style);
+            }
+        } catch (IOException | FontFormatException e) {
+            XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.INIT_FONT_COULD_NOT_BE_LOADED,
+                    font.fontFile != null ? font.fontFile.getPath() : font.family, e);
+        }
     }
 
     /**
