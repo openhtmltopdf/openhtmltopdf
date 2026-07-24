@@ -147,6 +147,7 @@ public interface LogMessageId {
         GENERAL_INVALID_INTEGER_PASSED_IN_VIEWBOX_ATTRIBUTE_FOR_SVG(XRLog.GENERAL, "Invalid integer passed in viewBox attribute for SVG: {}"),
         GENERAL_INVALID_INTEGER_PASSED_AS_DIMENSION_FOR_SVG(XRLog.GENERAL, "Invalid integer passed as dimension for SVG: {}"),
         GENERAL_COULD_NOT_FIND_FONT_SPECIFIED_FOR_MATHML_OBJECT_IN_FONT_FACE_RULES(XRLog.GENERAL, "Could not find font ({}) specified for MathML object in font-face rules"),
+        GENERAL_FONT_ADDED_AS_STREAM_IGNORED_BY_SVG_DRAWER(XRLog.GENERAL, "Font ({}) supplied as a stream is being ignored because this SVGDrawer does not implement addFontStream. SVG/MathML content will fall back to a default font."),
         GENERAL_PDF_ACCESSIBILITY_NO_TITLE_TEXT_PROVIDED_FOR(XRLog.GENERAL, "PDF/UA - No title text provided for {}."),
         GENERAL_PDF_COULD_NOT_FIND_VALID_TARGET_FOR_BOOKMARK(XRLog.GENERAL, "Could not find valid target for bookmark. Bookmark href = {}"),
         GENERAL_PDF_COULD_NOT_FIND_VALID_TARGET_FOR_LINK(XRLog.GENERAL, "Could not find valid target for link. Link href = {}"),

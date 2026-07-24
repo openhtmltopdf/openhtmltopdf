@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.w3c.dom.Element;
 
@@ -15,6 +16,8 @@ import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
 import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.RenderingContext;
+import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.XRLog;
 
 public interface SVGDrawer extends Closeable {
     void importFontFaceRules(List<FontFaceRule> fontFaces,
@@ -42,8 +45,10 @@ public interface SVGDrawer extends Closeable {
      * by SVG (or MathML) content too.
      *
      * <p>The default implementation ignores the font, so that implementations written
-     * against an earlier version of this interface keep compiling and working.</p>
+     * against an earlier version of this interface keep compiling and working. It logs a
+     * warning so that a silently ignored font is at least visible.</p>
      */
     default void addFontStream(FSSupplier<InputStream> supplier, String family, Integer weight, FontStyle style) throws IOException, FontFormatException {
+        XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.GENERAL_FONT_ADDED_AS_STREAM_IGNORED_BY_SVG_DRAWER, family);
     }
 }
