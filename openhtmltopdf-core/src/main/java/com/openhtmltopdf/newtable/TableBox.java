@@ -27,6 +27,7 @@ import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
+import com.openhtmltopdf.css.newmatch.Matcher;
 import com.openhtmltopdf.css.style.Length;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.RectPropertySet;
@@ -243,6 +244,8 @@ public class TableBox extends BlockBox {
 
         layoutTable(c);
 
+        reclaimHiddenFooterSpace(c);
+
         checkPopBfc(c);
 
         if (pushedLayer) {
@@ -326,6 +329,30 @@ public class TableBox extends BlockBox {
         super.layoutChildren(c, contentStart);
     }
 
+    /**
+     * When the footer is dropped on the last page via
+     * <code>tfoot:-fs-last-fragment</code>, it leaves reserved but empty space
+     * at the end of the table (the footer's natural position). Shrink the
+     * table by that height so following content moves up to fill it. Only the
+     * last page is affected: the repeated footer on earlier pages is positioned
+     * from the reserved page-bottom space, not from the table's height.
+     */
+    private void reclaimHiddenFooterSpace(LayoutContext c) {
+        if (!c.isPrint() || !getStyle().isPaginateTable() || getChildCount() == 0) {
+            return;
+        }
+        TableSectionBox footer = (TableSectionBox) getChild(getChildCount() - 1);
+        if (!footer.isFooter() || footer.getElement() == null) {
+            return;
+        }
+        int hide = c.getSharedContext().getCss().getFragmentHide(footer.getElement());
+        if ((hide & Matcher.HIDE_ON_LAST_FRAGMENT) == 0) {
+            return;
+        }
+        int reclaim = footer.getHeight() + getStyle().getBorderVSpacing(c);
+        setHeight(getHeight() - reclaim);
+    }
+
     private int layoutRunningHeader(LayoutContext c) {
         int result = 0;
         if (getChildCount() > 0) {
@@ -336,9 +363,12 @@ public class TableBox extends BlockBox {
                 section.initContainingLayer(c);
                 section.layout(c);
 
-                c.setExtraSpaceTop(c.getExtraSpaceTop() + section.getHeight());
+                // Reserve the FULL header height (including any row hidden on the
+                // first fragment) at continuation-page tops, even though the
+                // header's flow height on the first page may be smaller.
+                c.setExtraSpaceTop(c.getExtraSpaceTop() + section.getReservedHeight());
 
-                result = section.getHeight();
+                result = section.getReservedHeight();
 
                 section.reset(c);
 
@@ -498,9 +528,12 @@ public class TableBox extends BlockBox {
                     if (c.getPageNo() == _contentLimitContainer.getInitialPageNo()) {
                         newAbsY = section.getOriginalAbsY();
                     } else {
+                        // Reposition from the FULL header height so a row hidden
+                        // only on the first fragment still sits above the body on
+                        // continuation pages.
                         newAbsY = limit.getTop() -
                             getStyle().getBorderVSpacing(c) -
-                            section.getHeight();
+                            section.getReservedHeight();
                     }
 
                     int diff = newAbsY - section.getAbsY();

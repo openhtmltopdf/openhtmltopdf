@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
+import com.openhtmltopdf.css.constants.CSSName;
+import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.constants.MarginBoxName;
 import com.openhtmltopdf.css.extend.AttributeResolver;
 import com.openhtmltopdf.css.extend.StylesheetFactory;
@@ -66,6 +68,13 @@ public class Matcher {
     private final Set<Object> _focusElements = new HashSet<>();
     private final Set<Object> _visitElements = new HashSet<>();
     private final Set<Object> _markerElements = new HashSet<>();
+
+    // Paint-time hide flags diverted out of the cascade for the fragment
+    // pseudo-classes: element -> bitmask of HIDE_ON_FIRST_FRAGMENT /
+    // HIDE_ON_LAST_FRAGMENT.
+    public static final int HIDE_ON_FIRST_FRAGMENT = 1;
+    public static final int HIDE_ON_LAST_FRAGMENT = 2;
+    private final Map<Object, Integer> _fragmentHide = new HashMap<>();
 
     private final List<PageRule> _pageRules = new ArrayList<>();
     private final List<FontFaceRule> _fontFaceRules = new ArrayList<>();
@@ -167,6 +176,49 @@ public class Matcher {
 
     public boolean isMarkerStyled(Object e) {
         return _markerElements.contains(e);
+    }
+
+    /**
+     * Paint-time hide flags for the fragment pseudo-classes: a bitmask of
+     * {@link #HIDE_ON_FIRST_FRAGMENT} / {@link #HIDE_ON_LAST_FRAGMENT}, or 0.
+     */
+    public int getFragmentHide(Object e) {
+        Integer bits = _fragmentHide.get(e);
+        return bits == null ? 0 : bits.intValue();
+    }
+
+    /**
+     * A fragment pseudo-class only expresses "hide on this fragment", so only
+     * display:none / visibility:hidden are honored; anything else is diverted
+     * out too but warned about, since it cannot cascade the way the author
+     * likely expects.
+     */
+    private void recordFragmentHide(Object e, Selector sel) {
+        boolean hides = false;
+        boolean hasOther = false;
+
+        for (PropertyDeclaration decl : sel.getRuleset().getPropertyDeclarations()) {
+            CSSName name = decl.getCSSName();
+            if (name == CSSName.DISPLAY) {
+                hides |= decl.asIdentValue() == IdentValue.NONE;
+            } else if (name == CSSName.VISIBILITY) {
+                hides |= decl.asIdentValue() == IdentValue.HIDDEN;
+            } else {
+                hasOther = true;
+            }
+        }
+
+        if (hasOther) {
+            XRLog.log(Level.WARNING,
+                    LogMessageId.LogMessageId1Param.MATCH_FRAGMENT_PSEUDO_ONLY_HONORS_DISPLAY_VISIBILITY,
+                    sel.getSelectorID());
+        }
+
+        if (hides) {
+            int bits = (sel.isPseudoClass(Selector.FIRST_FRAGMENT_PSEUDOCLASS) ? HIDE_ON_FIRST_FRAGMENT : 0) |
+                       (sel.isPseudoClass(Selector.LAST_FRAGMENT_PSEUDOCLASS) ? HIDE_ON_LAST_FRAGMENT : 0);
+            _fragmentHide.merge(e, bits, (a, b) -> a | b);
+        }
     }
 
     protected Mapper matchElement(Object e) {
@@ -610,6 +662,17 @@ public class Matcher {
                     l.add(sel);
 
                     key.append(sel.getSelectorID()).append(":");
+                    continue;
+                }
+
+                if (sel.isPseudoClass(Selector.FIRST_FRAGMENT_PSEUDOCLASS) ||
+                    sel.isPseudoClass(Selector.LAST_FRAGMENT_PSEUDOCLASS)) {
+                    // Diverted out of the cascade like a dynamic pseudo-class:
+                    // its display:none must never reach the CascadedStyle (which
+                    // would delete the box on every page). It becomes a paint
+                    // time hide flag instead, applied per fragment by the
+                    // collector.
+                    recordFragmentHide(e, sel);
                     continue;
                 }
 

@@ -140,6 +140,14 @@ public class StyleReference {
     }
 
     /**
+     * Paint-time hide flags for the fragment pseudo-classes: a bitmask of
+     * {@link Matcher#HIDE_ON_FIRST_FRAGMENT} / {@link Matcher#HIDE_ON_LAST_FRAGMENT}.
+     */
+    public int getFragmentHide(Element e) {
+        return _matcher.getFragmentHide(e);
+    }
+
+    /**
      * Returns a Map keyed by CSS property names (e.g. 'border-width'), and the
      * assigned value as a SAC CSSValue instance. The properties should have
      * been matched to the element when the Context was established for this

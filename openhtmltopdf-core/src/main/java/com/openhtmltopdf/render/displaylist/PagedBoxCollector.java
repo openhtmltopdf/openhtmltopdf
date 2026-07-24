@@ -9,7 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.w3c.dom.Element;
+
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.css.newmatch.Matcher;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.layout.Layer;
 import com.openhtmltopdf.layout.PaintingInfo;
@@ -616,16 +619,49 @@ public class PagedBoxCollector {
         
         int tableStart = findStartPage(c, table, layer.getCurrentTransformMatrix());
         int tableEnd = findEndPage(c, table, layer.getCurrentTransformMatrix());
-        
-        for (int pgTable = getValidMinPageNumber(tableStart); pgTable <= getValidMaxPageNumber(tableEnd); pgTable++) {
+
+        // The section repeats on every page the table spans, so its first and
+        // last appearances (fragments) are the table's first and last pages.
+        int firstFragmentPage = getValidMinPageNumber(tableStart);
+        int lastFragmentPage = getValidMaxPageNumber(tableEnd);
+        int sectionHide = fragmentHide(rc, container);
+
+        for (int pgTable = firstFragmentPage; pgTable <= lastFragmentPage; pgTable++) {
+            // :-fs-first-fragment / :-fs-last-fragment on the whole section
+            // (e.g. tfoot:-fs-last-fragment drops the carry-forward foot on the
+            // last page).
+            if (isHiddenOnFragment(sectionHide, pgTable, firstFragmentPage, lastFragmentPage)) {
+                continue;
+            }
+
             rc.setPage(pgTable, getPageBox(pgTable));
             table.updateHeaderFooterPosition(rc);
 
             for (int i = 0; i < container.getChildCount(); i++) {
                 Box child = container.getChild(i);
+                // ...or on a single row within the section (e.g. the brought
+                // forward row in the head, which must keep the column titles).
+                if (isHiddenOnFragment(fragmentHide(rc, child), pgTable, firstFragmentPage, lastFragmentPage)) {
+                    continue;
+                }
                 collect(c, layer, child, shadowPageNumber);
             }
         }
+    }
+
+    private static int fragmentHide(RenderingContext c, Box box) {
+        Element el = box.getElement();
+        return el == null ? 0 : c.getCss().getFragmentHide(el);
+    }
+
+    private static boolean isHiddenOnFragment(int hideBits, int page, int firstPage, int lastPage) {
+        if (hideBits == 0) {
+            return false;
+        }
+        if (page == firstPage && (hideBits & Matcher.HIDE_ON_FIRST_FRAGMENT) != 0) {
+            return true;
+        }
+        return page == lastPage && (hideBits & Matcher.HIDE_ON_LAST_FRAGMENT) != 0;
     }
 
     /**
