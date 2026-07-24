@@ -23,21 +23,32 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.w3c.dom.Element;
+
+import com.openhtmltopdf.css.newmatch.Matcher;
 import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.render.BlockBox;
+import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.RenderingContext;
 
 public class TableSectionBox extends BlockBox {
     private final List<RowData> _grid = new ArrayList<>();
-    
+
     private boolean _needCellWidthCalc;
     private boolean _needCellRecalc;
-    
+
     private boolean _footer;
     private boolean _header;
-    
+
     private boolean _capturedOriginalAbsY;
     private int _originalAbsY;
+
+    // Height of header rows hidden on the first fragment (e.g. a brought-forward
+    // row via :-fs-first-fragment). It is subtracted from the section's flow
+    // height so page 1's body starts higher and fits one more row, but kept in
+    // getReservedHeight() for the space reserved at continuation-page tops and
+    // for repositioning the full header there.
+    private int _firstFragmentReservation;
     
     public TableSectionBox() {
     }
@@ -271,16 +282,52 @@ public class TableSectionBox extends BlockBox {
     @Override
     public void layout(LayoutContext c, int contentStart) {
         boolean running = c.isPrint() && (isHeader() || isFooter()) && getTable().getStyle().isPaginateTable();
-        
+
         if (running) {
             c.setNoPageBreak(c.getNoPageBreak()+1);
         }
-        
+
         super.layout(c, contentStart);
-        
+
+        _firstFragmentReservation = running && isHeader() ? firstFragmentHiddenHeight(c) : 0;
+        if (_firstFragmentReservation > 0) {
+            // Let the body flow up over the space the hidden row would occupy on
+            // the first fragment; getReservedHeight() keeps the full height.
+            setHeight(getHeight() - _firstFragmentReservation);
+        }
+
         if (running) {
             c.setNoPageBreak(c.getNoPageBreak()-1);
         }
+    }
+
+    /**
+     * Total height of this section's rows that are hidden on the first fragment
+     * ({@link Matcher#HIDE_ON_FIRST_FRAGMENT}). Such a row still needs to appear
+     * on continuation pages, so its height is reserved, not removed outright.
+     */
+    private int firstFragmentHiddenHeight(LayoutContext c) {
+        int hidden = 0;
+        for (int i = 0; i < getChildCount(); i++) {
+            Box row = getChild(i);
+            Element el = row.getElement();
+            if (el == null) {
+                continue;
+            }
+            if ((c.getSharedContext().getCss().getFragmentHide(el) & Matcher.HIDE_ON_FIRST_FRAGMENT) != 0) {
+                hidden += row.getHeight();
+            }
+        }
+        return hidden;
+    }
+
+    /**
+     * The section's full height including any first-fragment-hidden rows: the
+     * space to reserve at continuation-page tops and to reposition the repeated
+     * header from. {@link #getHeight()} is the (possibly smaller) flow height.
+     */
+    public int getReservedHeight() {
+        return getHeight() + _firstFragmentReservation;
     }
 
     public boolean isFooter() {

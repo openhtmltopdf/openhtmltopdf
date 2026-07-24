@@ -1669,6 +1669,22 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("target-counter-float", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests an invoice whose item table spans multiple pages: the thead with
+     * the brought forward row and the tfoot with the carried forward row have
+     * to be repeated on every page, while the letterhead and the grand total
+     * table appear once.
+     * <p>
+     * The carry over amounts themselves are still blank: the cells ask for
+     * them with content: attr(data-running-sum), but attr() resolves against
+     * the cell itself, which has no such attribute. This pins that behaviour
+     * until a page aware running attribute function exists.
+     */
+    @Test
+    public void testInvoiceMultiPage() throws IOException {
+        assertTrue(vt.runTest("invoice-multi-page", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

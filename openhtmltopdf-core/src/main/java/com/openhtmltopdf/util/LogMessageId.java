@@ -115,6 +115,7 @@ public interface LogMessageId {
         MATCH_TRYING_TO_APPEND_CONDITIONS_TO_PSEUDO_ELEMENT(XRLog.MATCH, "Trying to append conditions to pseudoElement {}"),
         MATCH_MATCHER_CREATED_WITH_SELECTOR(XRLog.MATCH, "Matcher created with {} selectors"),
         MATCH_MEDIA_IS(XRLog.MATCH, "media = {}"),
+        MATCH_FRAGMENT_PSEUDO_ONLY_HONORS_DISPLAY_VISIBILITY(XRLog.MATCH, "A :-fs-first-fragment / :-fs-last-fragment rule only honors display and visibility; other declarations in selector {} are ignored"),
 
         LOAD_COULD_NOT_INSTANTIATE_CUSTOM_XML_READER(XRLog.LOAD, "Could not instantiate custom XMLReader class for XML parsing: {}. " +
                 "Please check classpath. Use value 'default' in FS configuration if necessary. Will now try JDK default."),
