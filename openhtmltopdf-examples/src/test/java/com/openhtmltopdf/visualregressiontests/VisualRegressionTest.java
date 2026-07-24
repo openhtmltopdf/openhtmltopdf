@@ -4,6 +4,7 @@ import java.awt.FontFormatException;
 import java.io.*;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -860,15 +861,43 @@ public class VisualRegressionTest {
     
     /**
      * Tests all the CSS sizing properties for MathML elements.
+     * <p>
+     * The MathML renderer produces slightly different output between JDK generations,
+     * so the expected PDF can only ever match one of them. It was generated on JDK 25
+     * (the most recent JDK this project is tested against) and verified to render
+     * identically on JDK 24, 25 and 26. Older JDKs are known to differ - or at least
+     * are unverified - so there the test skips itself rather than being ignored
+     * outright, as it used to be.
      */
     @Test
-    @Ignore // MathML renderer produces slightly different results on JDK11 vs JDK8
-            // so can only be run manually.
     public void testReplacedSizingMathMl() throws IOException {
+        assumeTrue("Expected PDF was generated on JDK 25", TestSupport.jdkMajorVersion() >= 25);
+
         assertTrue(vt.runTest("replaced-sizing-mathml", (builder) -> {
           builder.useMathMLDrawer(new MathMLDrawer());
           builder.useFont(
                   new File("target/test/visual-tests/Karla-Bold.ttf"),
+                  "MyFont", 400, FontStyle.NORMAL, true, EnumSet.of(FSFontUseCase.MATHML));
+        }));
+    }
+
+    /**
+     * Tests that a font can be added as a stream for use with MathML.
+     * <p>
+     * Deliberately renders the same document as {@link #testReplacedSizingMathMl()}
+     * against the same expected PDF: supplying the font as a stream rather than as
+     * a file must not change the output.
+     * <p>
+     * See <a href="https://github.com/openhtmltopdf/openhtmltopdf/issues/23">issue 23</a>.
+     */
+    @Test
+    public void testIssue23MathMlFontStreamAddition() throws IOException {
+        assumeTrue("Expected PDF was generated on JDK 25", TestSupport.jdkMajorVersion() >= 25);
+
+        assertTrue(vt.runTest("replaced-sizing-mathml", (builder) -> {
+          builder.useMathMLDrawer(new MathMLDrawer());
+          builder.useFont(
+                  () -> VisualRegressionTest.class.getResourceAsStream("/visualtest/html/fonts/Karla-Bold.ttf"),
                   "MyFont", 400, FontStyle.NORMAL, true, EnumSet.of(FSFontUseCase.MATHML));
         }));
     }
@@ -1405,6 +1434,28 @@ public class VisualRegressionTest {
                     TestSupport.WITH_SVG.configure(builder);
                     builder.useFont(
                             new File("target/test/visual-tests/Karla-Bold.ttf"),
+                            "Karla",
+                            700, FontStyle.NORMAL, true,
+                            EnumSet.of(FSFontUseCase.SVG));
+                }));
+    }
+
+    /**
+     * Tests that a font can be added as a stream for use with SVGs.
+     * <p>
+     * Deliberately renders the same document as {@link #testSVGFontFileAddition()}
+     * against the same expected PDF: supplying the font as a stream rather than as
+     * a file must not change the output.
+     * <p>
+     * See <a href="https://github.com/openhtmltopdf/openhtmltopdf/issues/23">issue 23</a>.
+     */
+    @Test
+    public void testIssue23SVGFontStreamAddition() throws IOException {
+        assertTrue(vt.runTest("svg-font-file-addition",
+                builder -> {
+                    TestSupport.WITH_SVG.configure(builder);
+                    builder.useFont(
+                            () -> VisualRegressionTest.class.getResourceAsStream("/visualtest/html/fonts/Karla-Bold.ttf"),
                             "Karla",
                             700, FontStyle.NORMAL, true,
                             EnumSet.of(FSFontUseCase.SVG));

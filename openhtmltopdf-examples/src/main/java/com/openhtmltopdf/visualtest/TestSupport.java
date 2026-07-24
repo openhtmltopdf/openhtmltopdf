@@ -51,6 +51,31 @@ import com.openhtmltopdf.visualtest.VisualTester.BuilderConfig;
 
 public class TestSupport {
     /**
+     * The major version of the JDK running the tests, ie. 8, 11, 21, 25, ...
+     * <p>
+     * Useful for tests whose expected output is only valid for certain JDKs, as
+     * some renderers (MathML in particular) produce slightly different output
+     * between JDK generations.
+     *
+     * @return the major version, or -1 if it could not be determined.
+     */
+    public static int jdkMajorVersion() {
+        // Note: Can not use Runtime.version() as this project still targets Java 8.
+        String spec = System.getProperty("java.specification.version", "");
+
+        if (spec.startsWith("1.")) {
+            // Java 8 and earlier used 1.x version strings.
+            spec = spec.substring("1.".length());
+        }
+
+        try {
+            return Integer.parseInt(spec);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /**
      * Output the font file as a regular file so we don't have to use streams.
      * @throws IOException
      */

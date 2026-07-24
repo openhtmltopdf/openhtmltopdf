@@ -558,9 +558,12 @@ public abstract class BaseRendererBuilder<TFinalClass extends BaseRendererBuilde
      * recommended for Java2D usage).</p>
      * 
      * <p><strong>IMPORTANT:</strong> This method is not recommended for use with Java2D.
-     * To add fonts for use by Java2D, SVG, etc see:
+     * To add fonts for use by Java2D see:
      * {@link #useFont(File, String, Integer, FontStyle, boolean, Set)}</p>
-     * 
+     *
+     * <p>The supplier may be asked for a stream more than once, once per use case: a font
+     * used by the document as well as by SVG content is loaded by both.</p>
+     *
      * <p>For gotchas related to font handling please see:
      * <a href="https://github.com/danfickle/openhtmltopdf/wiki/Fonts">Wiki: Fonts</a></p>
      *
