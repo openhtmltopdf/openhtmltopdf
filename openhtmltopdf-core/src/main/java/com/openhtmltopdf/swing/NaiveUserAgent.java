@@ -21,10 +21,8 @@
 package com.openhtmltopdf.swing;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -659,12 +657,22 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
                 uri);
             return null;
           } else if (baseUri.startsWith("jar")) {
-            // Fix for OpenHTMLtoPDF issue-#125, URI class doesn't resolve jar: scheme urls and so returns only
-            // the relative part on calling base.resolve(relative) so we use the URL class instead which does
-            // understand jar: scheme urls.
-            URL base = new URL(baseUri);
-            URL absolute = new URL(base, uri);
-            return absolute.toString();
+            // Fix for OpenHTMLtoPDF issue-#125, jar: scheme urls are opaque URIs, so calling
+            // base.resolve(relative) on them returns only the relative part. Instead, we resolve
+            // against the entry path inside the archive (which is hierarchical) and re-attach the
+            // jar part afterwards. This mirrors what java.net.URL's jar handler does, without
+            // using the URL constructors, which are deprecated since Java 20.
+            int entryStart = baseUri.indexOf("!/");
+
+            if (entryStart < 0) {
+              // Same as the URL jar handler, which rejects such base urls with
+              // MalformedURLException("no !/ in spec").
+              XRLog.log(Level.WARNING, LogMessageId.LogMessageId3Param.EXCEPTION_URI_WITH_BASE_URI_INVALID, uri, "jar scheme", baseUri);
+              return null;
+            }
+
+            URI baseEntry = new URI(baseUri.substring(entryStart + 1));
+            return baseUri.substring(0, entryStart + 1) + baseEntry.resolve(possiblyRelative);
           } else {
             URI base = new URI(baseUri);
             URI absolute = base.resolve(uri);
@@ -673,9 +681,6 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         }
       } catch (URISyntaxException e) {
         XRLog.log(Level.WARNING, LogMessageId.LogMessageId3Param.EXCEPTION_URI_WITH_BASE_URI_INVALID, uri, "", baseUri, e);
-        return null;
-      } catch (MalformedURLException e) {
-        XRLog.log(Level.WARNING, LogMessageId.LogMessageId3Param.EXCEPTION_URI_WITH_BASE_URI_INVALID, uri, "jar scheme", baseUri, e);
         return null;
       }
     }

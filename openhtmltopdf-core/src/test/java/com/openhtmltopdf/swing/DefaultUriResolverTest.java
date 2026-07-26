@@ -23,6 +23,54 @@ public class DefaultUriResolverTest {
     }
     
     @Test
+    public void testJarUrlResolveFromEntryInSubDirectory() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x.jar!/dir/base.html", "logo.png"), equalTo("jar:file:/E:/example/x.jar!/dir/logo.png"));
+    }
+
+    @Test
+    public void testJarUrlResolveWithParentDirectory() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x.jar!/dir/base.html", "../logo.png"), equalTo("jar:file:/E:/example/x.jar!/logo.png"));
+    }
+
+    @Test
+    public void testJarUrlResolveWithCurrentDirectory() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x.jar!/dir/base.html", "./sub/logo.png"), equalTo("jar:file:/E:/example/x.jar!/dir/sub/logo.png"));
+    }
+
+    /**
+     * An absolute path in the relative part is resolved against the root of the
+     * archive, not against the root of the url containing the archive.
+     */
+    @Test
+    public void testJarUrlResolveWithAbsolutePath() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x.jar!/dir/base.html", "/logo.png"), equalTo("jar:file:/E:/example/x.jar!/logo.png"));
+        assertThat(resolver.resolveURI("jar:http://www.foo.com/bar/baz.jar!/dir/base.html", "/logo.png"), equalTo("jar:http://www.foo.com/bar/baz.jar!/logo.png"));
+    }
+
+    @Test
+    public void testJarUrlResolveKeepsQueryAndFragment() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x.jar!/dir/base.html", "logo.png?q=1#f"), equalTo("jar:file:/E:/example/x.jar!/dir/logo.png?q=1#f"));
+    }
+
+    @Test
+    public void testJarUrlResolveWithPercentEncodedArchivePath() {
+        assertThat(resolver.resolveURI("jar:file:/E:/exa%20mple/x.jar!/dir/base.html", "logo.png"), equalTo("jar:file:/E:/exa%20mple/x.jar!/dir/logo.png"));
+    }
+
+    @Test
+    public void testJarUrlResolveWithExclamationMarkInArchiveName() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x!bang.jar!/dir/base.html", "logo.png"), equalTo("jar:file:/E:/example/x!bang.jar!/dir/logo.png"));
+    }
+
+    /**
+     * The jar url handler rejects base urls without an entry separator, so do we.
+     */
+    @Test
+    public void testJarUrlWithoutEntrySeparator() {
+        assertThat(resolver.resolveURI("jar:file:/E:/example/x.jar", "logo.png"), equalTo(null));
+    }
+
+    @Test
     public void testAbsoluteJarFileAsRelativePart() {
         assertThat(resolver.resolveURI("http://example.com/", "jar:file:/E:/example/target/server-1.0.0.war!/WEB-INF/classes!/export/logo.jpg"), equalTo("jar:file:/E:/example/target/server-1.0.0.war!/WEB-INF/classes!/export/logo.jpg"));
     }
