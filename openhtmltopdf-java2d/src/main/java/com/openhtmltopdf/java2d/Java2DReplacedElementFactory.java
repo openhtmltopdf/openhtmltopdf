@@ -14,8 +14,11 @@ import com.openhtmltopdf.java2d.image.ImageReplacedElement;
 import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
 import com.openhtmltopdf.render.BlockBox;
+import com.openhtmltopdf.render.FSSVGImage;
 import com.openhtmltopdf.resource.ImageResource;
+import com.openhtmltopdf.resource.XMLResource;
 import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.SVGUriDetector;
 import com.openhtmltopdf.util.XRLog;
 
 public class Java2DReplacedElementFactory implements ReplacedElementFactory {
@@ -60,10 +63,16 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
             }
         } else if (nodeName.equals("img")) {
             String srcAttr = e.getAttribute("src");
-            if (!srcAttr.isEmpty() && srcAttr.endsWith(".svg") && _svgImpl != null) {
-                return new Java2DSVGReplacedElement(uac.getXMLResource(srcAttr, ExternalResourceType.XML_SVG).getDocument().getDocumentElement(), _svgImpl, cssWidth, cssHeight, box, context);
+            if (!srcAttr.isEmpty() && SVGUriDetector.isSvgUri(srcAttr) && _svgImpl != null) {
+                // Covers a linked .svg file as well as both flavours of data URI, the base 64
+                // encoded one and the plain percent encoded one.
+                XMLResource xml = uac.getXMLResource(srcAttr, ExternalResourceType.XML_SVG);
+
+                return xml != null ?
+                        new Java2DSVGReplacedElement(xml.getDocument().getDocumentElement(), _svgImpl, cssWidth, cssHeight, box, context) :
+                        null;
             } else if (!srcAttr.isEmpty()) {
-                return replaceImage(e, srcAttr, cssWidth, cssHeight, uac);
+                return replaceImage(e, srcAttr, cssWidth, cssHeight, box, context, uac);
             }
         }
 
@@ -90,7 +99,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
         return false;
     }
 
-    private ReplacedElement replaceImage(Element elem, String uri, int width, int height, UserAgentCallback uac) {
+    private ReplacedElement replaceImage(Element elem, String uri, int width, int height, BlockBox box, LayoutContext context, UserAgentCallback uac) {
         ReplacedElement replaced = _sizedImageCache.get(new SizedImageCacheKey(uri, width, height));
 
         if (replaced != null) {
@@ -106,6 +115,18 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
         }
 
         FSImage awtfsImage = ir.getImage();
+
+        if (awtfsImage instanceof FSSVGImage && _svgImpl != null) {
+            // The URI gave no hint that this was an SVG, but the content turned out to be one.
+            return new Java2DSVGReplacedElement(
+                    ((FSSVGImage) awtfsImage).getSVGElement(), _svgImpl, width, height, box, context);
+        }
+
+        if (!(awtfsImage instanceof AWTFSImage)) {
+            // Nothing usable was loaded, the user agent will have said why.
+            return null;
+        }
+
         BufferedImage newImg = ((AWTFSImage) awtfsImage).getImage();
 
         if (newImg == null) {

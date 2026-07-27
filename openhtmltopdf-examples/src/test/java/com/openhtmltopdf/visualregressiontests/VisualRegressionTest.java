@@ -980,7 +980,40 @@ public class VisualRegressionTest {
     }
     
     /**
-     * Tests that we correctly render PDF pages in the img tag at 
+     * Tests that SVGs used as a CSS image, ie. as a <code>background-image</code>, render as
+     * vector art, whether they arrive as a percent encoded data uri, a base 64 data uri or
+     * unencoded markup. Also covers background-repeat, background-size and background-position,
+     * and that the containing page does not style the image. Issue 32.
+     */
+    @Test
+    public void testSvgCssBackgroundImage() throws IOException {
+        assertTrue(vt.runTest("svg-css-background-image", TestSupport.WITH_SVG));
+    }
+
+    /**
+     * Tests that a SVG without a size of its own - written in percentages, or with only a
+     * viewBox, as icons usually are - is sized from CSS rather than from some made up default,
+     * the way a browser sizes such a background image. Issue 32.
+     */
+    @Test
+    public void testSvgCssBackgroundImageUnsized() throws IOException {
+        assertTrue(vt.runTest("svg-css-background-image-unsized", TestSupport.WITH_SVG));
+    }
+
+    /**
+     * Tests that a linked SVG file works as a CSS image too, both as a background-image
+     * and as a list-style-image. Issue 32.
+     */
+    @Test
+    public void testSvgCssBackgroundImageLinked() throws IOException {
+        assertTrue(vt.runTest("svg-css-background-image-linked", builder -> {
+            TestSupport.WITH_FONT.configure(builder);
+            TestSupport.WITH_SVG.configure(builder);
+        }));
+    }
+
+    /**
+     * Tests that we correctly render PDF pages in the img tag at
      * the correct CSS specified sizing. Issue 344.
      */
     @Test

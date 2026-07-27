@@ -93,8 +93,14 @@ public class Java2DRenderer implements Closeable {
         _objectDrawerFactory = state._objectDrawerFactory;
 		_outputDevice = new Java2DOutputDevice(state._layoutGraphics);
 		
-		NaiveUserAgent uac = new Java2DUserAgent();
-		
+		Java2DUserAgent uac = new Java2DUserAgent();
+
+		if (this._svgImpl != null) {
+			// So that SVGs used as CSS images, such as a background-image, can be drawn too.
+			uac.setSVGDrawer(this._svgImpl);
+			uac.setDotsPerPixel(DEFAULT_DOTS_PER_PIXEL);
+		}
+
 		uac.setProtocolsStreamFactory(state._streamFactoryMap);
 		
 		if (state._resolver != null) {

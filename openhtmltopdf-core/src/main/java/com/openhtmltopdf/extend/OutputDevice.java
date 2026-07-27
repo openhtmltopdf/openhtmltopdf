@@ -94,6 +94,24 @@ public interface OutputDevice {
      */
     public void drawWithGraphics(float x, float y, float width, float height, OutputDeviceGraphicsDrawer renderer);
 
+    /**
+     * Draw something using a Graphics2D at the given rectangle, allowing the output device
+     * to reuse what it produced for an earlier call carrying an equal <code>reuseKey</code>
+     * rather than asking the renderer to draw the very same content again.
+     *
+     * <p>This matters for content that is drawn many times at different positions, such as a
+     * repeating SVG background image: without reuse, a device backed by a PDF emits a
+     * complete copy of the artwork for every single tile.</p>
+     *
+     * <p>Callers must only pass a <code>reuseKey</code> when the renderer would draw
+     * identical content at an identical size. A null key means no reuse. The default
+     * implementation ignores the key and draws normally, which is always correct, just
+     * not as compact.</p>
+     */
+    public default void drawWithGraphics(float x, float y, float width, float height, Object reuseKey, OutputDeviceGraphicsDrawer renderer) {
+        drawWithGraphics(x, y, width, height, renderer);
+    }
+
     public boolean isPDF();
 
     /**

@@ -35,10 +35,13 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import com.openhtmltopdf.event.DocumentListener;
+import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.extend.FSUriResolver;
 import com.openhtmltopdf.extend.FSStreamFactory;
 import com.openhtmltopdf.extend.FSStream;
+import com.openhtmltopdf.extend.SVGDrawer;
 import com.openhtmltopdf.extend.UserAgentCallback;
+import com.openhtmltopdf.render.FSSVGImage;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
 import com.openhtmltopdf.resource.CSSResource;
@@ -72,6 +75,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
   protected FSUriResolver _resolver = DEFAULT_URI_RESOLVER;
   protected String _baseUri;
   protected Map<String, FSStreamFactory> _protocolsStreamFactory = new HashMap<>();
+  protected SVGDrawer _svgDrawer;
 
   public NaiveUserAgent() {
     FSStreamFactory factory = new DefaultHttpStreamFactory();
@@ -217,6 +221,50 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
 
   public void setUriResolver(FSUriResolver resolver) {
     this._resolver = resolver;
+  }
+
+  /**
+   * Sets the drawer used for SVG images that arrive through the image pipeline rather than
+   * as a replaced element, ie. SVGs used as CSS images such as <code>background-image</code>.
+   * Without one, such images can not be drawn.
+   */
+  public void setSVGDrawer(SVGDrawer svgDrawer) {
+    this._svgDrawer = svgDrawer;
+  }
+
+  /**
+   * Builds an image for SVG content, to be drawn by the SVG drawer rather than decoded as a
+   * bitmap.
+   *
+   * @param uri the resolved URI, for logging
+   * @param content the SVG document
+   * @param dotsPerPixel dots per CSS pixel of the output
+   *
+   * @return the image, or null if there is no SVG drawer or the content could not be used.
+   */
+  protected FSImage buildSVGImage(String uri, byte[] content, double dotsPerPixel) {
+    if (this._svgDrawer == null) {
+      XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.LOAD_SVG_IMAGE_WITHOUT_SVG_DRAWER, uri);
+      return null;
+    }
+
+    FSImage image = null;
+
+    try (InputStream svgStream = new ByteArrayInputStream(content)) {
+      XMLResource xml = XMLResource.load(svgStream);
+
+      if (xml != null && xml.getDocument() != null) {
+        image = FSSVGImage.create(
+            xml.getDocument().getDocumentElement(), this._svgDrawer, dotsPerPixel, uri);
+      }
+    } catch (IOException | RuntimeException e) {
+      // XMLResource::load throws an unchecked XRRuntimeException for malformed content.
+      XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_CANT_READ_IMAGE_FILE_FOR_URI, uri, e);
+      return null;
+    }
+
+    // A null image has already been reported, either by the drawer or by FSSVGImage.
+    return image;
   }
 
   public FSUriResolver getDefaultUriResolver() {
@@ -583,6 +631,53 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
       return Base64.getMimeDecoder().decode(WHITE_SPACE.matcher(b64encoded).replaceAll(""));
     }
 
+    /**
+     * Decodes the data part of a data URI that is not base64 encoded. Such data is
+     * URL encoded (RFC 2397), so <code>%3Csvg%3E</code> has to become
+     * <code>&lt;svg&gt;</code> and <code>%23gradient</code> has to become
+     * <code>#gradient</code>.
+     *
+     * <p>Decoding is lenient: a percent sign that is not followed by two hex digits
+     * is kept as-is rather than treated as an error. Inline SVG images are full of
+     * unencoded percent signs (<code>width='100%'</code>) and browsers accept them,
+     * so rejecting them would be unhelpful.</p>
+     */
+    static byte[] fromPercentEncoded(String data) {
+      ByteArrayOutputStream out = new ByteArrayOutputStream(data.length());
+      StringBuilder literal = new StringBuilder(data.length());
+
+      for (int i = 0; i < data.length(); i++) {
+        char c = data.charAt(i);
+        int hi;
+        int lo;
+
+        if (c == '%' &&
+            i + 2 < data.length() &&
+            (hi = Character.digit(data.charAt(i + 1), 16)) != -1 &&
+            (lo = Character.digit(data.charAt(i + 2), 16)) != -1) {
+
+          // Flush the literal characters seen so far, so that we never split a
+          // surrogate pair or a multi byte character while encoding them.
+          appendUtf8(out, literal);
+          out.write((hi << 4) + lo);
+          i += 2;
+        } else {
+          literal.append(c);
+        }
+      }
+
+      appendUtf8(out, literal);
+      return out.toByteArray();
+    }
+
+    private static void appendUtf8(ByteArrayOutputStream out, StringBuilder literal) {
+      if (literal.length() != 0) {
+        byte[] bytes = literal.toString().getBytes(StandardCharsets.UTF_8);
+        out.write(bytes, 0, bytes.length);
+        literal.setLength(0);
+      }
+    }
+
     @Override
     public FSStream getUrl(String url) {
       int idxSeparator;
@@ -592,7 +687,7 @@ public abstract class NaiveUserAgent implements UserAgentCallback, DocumentListe
         if (url.indexOf("base64,") == idxSeparator - 6 /* 6 = "base64,".length */) {
           res = fromBase64Encoded(data);
         } else {
-          res = data.getBytes(StandardCharsets.UTF_8);
+          res = fromPercentEncoded(data);
         }
         return new ByteStream(res);
       }

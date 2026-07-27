@@ -25,10 +25,9 @@ import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.resource.XMLResource;
 import com.openhtmltopdf.swing.NaiveUserAgent;
+import com.openhtmltopdf.util.SVGUriDetector;
 
 import org.w3c.dom.Element;
-
-import java.io.ByteArrayInputStream;
 
 public class PdfBoxReplacedElementFactory implements ReplacedElementFactory {
     private final SVGDrawer _svgImpl;
@@ -61,12 +60,12 @@ public class PdfBoxReplacedElementFactory implements ReplacedElementFactory {
             String srcAttr = e.getAttribute("src");
             if (srcAttr != null && srcAttr.length() > 0) {
                 //handle the case of linked svg from img tag
-                boolean isDataImageSvg = false;
                 boolean isDataPdf = false;
-                if (_svgImpl != null && (srcAttr.endsWith(".svg") || (isDataImageSvg = srcAttr.startsWith("data:image/svg+xml;base64,")))) {
-                    XMLResource xml = isDataImageSvg ?
-                         XMLResource.load(new ByteArrayInputStream(NaiveUserAgent.getEmbeddedBase64Image(srcAttr))) : 
-                         uac.getXMLResource(srcAttr, ExternalResourceType.XML_SVG);
+                if (_svgImpl != null && SVGUriDetector.isSvgUri(srcAttr)) {
+                    // Covers a linked .svg file as well as both flavours of data URI, the
+                    // base 64 encoded one and the plain percent encoded one that is usually
+                    // used for small inline images.
+                    XMLResource xml = uac.getXMLResource(srcAttr, ExternalResourceType.XML_SVG);
 
                     if (xml != null) {
                         Element svg = xml.getDocument().getDocumentElement();

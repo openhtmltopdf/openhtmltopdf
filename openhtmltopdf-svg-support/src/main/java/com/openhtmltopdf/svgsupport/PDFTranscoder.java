@@ -53,14 +53,38 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
     private boolean allowExternalResources = false;
 	private UserAgentCallback userAgentCallback;
 	private Set<String> allowedProtocols;
+	private Object reuseKey;
 
+	/**
+	 * @param box the box the SVG is drawn into, or null when the SVG is not tied to a box,
+	 * ie. when it is used as a CSS image. In that case the drawing area follows the image
+	 * size instead of the box content area.
+	 */
 	public PDFTranscoder(Box box, double dotsPerPixel, double width, double height) {
 	    this.box = box;
 		this.width = (float)width;
 		this.height = (float)height;
 		this.dotsPerPixel = dotsPerPixel;
 	}
-	
+
+	/**
+	 * Set a key identifying the content this transcoder draws, so that an output device can
+	 * reuse what it produced for an earlier draw with the same key instead of emitting the
+	 * artwork again. Only safe when the same key always means the same content at the same
+	 * size. See {@link OutputDevice#drawWithGraphics(float, float, float, float, Object, OutputDeviceGraphicsDrawer)}.
+	 */
+	public void setReuseKey(Object reuseKey) {
+	    this.reuseKey = reuseKey;
+	}
+
+	/**
+	 * Whether the graphics tree has already been built, ie. whether {@link #paintGraphicsNode()}
+	 * can draw the image again without transcoding it a second time.
+	 */
+	public boolean hasGraphicsNode() {
+	    return this.root != null;
+	}
+
 	public void setRenderingParameters(OutputDevice od, RenderingContext ctx, double x, double y, OpenHtmlFontResolver fontResolver, UserAgentCallback userAgentCallback) {
 	    this.x = x;
             this.y = y;
@@ -292,23 +316,37 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 
 	@Override
 	protected void transcode(Document svg, String uri, TranscoderOutput out) throws TranscoderException {
-		
+
 		// Note: We have to initialize user agent here and not in ::createUserAgent() as method
 		// is called before our constructor is called in the super constructor.
 		this.userAgent = new OpenHtmlUserAgent(this.fontResolver, this.allowScripts, this.allowExternalResources, this.allowedProtocols);
 		super.transcode(svg, uri, out);
-		
-        Rectangle contentBounds = box.getContentAreaEdge(box.getAbsX(), box.getAbsY(), ctx);
+
+		paintGraphicsNode();
+	}
+
+	/**
+	 * Paints the graphics tree built by the last transcode at the position last passed to
+	 * {@link #setRenderingParameters}. Split out from {@link #transcode} so that an image
+	 * drawn more than once, such as a repeating background, only has to be built once.
+	 */
+	public void paintGraphicsNode() {
+        Rectangle contentBounds = this.box != null ?
+                this.box.getContentAreaEdge(this.box.getAbsX(), this.box.getAbsY(), this.ctx) :
+                new Rectangle(0, 0,
+                        (int) Math.round(this.width * this.dotsPerPixel),
+                        (int) Math.round(this.height * this.dotsPerPixel));
 
         final AffineTransform scale2 = ReplacedElementScaleHelper.createScaleTransform(this.dotsPerPixel, contentBounds, width, height);
         final AffineTransform inverse2 = ReplacedElementScaleHelper.inverseOrNull(scale2);
         final boolean transformed2 = scale2 != null && inverse2 != null;
-        
+
 		outputDevice.drawWithGraphics(
 		        (float) x,
 		        (float) y,
-		        (float) (contentBounds.width / this.dotsPerPixel), 
+		        (float) (contentBounds.width / this.dotsPerPixel),
 		        (float) (contentBounds.height / this.dotsPerPixel),
+		        this.reuseKey,
 		        new OutputDeviceGraphicsDrawer() {
 			@Override
 			public void render(Graphics2D graphics2D) {

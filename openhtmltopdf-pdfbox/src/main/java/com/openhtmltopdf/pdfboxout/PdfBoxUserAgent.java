@@ -26,12 +26,15 @@ import java.io.InputStream;
 import java.util.Locale;
 import java.util.logging.Level;
 
+import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
+import com.openhtmltopdf.render.FSSVGImage;
 import com.openhtmltopdf.resource.ImageResource;
 import com.openhtmltopdf.swing.NaiveUserAgent;
 import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.SVGUriDetector;
 import com.openhtmltopdf.util.XRLog;
 
 public class PdfBoxUserAgent extends NaiveUserAgent {
@@ -79,6 +82,14 @@ public class PdfBoxUserAgent extends NaiveUserAgent {
             PdfBoxImage original = (PdfBoxImage) resource.getImage();
             PdfBoxImage copy = new PdfBoxImage(original.getBytes(), original.getUri(), original.getWidth(), original.getHeight(), original.getXObject());
             return new ImageResource(resource.getImageUri(), copy);
+        } else if (resource != null && resource.getImage() instanceof FSSVGImage) {
+            // Same again: the size of an SVG image is set by whoever uses it.
+            FSSVGImage original = (FSSVGImage) resource.getImage();
+            return new ImageResource(resource.getImageUri(), original.copy());
+        } else if (resource != null && resource.getImage() == null) {
+            // A SVG we already know we can not draw. Remembering that keeps us from
+            // fetching and complaining about it again for every box it is painted in.
+            return resource;
         }
 
 
@@ -98,6 +109,26 @@ public class PdfBoxUserAgent extends NaiveUserAgent {
                     // resource = new ImageResource(uriStr, image);
                 } else {
                     byte[] imgBytes = readStream(is);
+
+                    if (SVGUriDetector.isSvgUri(uriResolved) ||
+                        SVGUriDetector.looksLikeSvgContent(imgBytes)) {
+
+                        FSImage svgImage = buildSVGImage(uriResolved, imgBytes, _sharedContext.getDotsPerPixel());
+
+                        if (svgImage == null) {
+                            // Cache the failure so that a background image used on every page
+                            // is not loaded, and warned about, once per box painted.
+                            ImageResource failed = new ImageResource(uriResolved, null);
+                            _imageCache.put(uriResolved, failed);
+                            return failed;
+                        }
+
+                        _imageCache.put(uriResolved, new ImageResource(uriResolved, svgImage));
+
+                        // Hand out a copy, so that sizing this one does not change the cached image.
+                        return new ImageResource(uriResolved, ((FSSVGImage) svgImage).copy());
+                    }
+
                     PdfBoxImage fsImage = new PdfBoxImage(imgBytes, uriStr);
                     scaleToOutputResolution(fsImage);
                     _outputDevice.realizeImage(fsImage);

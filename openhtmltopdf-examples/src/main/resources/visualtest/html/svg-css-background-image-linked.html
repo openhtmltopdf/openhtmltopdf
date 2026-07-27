@@ -1,0 +1,40 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 200px;
+  margin: 0;
+}
+div {
+  height: 50px;
+  margin: 5px;
+  border: 1px solid black;
+}
+/* A linked SVG file used as a background, tiled. */
+.repeat {
+  background-image: url("solid.svg");
+}
+/* And scaled to a size the file itself knows nothing about. */
+.sized {
+  background-image: url("solid.svg");
+  background-repeat: no-repeat;
+  background-size: 40px 40px;
+  background-position: center;
+}
+ul {
+  list-style-image: url("solid.svg");
+  margin: 5px 5px 5px 30px;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+  <div class="repeat"></div>
+  <div class="sized"></div>
+  <ul>
+    <li>One</li>
+    <li>Two</li>
+  </ul>
+</body>
+</html>

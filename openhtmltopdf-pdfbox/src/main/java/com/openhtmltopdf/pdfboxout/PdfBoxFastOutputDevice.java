@@ -217,6 +217,12 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     private final Map<Float, PDExtendedGraphicsState> _fillAlphaStates = new HashMap<>();
     private final Map<Float, PDExtendedGraphicsState> _strokeAlphaStates = new HashMap<>();
 
+    /**
+     * Form objects that may be stamped more than once, by identity of what produced them.
+     * Used for content that is drawn repeatedly, such as a repeating SVG background image.
+     */
+    private final Map<Object, PDFormXObject> _reusableForms = new IdentityHashMap<>();
+
     // Whether we already warned that transparency is not allowed in PDF/A-1.
     private boolean _transparencyNotAllowedWarned;
 
@@ -887,6 +893,13 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     @Override
     public void drawImage(FSImage fsImage, int x, int y, boolean interpolate) {
+        if (fsImage instanceof FSSVGImage) {
+            // An SVG used as a CSS image: hand it back to the SVG drawer so it stays
+            // vector art instead of being turned into a bitmap.
+            ((FSSVGImage) fsImage).drawSVG(this, x, y);
+            return;
+        }
+
         PdfBoxImage img = (PdfBoxImage) fsImage;
 
         PDImageXObject xobject = img.getXObject();
@@ -1148,6 +1161,31 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     @Override
     public void drawWithGraphics(float x, float y, float width, float height, OutputDeviceGraphicsDrawer renderer) {
+        drawWithGraphics(x, y, width, height, null, renderer);
+    }
+
+    @Override
+    public void drawWithGraphics(float x, float y, float width, float height, Object reuseKey, OutputDeviceGraphicsDrawer renderer) {
+        PDFormXObject alreadyDrawn = reuseKey != null ? _reusableForms.get(reuseKey) : null;
+
+        if (alreadyDrawn != null) {
+            // Drawn before, so stamp that form again rather than adding a second copy of the
+            // very same artwork to the document. This is what keeps a repeating SVG
+            // background from growing the PDF by one full copy of the image per tile.
+            placeXForm(x, y, height, alreadyDrawn);
+            return;
+        }
+
+        PDFormXObject xFormObject = createXForm(width, height, renderer);
+
+        if (reuseKey != null) {
+            _reusableForms.put(reuseKey, xFormObject);
+        }
+
+        placeXForm(x, y, height, xFormObject);
+    }
+
+    private PDFormXObject createXForm(float width, float height, OutputDeviceGraphicsDrawer renderer) {
         try {
             PdfBoxGraphics2D pdfBoxGraphics2D = new PdfBoxGraphics2D(_writer, (int) width, (int) height);
 			/*
@@ -1207,31 +1245,35 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
              */
             PDFormXObject xFormObject = pdfBoxGraphics2D.getXFormObject();
             xFormObject.setMatrix(AffineTransform.getScaleInstance(72f / 96f, 72f / 96f));
-            
-            /*
-             * Adjust the y to take into account that the y passed to placeXForm below
-             * refers to the bottom left of the object while we were passed in y the 
-             * position of the top left corner.
-             * FIXME: Make DPI conversion configurable (as above).
-             */
-            y += (height) * _dotsPerPoint * (72f / 96f);
 
-            /*
-             * Use the page transform to convert from _dotsPerPoint units to 
-             * PDF units. Also takes care of page margins.
-             */
-            Point2D p = new Point2D.Float(x, y);
-            Point2D pResult = new Point2D.Float();
-            _transform.transform(p, pResult);
-
-            /*
-             * And then stamp it
-             */
-            _cp.placeXForm((float) pResult.getX(), _pageHeight - (float) pResult.getY(), xFormObject);
+            return xFormObject;
         }
         catch(IOException e){
             throw new RuntimeException("Error while drawing on Graphics2D", e);
         }
+    }
+
+    private void placeXForm(float x, float y, float height, PDFormXObject xFormObject) {
+        /*
+         * Adjust the y to take into account that the y passed to placeXForm below
+         * refers to the bottom left of the object while we were passed in y the
+         * position of the top left corner.
+         * FIXME: Make DPI conversion configurable (as above).
+         */
+        y += (height) * _dotsPerPoint * (72f / 96f);
+
+        /*
+         * Use the page transform to convert from _dotsPerPoint units to
+         * PDF units. Also takes care of page margins.
+         */
+        Point2D p = new Point2D.Float(x, y);
+        Point2D pResult = new Point2D.Float();
+        _transform.transform(p, pResult);
+
+        /*
+         * And then stamp it
+         */
+        _cp.placeXForm((float) pResult.getX(), _pageHeight - (float) pResult.getY(), xFormObject);
     }
 
     @Override
