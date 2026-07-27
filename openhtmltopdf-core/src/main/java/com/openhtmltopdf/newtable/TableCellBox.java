@@ -593,14 +593,14 @@ public class TableCellBox extends BlockBox {
         } else if (getCol() == 0) {
             // (3) Our row's left border.
             result = compareBorders(
-                    result, CollapsedBorderValue.borderLeft(getParent().getStyle().getBorder(c), BROW));
+                    result, CollapsedBorderValue.borderLeft(getParent().getStyle().getDeclaredBorder(c), BROW));
             if (result.hidden()) {
                 return result;
             }
 
             // (4) Our row group's left border.
             result = compareBorders(
-                    result, CollapsedBorderValue.borderLeft(getSection().getStyle().getBorder(c), BROWGROUP));
+                    result, CollapsedBorderValue.borderLeft(getSection().getStyle().getDeclaredBorder(c), BROWGROUP));
             if (result.hidden()) {
                 return result;
             }
@@ -666,14 +666,14 @@ public class TableCellBox extends BlockBox {
         } else {
             // (3) Our row's right border.
             result = compareBorders(result, 
-                    CollapsedBorderValue.borderRight(getParent().getStyle().getBorder(c), BROW));
+                    CollapsedBorderValue.borderRight(getParent().getStyle().getDeclaredBorder(c), BROW));
             if (result.hidden()) {
                 return result;
             }
 
             // (4) Our row group's right border.
             result = compareBorders(result, 
-                    CollapsedBorderValue.borderRight(getSection().getStyle().getBorder(c), BROWGROUP));
+                    CollapsedBorderValue.borderRight(getSection().getStyle().getDeclaredBorder(c), BROWGROUP));
             if (result.hidden()) {
                 return result;
             }
@@ -729,7 +729,7 @@ public class TableCellBox extends BlockBox {
 
         // (3) Our row's top border.
         result = compareBorders(result, 
-                    CollapsedBorderValue.borderTop(getParent().getStyle().getBorder(c), BROW));
+                    CollapsedBorderValue.borderTop(getParent().getStyle().getDeclaredBorder(c), BROW));
         if (result.hidden()) {
             return result;
         }
@@ -745,7 +745,7 @@ public class TableCellBox extends BlockBox {
 
             if (prevRow != null) {
                 result = compareBorders(result, 
-                            CollapsedBorderValue.borderBottom(prevRow.getStyle().getBorder(c), BROW));
+                            CollapsedBorderValue.borderBottom(prevRow.getStyle().getDeclaredBorder(c), BROW));
                 if (result.hidden()) {
                     return result;
                 }
@@ -757,7 +757,7 @@ public class TableCellBox extends BlockBox {
         if (getRow() == 0) {
             // (5) Our row group's top border.
             result = compareBorders(result, 
-                        CollapsedBorderValue.borderTop(currSection.getStyle().getBorder(c), BROWGROUP));
+                        CollapsedBorderValue.borderTop(currSection.getStyle().getDeclaredBorder(c), BROWGROUP));
             if (result.hidden()) {
                 return result;
             }
@@ -766,7 +766,7 @@ public class TableCellBox extends BlockBox {
             currSection = getTable().sectionAbove(currSection, false);
             if (currSection != null) {
                 result = compareBorders(result, 
-                            CollapsedBorderValue.borderBottom(currSection.getStyle().getBorder(c), BROWGROUP));
+                            CollapsedBorderValue.borderBottom(currSection.getStyle().getDeclaredBorder(c), BROWGROUP));
                 if (result.hidden()) {
                     return result;
                 }
@@ -813,7 +813,7 @@ public class TableCellBox extends BlockBox {
 
         // (3) Our row's bottom border. (FIXME: Deal with rowspan!)
         result = compareBorders(result, 
-                    CollapsedBorderValue.borderBottom(getParent().getStyle().getBorder(c), BROW));
+                    CollapsedBorderValue.borderBottom(getParent().getStyle().getDeclaredBorder(c), BROW));
         if (result.hidden()) {
             return result;
         }
@@ -821,7 +821,7 @@ public class TableCellBox extends BlockBox {
         // (4) The next row's top border.
         if (nextCell != null) {
             result = compareBorders(result, 
-                        CollapsedBorderValue.borderTop(nextCell.getParent().getStyle().getBorder(c), BROW));
+                        CollapsedBorderValue.borderTop(nextCell.getParent().getStyle().getDeclaredBorder(c), BROW));
             if (result.hidden()) {
                 return result;
             }
@@ -832,7 +832,7 @@ public class TableCellBox extends BlockBox {
         if (getRow() + getStyle().getRowSpan() >= currSection.numRows()) {
             // (5) Our row group's bottom border.
             result = compareBorders(result, 
-                        CollapsedBorderValue.borderBottom(currSection.getStyle().getBorder(c), BROWGROUP));
+                        CollapsedBorderValue.borderBottom(currSection.getStyle().getDeclaredBorder(c), BROWGROUP));
             if (result.hidden()) {
                 return result;
             }
@@ -841,7 +841,7 @@ public class TableCellBox extends BlockBox {
             currSection = getTable().sectionBelow(currSection, false);
             if (currSection != null) {
                 result = compareBorders(result, 
-                            CollapsedBorderValue.borderTop(currSection.getStyle().getBorder(c), BROWGROUP));
+                            CollapsedBorderValue.borderTop(currSection.getStyle().getDeclaredBorder(c), BROWGROUP));
                 if (result.hidden()) {
                     return result;
                 }

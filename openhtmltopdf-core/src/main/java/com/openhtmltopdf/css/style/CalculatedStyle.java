@@ -379,6 +379,20 @@ public class CalculatedStyle {
         }
     }
 
+    /**
+     * The border as declared, even for elements which may not have a border of
+     * their own such as table rows and row groups.
+     * <br><br>
+     * Those borders take part in the conflict resolution of the collapsing
+     * borders model (CSS 2.1, 17.6.2) and so have to be visible to
+     * {@link com.openhtmltopdf.newtable.TableCellBox}, while
+     * {@link #getBorder(CssContext)} keeps returning an empty border so that
+     * neither the layout nor the painting of the row itself is affected.
+     */
+    public BorderPropertySet getDeclaredBorder(CssContext ctx) {
+        return getBorderProperty(this, ctx);
+    }
+
     public FontSpecification getFont(CssContext ctx) {
         if (_font == null) {
             _font = new FontSpecification();

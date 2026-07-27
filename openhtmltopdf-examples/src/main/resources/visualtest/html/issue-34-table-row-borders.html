@@ -1,0 +1,123 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 440px;
+  margin: 0;
+}
+body {
+  margin: 0;
+}
+table {
+  margin: 10px;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+td {
+  min-width: 60px;
+  min-height: 20px;
+  padding: 0;
+  background-color: silver;
+}
+
+/* (1) The reported case: a border on a row is painted, and the shared edge
+       between the two rows comes from the first row's bottom border. */
+#row tr {
+  border-bottom: 4px solid red;
+}
+
+/* (2) The border on the second row's top is painted on the row above it. */
+#next-row tr + tr {
+  border-top: 4px solid purple;
+}
+
+/* (3) All four edges of a row. The left and right borders only reach the
+       outer edges of the row, not the edge shared by the two cells. */
+#edges tr {
+  border-top: 4px solid red;
+  border-right: 4px solid green;
+  border-bottom: 4px solid blue;
+  border-left: 4px solid orange;
+}
+
+/* (4) All four edges of a row group. */
+#group tbody {
+  border-top: 4px solid red;
+  border-right: 4px solid green;
+  border-bottom: 4px solid blue;
+  border-left: 4px solid orange;
+}
+
+/* (5) The edges shared by two row groups. */
+#sections thead {
+  border-bottom: 4px solid red;
+}
+#sections tfoot {
+  border-top: 4px solid blue;
+}
+
+/* (6) The cell border wins the conflict with the equally wide row border. */
+#conflict tr {
+  border: 4px solid red;
+}
+#conflict td.wins {
+  border: 4px solid blue;
+}
+
+/* (7) A hidden row border suppresses the cell border below it. */
+#hidden td {
+  border: 4px solid red;
+}
+#hidden tr {
+  border-bottom-style: hidden;
+}
+
+/* (8) Borders on rows are ignored in the separated model. */
+#separate {
+  border-collapse: separate;
+}
+#separate tr {
+  border-bottom: 4px solid red;
+}
+</style>
+</head>
+<body>
+<table id="row">
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+</table>
+
+<table id="next-row">
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+</table>
+
+<table id="edges">
+<tr><td></td><td></td></tr>
+</table>
+
+<table id="group">
+<tbody>
+<tr><td></td><td></td></tr>
+</tbody>
+</table>
+
+<table id="sections">
+<thead><tr><td></td><td></td></tr></thead>
+<tbody><tr><td></td><td></td></tr></tbody>
+<tfoot><tr><td></td><td></td></tr></tfoot>
+</table>
+
+<table id="conflict">
+<tr><td class="wins"></td><td></td></tr>
+</table>
+
+<table id="hidden">
+<tr><td></td><td></td></tr>
+</table>
+
+<table id="separate">
+<tr><td></td><td></td></tr>
+</table>
+</body>
+</html>

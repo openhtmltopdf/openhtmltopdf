@@ -1769,6 +1769,19 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("invoice-multi-page", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that borders set on rows and row groups take part in the border
+     * conflict resolution of the collapsing borders model: all four edges of a
+     * row and of a row group, the edges shared by two rows and by two row
+     * groups, a cell border winning against an equally wide row border and a
+     * hidden row border suppressing the cell border. Borders on rows must
+     * still be ignored in the separated borders model. Issue 34.
+     */
+    @Test
+    public void testTableRowBorders() throws IOException {
+        assertTrue(vt.runTest("issue-34-table-row-borders"));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
