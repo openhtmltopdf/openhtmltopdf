@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import java.awt.Dimension;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +31,7 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import com.openhtmltopdf.testlistener.PrintingRunner;
 import com.openhtmltopdf.util.Diagnostic;
+import com.openhtmltopdf.util.OpenUtil;
 import com.openhtmltopdf.visualtest.TestSupport;
 
 /**
@@ -97,8 +99,7 @@ public class SvgCssImageNonVisualTest {
             assertEquals("the artwork should be in the document exactly once", 1, forms.size());
 
             // 200x200 box tiled with a 20x20 image, so the one form is placed a hundred times.
-            String content = new String(
-                    doc.getPage(0).getContents().readAllBytes(), StandardCharsets.UTF_8);
+            String content = pageContent(doc, 0);
             String formName = doc.getPage(0).getResources().getXObjectNames().iterator().next().getName();
 
             assertEquals(100, countOccurrences(content, "/" + formName + " Do"));
@@ -123,8 +124,7 @@ public class SvgCssImageNonVisualTest {
             for (int page = 0; page < 2; page++) {
                 assertEquals("page " + page + " should carry the artwork", 1, formsOnPage(doc, page).size());
 
-                String content = new String(
-                        doc.getPage(page).getContents().readAllBytes(), StandardCharsets.UTF_8);
+                String content = pageContent(doc, page);
                 String formName = doc.getPage(page).getResources().getXObjectNames().iterator().next().getName();
 
                 assertEquals("page " + page + " should draw the artwork",
@@ -273,6 +273,13 @@ public class SvgCssImageNonVisualTest {
         }
 
         return logs.stream().map(Diagnostic::getFormattedMessage).collect(Collectors.joining("\n"));
+    }
+
+    /** The content stream of a page, as text. */
+    private static String pageContent(PDDocument doc, int pageNo) throws IOException {
+        try (InputStream in = doc.getPage(pageNo).getContents()) {
+            return new String(OpenUtil.readAll(in), StandardCharsets.UTF_8);
+        }
     }
 
     private static int countOccurrences(String haystack, String needle) {
