@@ -47,4 +47,14 @@ public interface FSFontMetrics {
     default float getTypoDescent() {
         return getDescent();
     }
+
+    /**
+     * The extra space the font asks for between consecutive lines (its line
+     * gap, also known as external leading), on top of ascent plus descent.
+     * Browsers add it when computing <code>line-height: normal</code>, so we do
+     * too. Zero for fonts that do not declare one.
+     */
+    default float getLineGap() {
+        return 0f;
+    }
 }

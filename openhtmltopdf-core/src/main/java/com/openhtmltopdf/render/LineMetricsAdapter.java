@@ -96,11 +96,22 @@ public class LineMetricsAdapter implements FSFontMetrics {
 
     public float getUnderlineThickness() {
     	float max = -Float.MAX_VALUE;
-    	
+
     	for (LineMetrics met : _lineMetrics) {
     		max = Math.max(max, met.getUnderlineThickness());
     	}
-    	
+
+    	return max;
+    }
+
+    @Override
+    public float getLineGap() {
+    	float max = -Float.MAX_VALUE;
+
+    	for (LineMetrics met : _lineMetrics) {
+    		max = Math.max(max, met.getLeading());
+    	}
+
     	return max;
     }
 }

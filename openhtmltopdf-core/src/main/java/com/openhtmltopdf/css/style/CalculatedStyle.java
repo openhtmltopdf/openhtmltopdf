@@ -476,11 +476,15 @@ public class CalculatedStyle {
     public float getLineHeight(CssContext ctx) {
         if (! _lineHeightResolved) {
             if (isIdent(CSSName.LINE_HEIGHT, IdentValue.NORMAL)) {
-                float lineHeight1 = getFont(ctx).size * 1.1f;
-                // Make sure rasterized characters will (probably) fit inside
-                // the line box
+                // Browsers space lines by the font's own design metrics, so use
+                // ascent plus descent plus the line gap the font asks for.
                 FSFontMetrics metrics = getFSFontMetrics(ctx);
-                float lineHeight2 = (float)Math.ceil(metrics.getDescent() + metrics.getAscent());
+                float lineHeight1 = (float) Math.ceil(
+                        metrics.getAscent() + metrics.getDescent() + metrics.getLineGap());
+                // The built-in PDF fonts describe themselves with an em box that
+                // is a good deal shorter than their glyphs and carry no line gap,
+                // so keep a floor to stop their lines from running together.
+                float lineHeight2 = getFont(ctx).size * 1.1f;
                 _lineHeight = Math.max(lineHeight1, lineHeight2);
             } else if (isLength(CSSName.LINE_HEIGHT)) {
                 //could be more elegant, I suppose

@@ -84,6 +84,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
         float largestUnderlinePosition = -Float.MAX_VALUE;
         float largestUnderlineThickness = -Float.MAX_VALUE;
         float largestTypoDescent = -Float.MAX_VALUE;
+        float largestLineGap = -Float.MAX_VALUE;
 
         for (FontDescription des : descrs) {
             PdfBoxRawPDFontMetrics metrics = des.getFontMetrics();
@@ -130,6 +131,10 @@ public class PdfBoxTextRenderer implements TextRenderer {
             if (metrics._typoDescent > largestTypoDescent) {
                 largestTypoDescent = metrics._typoDescent;
             }
+
+            if (metrics._lineGap > largestLineGap) {
+                largestLineGap = metrics._lineGap;
+            }
         }
 
         result.setAscent(largestAscent / 1000f * size);
@@ -145,6 +150,7 @@ public class PdfBoxTextRenderer implements TextRenderer {
         result.setUnderlineOffset(largestUnderlinePosition / 1000f * size);
         result.setUnderlineThickness(largestUnderlineThickness / 1000f * size);
         result.setTypoDescent(largestTypoDescent / 1000f * size);
+        result.setLineGap(largestLineGap / 1000f * size);
 
         return result;
     }

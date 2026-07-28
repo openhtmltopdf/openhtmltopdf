@@ -3,9 +3,13 @@ package com.openhtmltopdf.nonvisualregressiontests;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDFontDescriptor;
+import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts.FontName;
 import org.junit.Test;
@@ -64,5 +68,34 @@ public class PdfBoxRawPDFontMetricsTest {
 
         assertEquals("Helvetica bounding box top", 931f, metrics._ascent, 0.1f);
         assertEquals("Helvetica bounding box bottom", 225f, metrics._descent, 0.1f);
+    }
+
+    /**
+     * Tests that the line gap comes from the embedded font's hhea table, as the PDF
+     * font descriptor has no entry for it.
+     */
+    @Test
+    public void testLineGapFromEmbeddedFontProgram() throws IOException {
+        try (PDDocument doc = new PDDocument();
+             InputStream is = PdfBoxRawPDFontMetricsTest.class.getClassLoader().getResourceAsStream(
+                     "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf")) {
+            PDFont font = PDType0Font.load(doc, is, false);
+            PdfBoxRawPDFontMetrics metrics = PdfBoxRawPDFontMetrics.fromPdfBox(font, font.getFontDescriptor());
+
+            // Liberation Sans asks for 67 units of line gap at 2048 units per em.
+            assertEquals("Liberation Sans line gap", 67f * 1000 / 2048, metrics._lineGap, 0.1f);
+        }
+    }
+
+    /**
+     * Tests that the built-in fonts report no line gap, as AFM metrics do not
+     * describe one.
+     */
+    @Test
+    public void testNoLineGapForBuiltinFonts() throws IOException {
+        PDType1Font font = new PDType1Font(FontName.HELVETICA);
+        PdfBoxRawPDFontMetrics metrics = PdfBoxRawPDFontMetrics.fromPdfBox(font, font.getFontDescriptor());
+
+        assertEquals("Helvetica line gap", 0f, metrics._lineGap, 0.001f);
     }
 }
