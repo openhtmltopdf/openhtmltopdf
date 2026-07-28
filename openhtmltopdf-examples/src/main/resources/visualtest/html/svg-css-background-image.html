@@ -1,0 +1,57 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 300px;
+  margin: 0;
+}
+div {
+  height: 35px;
+  margin: 5px;
+  border: 1px solid black;
+}
+/* The usual way to write an inline SVG: percent encoded, so that it is legal in a URI
+   and does not upset the XML parser when it sits inside a style element. */
+.repeat {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+}
+/* Sized and placed. An SVG with a viewBox keeps its aspect ratio inside the size given
+   by background-size, the same way a browser does it. */
+.sized {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 60px 30px;
+  background-position: 10px 3px;
+}
+/* Scaled up well past its own size: still vector, so still sharp. */
+.cover {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+/* The base 64 flavour of the same image. */
+.base64 {
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyMCcgaGVpZ2h0PScyMCcgdmlld0JveD0nMCAwIDIwIDIwJz48cmVjdCB4PScwJyB5PScwJyB3aWR0aD0nMjAnIGhlaWdodD0nMjAnIGZpbGw9JyNmZmRkZGQnLz48Y2lyY2xlIGN4PScxMCcgY3k9JzEwJyByPSc4JyBmaWxsPSdub25lJyBzdHJva2U9JyNjYzAwMDAnIHN0cm9rZS13aWR0aD0nMicvPjwvc3ZnPg==");
+  background-repeat: no-repeat;
+}
+/* Unencoded markup with a media type parameter, as in issue 32. The markup still has to be
+   escaped for XML here, otherwise the XML parser eats the rest of the stylesheet. */
+.utf8 {
+  background-image: url("data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'&gt;&lt;rect x='0' y='0' width='20' height='20' fill='%23ffdddd'/&gt;&lt;circle cx='10' cy='10' r='8' fill='none' stroke='%23cc0000' stroke-width='2'/&gt;&lt;/svg&gt;");
+  background-repeat: no-repeat;
+}
+/* A CSS image is an independent document, so this must NOT recolour the circles above. */
+circle {
+  stroke: blue;
+  fill: blue;
+}
+</style>
+</head>
+<body>
+  <div class="repeat"></div>
+  <div class="sized"></div>
+  <div class="cover"></div>
+  <div class="base64"></div>
+  <div class="utf8"></div>
+</body>
+</html>

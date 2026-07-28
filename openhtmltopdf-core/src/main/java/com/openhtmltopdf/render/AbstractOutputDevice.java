@@ -328,6 +328,14 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
         Rectangle localBGImageContainer = bgImageContainer;
 
+        if (backgroundImage instanceof FSSVGImage) {
+            // An SVG written in percentages, or with no width and height at all, has no size
+            // of its own. CSS then gives it the default object size, which for a background is
+            // the area it is painted into. background-size, applied just below, still wins.
+            ((FSSVGImage) backgroundImage).sizeToDefaultObjectSize(
+                    localBGImageContainer.width, localBGImageContainer.height);
+        }
+
         scaleBackgroundImage(c, style, localBGImageContainer, backgroundImage, bgImage);
 
         float imageWidth = backgroundImage.getWidth();

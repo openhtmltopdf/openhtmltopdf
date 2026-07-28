@@ -186,6 +186,8 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
             if (_svgImpl != null) {
                 _svgImpl.withUserAgent(userAgent);
+                // So that SVGs used as CSS images, such as a background-image, can be drawn too.
+                userAgent.setSVGDrawer(_svgImpl);
             }
 
             userAgent.setProtocolsStreamFactory(state._streamFactoryMap);

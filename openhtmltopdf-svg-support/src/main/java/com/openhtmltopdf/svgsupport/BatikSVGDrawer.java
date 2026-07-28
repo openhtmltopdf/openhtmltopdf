@@ -101,12 +101,23 @@ public class BatikSVGDrawer implements SVGDrawer {
         BatikSVGImage img = new BatikSVGImage(
                 svgElement, box, cssWidth, cssHeight,
                 cssMaxWidth, cssMaxHeight, dotsPerPixel, c);
+        return configure(img);
+    }
+
+    @Override
+    public SVGImage buildStandaloneSVGImage(Element svgElement, String uri, double targetWidth,
+            double targetHeight, double dotsPerPixel) {
+
+        return configure(new BatikSVGImage(svgElement, targetWidth, targetHeight, dotsPerPixel));
+    }
+
+    private SVGImage configure(BatikSVGImage img) {
         img.setFontResolver(fontResolver);
         img.setUserAgentCallback(userAgentCallback);
         img.setSecurityOptions(allowScripts, allowExternalResources, allowedProtocols);
         return img;
     }
-    
+
     @Override
     public void close() {
     }

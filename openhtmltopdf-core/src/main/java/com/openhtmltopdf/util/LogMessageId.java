@@ -124,6 +124,9 @@ public interface LogMessageId {
         LOAD_PARSE_STYLESHEETS_TIME(XRLog.LOAD, "TIME: parse stylesheets {}ms"),
         LOAD_REQUESTING_STYLESHEET_AT_URI(XRLog.LOAD, "Requesting stylesheet: {}"),
         LOAD_UNRECOGNIZED_IMAGE_FORMAT_FOR_URI(XRLog.LOAD, "Unrecognized image format for: {}"),
+        LOAD_SVG_IMAGE_WITHOUT_SVG_DRAWER(XRLog.LOAD, "Found a SVG image at ({}) but no SVG drawer is registered, so it can not be drawn. " +
+                "Register one with useSVGDrawer(new BatikSVGDrawer()) on the builder."),
+        LOAD_SVG_IMAGE_HAS_NO_USABLE_SIZE(XRLog.LOAD, "The SVG at ({}) has no usable size, so it can not be drawn as an image."),
         LOAD_URI_RESOLVER_REJECTED_RESOLVING_CSS_IMPORT_AT_URI(XRLog.LOAD, "URI resolver rejected resolving CSS import at ({})"),
         LOAD_URI_RESOLVER_REJECTED_RESOLVING_URI_AT_URI_IN_CSS_STYLESHEET(XRLog.LOAD, "URI resolver rejected resolving URI at ({}) in CSS stylehseet"),
         LOAD_PUTTING_KEY_IN_CACHE(XRLog.LOAD, "Putting key({}) in cache."),
@@ -149,6 +152,7 @@ public interface LogMessageId {
         GENERAL_INVALID_INTEGER_PASSED_AS_DIMENSION_FOR_SVG(XRLog.GENERAL, "Invalid integer passed as dimension for SVG: {}"),
         GENERAL_COULD_NOT_FIND_FONT_SPECIFIED_FOR_MATHML_OBJECT_IN_FONT_FACE_RULES(XRLog.GENERAL, "Could not find font ({}) specified for MathML object in font-face rules"),
         GENERAL_FONT_ADDED_AS_STREAM_IGNORED_BY_SVG_DRAWER(XRLog.GENERAL, "Font ({}) supplied as a stream is being ignored because this SVGDrawer does not implement addFontStream. SVG/MathML content will fall back to a default font."),
+        GENERAL_CSS_IMAGE_IGNORED_BY_SVG_DRAWER(XRLog.GENERAL, "The SVG at ({}) is being ignored because this SVGDrawer does not implement buildStandaloneSVGImage. Only SVGs in a replaced element, ie. a svg or img element, will be drawn."),
         GENERAL_PDF_ACCESSIBILITY_NO_TITLE_TEXT_PROVIDED_FOR(XRLog.GENERAL, "PDF/UA - No title text provided for {}."),
         GENERAL_PDF_COULD_NOT_FIND_VALID_TARGET_FOR_BOOKMARK(XRLog.GENERAL, "Could not find valid target for bookmark. Bookmark href = {}"),
         GENERAL_PDF_COULD_NOT_FIND_VALID_TARGET_FOR_LINK(XRLog.GENERAL, "Could not find valid target for link. Link href = {}"),
@@ -244,6 +248,8 @@ public interface LogMessageId {
         GENERAL_PDF_FOUND_ELEMENT_WITHOUT_ATTRIBUTE_NAME(XRLog.GENERAL, "found a <{} {}> element without attribute name, the element will not work without this attribute"),
         GENERAL_UNABLE_TO_PARSE_VALUE_AS(XRLog.GENERAL, "Unable to parse value '{}' as {}"),
         GENERAL_FOOTNOTE_AREA_INVALID_STYLE(XRLog.GENERAL, "Invalid value ({}) specified for @footnote area in {} property. Ignoring declaration."),
+        GENERAL_UNUSABLE_DIMENSION_FOR_SVG_AS_CSS_IMAGE(XRLog.GENERAL, "Can not use the {} ({}) of a SVG drawn as a CSS image: only an absolute pixel length can be used here, " +
+                "a relative one has no element to be resolved against. Falling back to the default size, give the SVG a viewBox or an absolute width and height to avoid this."),
 
         EXCEPTION_SVG_EXTERNAL_RESOURCE_NOT_ALLOWED(XRLog.EXCEPTION, "Tried to fetch external resource from SVG. Refusing. Details: {}, {}"),
         EXCEPTION_DEFAULT_USERAGENT_IS_NOT_ABLE_TO_RESOLVE_URL_WITH_BASE_URL(XRLog.EXCEPTION, "The default NaiveUserAgent cannot resolve the URL {} with base URL {}");

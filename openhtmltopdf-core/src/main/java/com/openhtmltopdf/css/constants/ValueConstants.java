@@ -43,12 +43,57 @@ public final class ValueConstants {
         return sacTypesStrings.get(type);
     }
 
+    /** CSS fixes the physical units to 96 pixels per inch. */
+    private final static float PX__PER__IN = 96f;
+    private final static float PT__PER__IN = 72f;
+    private final static float PC__PER__IN = 6f;
+    private final static float CM__PER__IN = 2.54f;
+    private final static float MM__PER__IN = 25.4f;
+
+    /**
+     * Converts a length in an absolute unit to CSS pixels.
+     *
+     * <p>Unlike {@link com.openhtmltopdf.css.style.derived.LengthValue#calcFloatProportionalValue},
+     * which converts to dots and therefore needs a style and a context, this only handles the
+     * units whose conversion is fixed by CSS, and so needs neither. Useful where a length turns
+     * up outside a styled element, such as the <code>width</code> attribute of an SVG that is
+     * being used as an image.</p>
+     *
+     * <p>A unitless number is treated as pixels, as CSS and SVG both do.</p>
+     *
+     * @param type the unit, one of the <code>CSSPrimitiveValue</code> constants
+     * @param value the length in that unit
+     *
+     * @return the length in CSS pixels, or null for a unit that can not be resolved without
+     * knowing the surroundings, such as a percentage or a font relative unit.
+     */
+    public static Float absoluteLengthToPixels(short type, float value) {
+        switch (type) {
+            case CSSPrimitiveValue.CSS_NUMBER:
+            case CSSPrimitiveValue.CSS_PX:
+                return value;
+            case CSSPrimitiveValue.CSS_IN:
+                return value * PX__PER__IN;
+            case CSSPrimitiveValue.CSS_CM:
+                return value * (PX__PER__IN / CM__PER__IN);
+            case CSSPrimitiveValue.CSS_MM:
+                return value * (PX__PER__IN / MM__PER__IN);
+            case CSSPrimitiveValue.CSS_PT:
+                return value * (PX__PER__IN / PT__PER__IN);
+            case CSSPrimitiveValue.CSS_PC:
+                return value * (PX__PER__IN / PC__PER__IN);
+            default:
+                // A percentage, em, ex, rem or something that is not a length at all.
+                return null;
+        }
+    }
+
     /**
      * Returns true if the specified type absolute (even if we have a computed
      * value for it), meaning that either the value can be used directly (e.g.
      * pixels) or there is a fixed context-independent conversion for it (e.g.
      * inches). Proportional types (e.g. %) return false.
-     * 
+     *
      * FIXME: Font proportional units are returned as absolute. Probably
      * wrong method name rather than wrong behavior.
      *

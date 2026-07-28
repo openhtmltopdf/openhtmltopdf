@@ -165,6 +165,13 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
     
     @Override
     public void drawImage(FSImage image, int x, int y, boolean interpolate) {
+        if (image instanceof FSSVGImage) {
+            // An SVG used as a CSS image: hand it back to the SVG drawer so it is drawn
+            // rather than treated as a bitmap.
+            ((FSSVGImage) image).drawSVG(this, x, y);
+            return;
+        }
+
 		Object oldInterpolation = _graphics.getRenderingHint(RenderingHints.KEY_INTERPOLATION);
 		if (interpolate)
 			_graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);

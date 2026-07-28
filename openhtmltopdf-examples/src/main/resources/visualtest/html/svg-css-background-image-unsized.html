@@ -1,0 +1,48 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 400px;
+  margin: 0;
+}
+div {
+  width: 120px;
+  height: 60px;
+  margin: 5px;
+  border: 1px solid black;
+  background-repeat: no-repeat;
+}
+/* Written in percentages, so the image has no size of its own: it fills the box, and the
+   percentages inside it resolve against that, exactly as a browser does it. */
+.percent {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='50%25'%20height='50%25'%3E%3Crect%20x='0'%20y='0'%20width='100%25'%20height='100%25'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='50%25'%20cy='50%25'%20r='40%25'%20fill='none'%20stroke='%23cc0000'%20stroke-width='4'/%3E%3C/svg%3E");
+}
+/* background-size still wins over that. */
+.percent-sized {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='50%25'%20height='50%25'%3E%3Crect%20x='0'%20y='0'%20width='100%25'%20height='100%25'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='50%25'%20cy='50%25'%20r='40%25'%20fill='none'%20stroke='%23cc0000'%20stroke-width='4'/%3E%3C/svg%3E");
+  background-size: 60px 40px;
+}
+/* No width and height at all, the way icons are usually written. The viewBox gives the image
+   a shape, so it is made as large as it fits in the box without being distorted. */
+.viewbox-wide {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2040%2020'%3E%3Crect%20x='0'%20y='0'%20width='40'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='20'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+}
+/* A square one in the same box is limited by the height instead. */
+.viewbox-square {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+}
+/* An absolute width and height do give the image a size of its own, so this one is drawn at
+   20x20 rather than being stretched. */
+.absolute {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+}
+</style>
+</head>
+<body>
+  <div class="percent"></div>
+  <div class="percent-sized"></div>
+  <div class="viewbox-wide"></div>
+  <div class="viewbox-square"></div>
+  <div class="absolute"></div>
+</body>
+</html>
