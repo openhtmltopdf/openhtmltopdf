@@ -1,0 +1,818 @@
+<html>
+<head>
+    <title>Invoice 2026-0473 - latched running sum</title>
+    <style>
+        @page {
+            size: 480px 640px;
+            margin: 24px 24px 34px 24px;
+
+            @bottom-right {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: TestFont, sans-serif;
+                font-size: 8px;
+                color: #666666;
+            }
+            @bottom-left {
+                content: "Invoice 2026-0473 - Muster Handels GmbH";
+                font-family: TestFont, sans-serif;
+                font-size: 8px;
+                color: #666666;
+            }
+        }
+
+        body {
+            font-family: TestFont, sans-serif;
+            font-size: 9px;
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        .letterhead {
+            border-bottom: 2px solid #26506d;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
+        }
+
+        .letterhead .issuer {
+            font-size: 14px;
+            color: #26506d;
+        }
+
+        .letterhead .issuer-address {
+            font-size: 8px;
+            color: #666666;
+        }
+
+        .parties {
+            width: 100%;
+            margin-bottom: 14px;
+        }
+
+        .parties td {
+            vertical-align: top;
+            padding: 0;
+        }
+
+        .parties .label {
+            font-size: 7px;
+            color: #888888;
+        }
+
+        .meta td {
+            padding: 0 0 1px 0;
+        }
+
+        .meta .key {
+            color: #666666;
+            padding-right: 8px;
+        }
+
+        h1 {
+            font-size: 16px;
+            color: #26506d;
+            margin: 0 0 8px 0;
+        }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            -fs-table-paginate: paginate;
+            -fs-page-break-min-height: 40px;
+        }
+
+        table.items tr, table.items thead, table.items tfoot {
+            page-break-inside: avoid;
+        }
+
+        table.items th, table.items td {
+            padding: 3px 4px;
+        }
+
+        table.items thead th {
+            background-color: #26506d;
+            color: #ffffff;
+            font-size: 8px;
+            text-align: left;
+            border: 1px solid #26506d;
+        }
+
+        table.items tbody td {
+            border: 1px solid #c8d4dc;
+        }
+
+        table.items tbody tr:nth-child(odd) td {
+            background-color: #eef3f7;
+        }
+
+        td.num, th.num {
+            text-align: right;
+        }
+
+        td.pos {
+            text-align: right;
+            color: #666666;
+        }
+
+        /* ------------------------------------------------------------------
+           -fs-running-attr(attribute, position)   IMPLEMENTED
+
+           The engine keeps a latch per attribute name. As it lays rows onto a
+           page it remembers that attribute's value from every body row it
+           places (the attribute may sit on the row or on any cell within it,
+           e.g. the position cell). The repeated thead/tfoot then read it back
+           for the page they are being painted on:
+
+             start -> the value in effect when the page STARTED, i.e. the value
+                      carried in from the previous page. Empty on page 1,
+                      because no row has been placed yet.
+             last  -> the value from the last row placed on THIS page, i.e. the
+                      value to carry forward to the next page.
+
+           So each page's "Brought forward" equals the previous page's "Carried
+           forward", and the final "Carried forward" equals the Net total below.
+
+           Why not plain attr(): attr() resolves against the element the content
+           sits on, and it is resolved once at box building time, before
+           pagination exists. These cells have no data-running-sum of their own,
+           so attr() silently yields the empty string. Making attr() page aware
+           would also change the meaning of CSS that is valid today.
+
+           The position argument mirrors GCPM's string(name, start|last), so
+           the two stay conceptually aligned if string-set ever lands. The
+           alternative considered was no argument at all, with thead implying
+           start and tfoot implying last, which reads shorter but hides the rule
+           and gives no way to show a carry over anywhere else on the page.
+
+           Implemented as a dynamic ContentFunction (RunningAttrFunction in
+           ContentFunctionFactory), resolved at render time like counter(page),
+           with the per-page values computed once from the final row-to-page
+           assignment.
+           ------------------------------------------------------------------ */
+        table.items thead tr.brought td.sum::after {
+            content: -fs-running-attr(data-running-sum, start);
+        }
+
+        table.items tfoot tr.carried td.sum::after {
+            content: -fs-running-attr(data-running-sum, last);
+        }
+
+        /* ------------------------------------------------------------------
+           SUPPRESSING WHAT DOES NOT APPLY ON THE EDGE PAGES.   IMPLEMENTED
+
+           Nothing is brought forward onto page 1, and nothing is carried
+           forward off the last page, where the grand total table takes over.
+           Both should disappear there, and until now neither was expressible in
+           CSS: no selector could ask which appearance of a repeated section it
+           is in.
+
+           Two pseudo-classes, :-fs-first-fragment and
+           :-fs-last-fragment, mirroring :first-of-type / :last-of-type but over
+           the PAGE APPEARANCES (fragments) of a repeated table section rather
+           than over DOM siblings. :-fs-first-fragment matches on the page the
+           section first appears (page 1 here); :-fs-last-fragment on the page
+           it last appears (the final page). A section that appears once matches
+           both. The name says "first of what": the first/last fragment, not the
+           first/last sibling, which is why we do not overload :first-of-type.
+
+           The earlier worry about pseudo-classes was: what may such a rule
+           carry? display:none frees space, padding:100px adds it, and adding
+           space on the last appearance feeds back into pagination and
+           oscillates. Answer: restrict the honored properties to display and
+           visibility, and warn on the rest. That is not a strange special case,
+           it is exactly how ::first-line and ::first-letter already restrict
+           which properties apply. A misconfigured rule is then a lint warning,
+           not a broken layout.
+
+           HEAD vs FOOT are deliberately different, and the code is why.
+
+           A running section is laid out ONCE and repositioned as a rigid block
+           onto each page (updateFooterPosition does section.setY then
+           calcChildLocations, moving the whole box). It has one internal layout
+           and one height. So hiding a WHOLE section on an edge page is a clean
+           binary: paint the block or skip it. Hiding one ROW of a multi row
+           section would instead demand a different internal layout and height
+           on that page than on the others, which the rigid block model does not
+           have. So:
+
+             tfoot:-fs-last-fragment -> whole foot. The foot here is nothing but
+                                 carry forward scaffolding, so drop all of it on
+                                 the last page. Robust even if the author writes
+                                 a multi row foot.
+
+             thead tr.brought:-fs-first-fragment -> just the one row. The head
+                                 cannot drop wholesale, because it also carries
+                                 the column titles, which must stay on page 1.
+                                 This is the harder, row level case, kept minimal.
+
+           Whichever, suppression only frees already reserved space on an edge
+           page and only lets following content move earlier, so no row already
+           placed moves and nothing flows backwards onto a full page. By paint
+           time the section's page span is known: its content limit container
+           exposes getInitialPageNo and getLastPageNo, so first is
+           "page == initial" and last is "page == last", nothing more.
+
+           A table that fits on one page has head and foot appearing once, which
+           is both first and last, so both rules fire: both vanish. Correct for
+           a one page invoice.
+
+           Implemented as a matcher side channel, like the dynamic pseudo-classes
+           (:hover etc.): the parser recognizes the pseudo-classes, the matcher
+           diverts the rule out of the cascade into a per-element hide flag
+           (Matcher.getFragmentHide, honoring only display/visibility), and the
+           display-list collector (PagedBoxCollector.addTableHeaderFooter) skips
+           the flagged section or row on its first/last fragment page.
+
+           SPACE RECLAMATION (so nothing is left as a wasted band, and one more
+           row fits where a row was dropped):
+           - Footer on the last page: the foot is trailing, so
+             TableBox.reclaimHiddenFooterSpace shrinks the table by the hidden
+             foot's height and the totals table moves up to sit right after the
+             last item.
+           - Brought row on the first page: the whole paginated body follows it,
+             so the fix decouples the header's two heights. TableSectionBox keeps
+             a full "reserved" height (getReservedHeight) but reduces its flow
+             height by the first-fragment-hidden row. The body then flows up over
+             that row on page 1 (fitting one more item, and no band under the
+             header), while the reserved height still books the room at
+             continuation-page tops (extraSpaceTop) and repositions the full
+             header there, so the brought row shows normally on pages 2+.
+           ------------------------------------------------------------------ */
+        table.items thead tr.brought:-fs-first-fragment {
+            display: none;
+        }
+
+        table.items tfoot:-fs-last-fragment {
+            display: none;
+        }
+
+        table.items thead tr.brought td {
+            background-color: #dfe8ef;
+            color: #26506d;
+            border: 1px solid #c8d4dc;
+            font-size: 8px;
+        }
+
+        table.items tfoot tr.carried td {
+            background-color: #f4f0e4;
+            border: 1px solid #c8d4dc;
+        }
+
+        td.sum-label {
+            text-align: right;
+        }
+
+        td.sum {
+            text-align: right;
+        }
+
+        /* The grand total is a separate table, so it renders exactly once,
+           directly after the last item row. */
+        table.totals {
+            width: 45%;
+            margin-left: 55%;
+            border-collapse: collapse;
+            page-break-inside: avoid;
+        }
+
+        table.totals td {
+            padding: 3px 4px;
+            border: 1px solid #c8d4dc;
+            background-color: #f4f0e4;
+        }
+
+        table.totals tr.total td {
+            background-color: #26506d;
+            color: #ffffff;
+        }
+
+        .terms {
+            margin-top: 12px;
+            font-size: 8px;
+            color: #444444;
+        }
+    </style>
+</head>
+<body>
+<div class="letterhead">
+    <div class="issuer">Muster Handels GmbH</div>
+    <div class="issuer-address">Musterstrasse 1 &#183; 1000 Musterstadt &#183; Musterland &#183; VAT MUS-00000000</div>
+</div>
+
+<h1>Invoice 2026-0473</h1>
+
+<table class="parties">
+    <tr>
+        <td width="55%">
+            <div class="label">BILL TO</div>
+            <div>Beispiel Studios GmbH</div>
+            <div>Frau Erika Mustermann</div>
+            <div>Beispielweg 2</div>
+            <div>2000 Beispielstadt</div>
+            <div>Musterland</div>
+        </td>
+        <td width="45%">
+            <table class="meta">
+                <tr>
+                    <td class="key">Invoice date</td>
+                    <td>2026-07-24</td>
+                </tr>
+                <tr>
+                    <td class="key">Delivery date</td>
+                    <td>2026-07-18</td>
+                </tr>
+                <tr>
+                    <td class="key">Customer no.</td>
+                    <td>K-10238</td>
+                </tr>
+                <tr>
+                    <td class="key">Order ref.</td>
+                    <td>PO-2026-118</td>
+                </tr>
+                <tr>
+                    <td class="key">Payment terms</td>
+                    <td>14 days net</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<table class="items">
+    <colgroup>
+        <col style="width: 7%"/>
+        <col/>
+        <col style="width: 10%"/>
+        <col style="width: 17%"/>
+        <col style="width: 3cm"/>
+    </colgroup>
+
+    <thead>
+    <tr>
+        <th class="num">Pos.</th>
+        <th>Description</th>
+        <th class="num">Qty</th>
+        <th class="num">Unit price</th>
+        <th class="num">Amount</th>
+    </tr>
+    <tr class="brought">
+        <td colspan="4" class="sum-label">Brought forward (EUR)</td>
+        <td class="sum"></td>
+    </tr>
+    </thead>
+
+    <tfoot>
+    <tr class="carried">
+        <td colspan="4" class="sum-label">Carried forward (EUR)</td>
+        <td class="sum"></td>
+    </tr>
+    </tfoot>
+
+    <tbody>
+    <tr>
+        <td class="pos" data-running-sum="1 156.00">1</td>
+        <td class="desc">Ergonomic office chair, mesh back</td>
+        <td class="num">4</td>
+        <td class="num">289.00</td>
+        <td class="num">1 156.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="3 352.00">2</td>
+        <td class="desc">Height adjustable desk 160x80</td>
+        <td class="num">4</td>
+        <td class="num">549.00</td>
+        <td class="num">2 196.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="3 727.00">3</td>
+        <td class="desc">Desk lamp LED, dimmable</td>
+        <td class="num">6</td>
+        <td class="num">62.50</td>
+        <td class="num">375.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="4 321.50">4</td>
+        <td class="desc">Monitor arm, dual, gas spring</td>
+        <td class="num">5</td>
+        <td class="num">118.90</td>
+        <td class="num">594.50</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="6 953.50">5</td>
+        <td class="desc">27" IPS monitor, 2560x1440</td>
+        <td class="num">8</td>
+        <td class="num">329.00</td>
+        <td class="num">2 632.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="8 671.50">6</td>
+        <td class="desc">USB-C docking station, 90W</td>
+        <td class="num">8</td>
+        <td class="num">214.75</td>
+        <td class="num">1 718.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="9 442.70">7</td>
+        <td class="desc">Mechanical keyboard, ISO layout</td>
+        <td class="num">8</td>
+        <td class="num">96.40</td>
+        <td class="num">771.20</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="9 772.30">8</td>
+        <td class="desc">Wireless mouse, silent switches</td>
+        <td class="num">8</td>
+        <td class="num">41.20</td>
+        <td class="num">329.60</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="10 846.30">9</td>
+        <td class="desc">Noise cancelling headset</td>
+        <td class="num">6</td>
+        <td class="num">179.00</td>
+        <td class="num">1 074.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="11 295.70">10</td>
+        <td class="desc">Webcam 1080p with privacy shutter</td>
+        <td class="num">6</td>
+        <td class="num">74.90</td>
+        <td class="num">449.40</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="11 604.50">11</td>
+        <td class="desc">Laptop stand, aluminium</td>
+        <td class="num">8</td>
+        <td class="num">38.60</td>
+        <td class="num">308.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="11 713.70">12</td>
+        <td class="desc">Cable management tray</td>
+        <td class="num">4</td>
+        <td class="num">27.30</td>
+        <td class="num">109.20</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="11 912.60">13</td>
+        <td class="desc">Power strip 6-way, surge protected</td>
+        <td class="num">6</td>
+        <td class="num">33.15</td>
+        <td class="num">198.90</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="12 029.00">14</td>
+        <td class="desc">Network patch cable Cat6a, 2m</td>
+        <td class="num">24</td>
+        <td class="num">4.85</td>
+        <td class="num">116.40</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="12 117.80">15</td>
+        <td class="desc">Network patch cable Cat6a, 5m</td>
+        <td class="num">12</td>
+        <td class="num">7.40</td>
+        <td class="num">88.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="13 053.80">16</td>
+        <td class="desc">Gigabit switch, 24 port, managed</td>
+        <td class="num">2</td>
+        <td class="num">468.00</td>
+        <td class="num">936.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="14 211.30">17</td>
+        <td class="desc">Wireless access point, WiFi 6</td>
+        <td class="num">5</td>
+        <td class="num">231.50</td>
+        <td class="num">1 157.50</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="14 373.90">18</td>
+        <td class="desc">Rack shelf 19", 1U</td>
+        <td class="num">3</td>
+        <td class="num">54.20</td>
+        <td class="num">162.60</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="15 153.70">19</td>
+        <td class="desc">UPS 1500VA, line interactive</td>
+        <td class="num">2</td>
+        <td class="num">389.90</td>
+        <td class="num">779.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="15 765.70">20</td>
+        <td class="desc">NAS enclosure, 4 bay</td>
+        <td class="num">1</td>
+        <td class="num">612.00</td>
+        <td class="num">612.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="16 558.90">21</td>
+        <td class="desc">Hard disk 8TB, NAS rated</td>
+        <td class="num">4</td>
+        <td class="num">198.30</td>
+        <td class="num">793.20</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="17 434.90">22</td>
+        <td class="desc">SSD 1TB NVMe</td>
+        <td class="num">10</td>
+        <td class="num">87.60</td>
+        <td class="num">876.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="17 732.90">23</td>
+        <td class="desc">Label printer, thermal</td>
+        <td class="num">2</td>
+        <td class="num">149.00</td>
+        <td class="num">298.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="17 912.15">24</td>
+        <td class="desc">Label tape, black on white, 12mm</td>
+        <td class="num">15</td>
+        <td class="num">11.95</td>
+        <td class="num">179.25</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="18 640.15">25</td>
+        <td class="desc">Laser printer, colour, duplex</td>
+        <td class="num">1</td>
+        <td class="num">728.00</td>
+        <td class="num">728.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="19 027.35">26</td>
+        <td class="desc">Toner cartridge, black</td>
+        <td class="num">4</td>
+        <td class="num">96.80</td>
+        <td class="num">387.20</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="19 252.15">27</td>
+        <td class="desc">Toner cartridge, cyan</td>
+        <td class="num">2</td>
+        <td class="num">112.40</td>
+        <td class="num">224.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="19 476.95">28</td>
+        <td class="desc">Toner cartridge, magenta</td>
+        <td class="num">2</td>
+        <td class="num">112.40</td>
+        <td class="num">224.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="19 701.75">29</td>
+        <td class="desc">Toner cartridge, yellow</td>
+        <td class="num">2</td>
+        <td class="num">112.40</td>
+        <td class="num">224.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="19 925.75">30</td>
+        <td class="desc">Copy paper A4, 80g, 500 sheets</td>
+        <td class="num">40</td>
+        <td class="num">5.60</td>
+        <td class="num">224.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="20 115.75">31</td>
+        <td class="desc">Document folder A4, box of 50</td>
+        <td class="num">8</td>
+        <td class="num">23.75</td>
+        <td class="num">190.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="20 217.75">32</td>
+        <td class="desc">Archive box, 80mm</td>
+        <td class="num">30</td>
+        <td class="num">3.40</td>
+        <td class="num">102.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="20 631.75">33</td>
+        <td class="desc">Whiteboard 120x90 incl. tray</td>
+        <td class="num">3</td>
+        <td class="num">138.00</td>
+        <td class="num">414.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="20 749.95">34</td>
+        <td class="desc">Whiteboard marker set, 4 colours</td>
+        <td class="num">12</td>
+        <td class="num">9.85</td>
+        <td class="num">118.20</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="20 895.95">35</td>
+        <td class="desc">Flipchart pad, 20 sheets</td>
+        <td class="num">10</td>
+        <td class="num">14.60</td>
+        <td class="num">146.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="21 079.70">36</td>
+        <td class="desc">Pin board, cork, 90x60</td>
+        <td class="num">3</td>
+        <td class="num">61.25</td>
+        <td class="num">183.75</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="22 328.70">37</td>
+        <td class="desc">Coffee machine, fully automatic</td>
+        <td class="num">1</td>
+        <td class="num">1 249.00</td>
+        <td class="num">1 249.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="22 706.70">38</td>
+        <td class="desc">Coffee beans, 1kg, fair trade</td>
+        <td class="num">20</td>
+        <td class="num">18.90</td>
+        <td class="num">378.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="23 182.70">39</td>
+        <td class="desc">Water dispenser, plumbed</td>
+        <td class="num">1</td>
+        <td class="num">476.00</td>
+        <td class="num">476.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="23 281.40">40</td>
+        <td class="desc">Cleaning kit for screens</td>
+        <td class="num">6</td>
+        <td class="num">16.45</td>
+        <td class="num">98.70</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="23 456.00">41</td>
+        <td class="desc">First aid cabinet, filled</td>
+        <td class="num">2</td>
+        <td class="num">87.30</td>
+        <td class="num">174.60</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="23 678.45">42</td>
+        <td class="desc">Fire extinguisher, 6kg foam</td>
+        <td class="num">3</td>
+        <td class="num">74.15</td>
+        <td class="num">222.45</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="23 995.25">43</td>
+        <td class="desc">Floor mat, anti fatigue</td>
+        <td class="num">6</td>
+        <td class="num">52.80</td>
+        <td class="num">316.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="24 534.35">44</td>
+        <td class="desc">Acoustic panel, 60x60, felt</td>
+        <td class="num">18</td>
+        <td class="num">29.95</td>
+        <td class="num">539.10</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="24 728.75">45</td>
+        <td class="desc">Plant pot with self watering insert</td>
+        <td class="num">9</td>
+        <td class="num">21.60</td>
+        <td class="num">194.40</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="24 885.25">46</td>
+        <td class="desc">Signage set, room numbering</td>
+        <td class="num">1</td>
+        <td class="num">156.50</td>
+        <td class="num">156.50</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="26 325.25">47</td>
+        <td class="desc">Installation and setup on site</td>
+        <td class="num">3</td>
+        <td class="num">480.00</td>
+        <td class="num">1 440.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="27 413.25">48</td>
+        <td class="desc">Cabling works, per hour</td>
+        <td class="num">16</td>
+        <td class="num">68.00</td>
+        <td class="num">1 088.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="27 588.85">49</td>
+        <td class="desc">Wall mount bracket for display</td>
+        <td class="num">4</td>
+        <td class="num">43.90</td>
+        <td class="num">175.60</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="28 116.85">50</td>
+        <td class="desc">Conference speakerphone, USB/BT</td>
+        <td class="num">2</td>
+        <td class="num">264.00</td>
+        <td class="num">528.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="28 267.15">51</td>
+        <td class="desc">HDMI cable 2.1, 3m</td>
+        <td class="num">9</td>
+        <td class="num">16.70</td>
+        <td class="num">150.30</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="28 379.50">52</td>
+        <td class="desc">Presentation clicker with laser</td>
+        <td class="num">3</td>
+        <td class="num">37.45</td>
+        <td class="num">112.35</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="29 273.50">53</td>
+        <td class="desc">Server rack 19", 22U, glass door</td>
+        <td class="num">1</td>
+        <td class="num">894.00</td>
+        <td class="num">894.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="29 357.10">54</td>
+        <td class="desc">Blanking panel 19", 1U, box of 10</td>
+        <td class="num">2</td>
+        <td class="num">41.80</td>
+        <td class="num">83.60</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="29 418.85">55</td>
+        <td class="desc">Cable ties, hook and loop, 25m</td>
+        <td class="num">5</td>
+        <td class="num">12.35</td>
+        <td class="num">61.75</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="29 536.65">56</td>
+        <td class="desc">Screwdriver set, insulated</td>
+        <td class="num">2</td>
+        <td class="num">58.90</td>
+        <td class="num">117.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="29 734.15">57</td>
+        <td class="desc">Cordless drill incl. battery</td>
+        <td class="num">1</td>
+        <td class="num">197.50</td>
+        <td class="num">197.50</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="29 952.15">58</td>
+        <td class="desc">Step ladder, 4 steps, alu</td>
+        <td class="num">2</td>
+        <td class="num">109.00</td>
+        <td class="num">218.00</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="30 524.95">59</td>
+        <td class="desc">Waste separation station, 3 bins</td>
+        <td class="num">4</td>
+        <td class="num">143.20</td>
+        <td class="num">572.80</td>
+    </tr>
+    <tr>
+        <td class="pos" data-running-sum="30 818.95">60</td>
+        <td class="desc">Disposal of old equipment, per unit</td>
+        <td class="num">12</td>
+        <td class="num">24.50</td>
+        <td class="num">294.00</td>
+    </tr>
+    </tbody>
+</table>
+
+<table class="totals">
+    <colgroup>
+        <col/>
+        <col style="width: 3cm"/>
+    </colgroup>
+    <tr>
+        <td class="sum-label">Net total (EUR)</td>
+        <td class="sum">30 818.95</td>
+    </tr>
+    <tr>
+        <td class="sum-label">VAT 20 %</td>
+        <td class="sum">6 163.79</td>
+    </tr>
+    <tr class="total">
+        <td class="sum-label">Total due (EUR)</td>
+        <td class="sum">36 982.74</td>
+    </tr>
+</table>
+
+<div class="terms">
+    Payable within 14 days without deduction to XX00 0000 0000 0000 0000, BIC MUSTXX00.
+    Please quote the invoice number with your payment.
+</div>
+</body>
+</html>

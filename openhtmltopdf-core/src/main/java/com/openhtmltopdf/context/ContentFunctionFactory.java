@@ -21,9 +21,14 @@ package com.openhtmltopdf.context;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.extend.ContentFunction;
@@ -33,6 +38,9 @@ import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.layout.CounterFunction;
 import com.openhtmltopdf.layout.InlineBoxing;
 import com.openhtmltopdf.layout.LayoutContext;
+import com.openhtmltopdf.layout.Layer;
+import com.openhtmltopdf.newtable.TableBox;
+import com.openhtmltopdf.newtable.TableSectionBox;
 import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.InlineBox;
 import com.openhtmltopdf.render.InlineLayoutBox;
@@ -51,6 +59,7 @@ public class ContentFunctionFactory {
         _functions.add(new TargetTextFunction());
         _functions.add(new LeaderFunction());
         _functions.add(new FsIfCutOffFunction());
+        _functions.add(new RunningAttrFunction());
     }
     
     public ContentFunction lookupFunction(LayoutContext c, FSFunction function) {
@@ -95,7 +104,209 @@ public class ContentFunctionFactory {
                    function.getParameters().get(0).getPrimitiveType() == CSSPrimitiveValue.CSS_STRING;
         }
     }
-    
+
+    /**
+     * Content function <code>-fs-running-attr(attribute, start|last)</code>.
+     * <p>
+     * The engine keeps a per page "latch" of an attribute's value read off the
+     * body rows of a paginated table, and lets the repeated thead/tfoot echo it:
+     * <ul>
+     * <li><code>start</code> &rarr; the value in effect when the page started,
+     * i.e. the value carried in from the previous page (empty on the first
+     * page).</li>
+     * <li><code>last</code> &rarr; the value from the last row placed on this
+     * page, i.e. the value to carry forward to the next page.</li>
+     * </ul>
+     * This is the engine side of the running-sum / carry-over pattern: every
+     * body row publishes a value through a data attribute (e.g.
+     * <code>data-running-sum</code>) and the header/footer read the relevant
+     * one for the page they are being painted on. Like the page counters, it is
+     * resolved at render time, once the row-to-page assignment is final.
+     */
+    private static class RunningAttrFunction extends ContentFunctionAbstract {
+        // Per render latch, weakly keyed so it does not outlive the document's
+        // boxes: table -> attribute name -> value in effect at the end of each
+        // page.
+        private final Map<TableBox, Map<String, PageValues>> _cache = new WeakHashMap<>();
+
+        @Override
+        public String calculate(LayoutContext c, FSFunction function) {
+            return null;
+        }
+
+        @Override
+        public String getLayoutReplacementText() {
+            // Placeholder for width at layout; the real column width comes from
+            // the body cells, so a short stand-in is enough.
+            return "0";
+        }
+
+        @Override
+        public String calculate(RenderingContext c, FSFunction function, InlineText text) {
+            String attr = function.getParameters().get(0).getStringValue();
+            String position = function.getParameters().get(1).getStringValue();
+
+            TableBox table = findTable(text.getParent());
+            if (table == null) {
+                return "";
+            }
+
+            Layer layer = table.getContainingLayer();
+            if (layer == null) {
+                return "";
+            }
+
+            PageValues values = valuesFor(c, layer, table, attr);
+            int page = layer.getRelativePageNo(c);
+
+            if (position.equals("start")) {
+                // Value carried in from the previous page; nothing before the first.
+                return page <= values.firstPage ? "" : values.endOfPage(page - 1);
+            }
+
+            // "last": the value in effect at the end of this page.
+            return values.endOfPage(page);
+        }
+
+        private PageValues valuesFor(RenderingContext c, Layer layer, TableBox table, String attr) {
+            Map<String, PageValues> byAttr = _cache.computeIfAbsent(table, t -> new HashMap<>());
+            PageValues cached = byAttr.get(attr);
+            if (cached == null) {
+                cached = compute(c, layer, table, attr);
+                byAttr.put(attr, cached);
+            }
+            return cached;
+        }
+
+        /**
+         * Walks the body rows in document order, recording the last value seen
+         * on each page. Header and footer sections are the readers, not the
+         * source, so they are skipped.
+         */
+        private PageValues compute(RenderingContext c, Layer layer, TableBox table, String attr) {
+            Map<Integer, String> lastOnPage = new HashMap<>();
+            int minPage = Integer.MAX_VALUE;
+            int maxPage = Integer.MIN_VALUE;
+
+            for (int i = 0; i < table.getChildCount(); i++) {
+                Box child = table.getChild(i);
+                if (!(child instanceof TableSectionBox)) {
+                    continue;
+                }
+                TableSectionBox section = (TableSectionBox) child;
+                if (section.isHeader() || section.isFooter()) {
+                    continue;
+                }
+                for (int j = 0; j < section.getChildCount(); j++) {
+                    Box row = section.getChild(j);
+                    Element el = row.getElement();
+                    if (el == null) {
+                        continue;
+                    }
+                    String value = rowAttr(el, attr);
+                    if (value.isEmpty()) {
+                        continue;
+                    }
+                    int page = layer.getRelativePageNo(c, row.getAbsY());
+                    lastOnPage.put(page, value); // later rows overwrite: last on the page wins
+                    minPage = Math.min(minPage, page);
+                    maxPage = Math.max(maxPage, page);
+                }
+            }
+
+            return new PageValues(lastOnPage, minPage, maxPage);
+        }
+
+        private static TableBox findTable(Box box) {
+            for (Box b = box; b != null; b = b.getParent()) {
+                if (b instanceof TableBox) {
+                    return (TableBox) b;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * The attribute may be authored on the row itself or on any cell within
+         * it (e.g. on the position cell). The first occurrence in document order
+         * wins.
+         */
+        private static String rowAttr(Element rowEl, String attr) {
+            String value = rowEl.getAttribute(attr);
+            if (!value.isEmpty()) {
+                return value;
+            }
+            NodeList descendants = rowEl.getElementsByTagName("*");
+            for (int i = 0; i < descendants.getLength(); i++) {
+                Node node = descendants.item(i);
+                if (node instanceof Element) {
+                    String cellValue = ((Element) node).getAttribute(attr);
+                    if (!cellValue.isEmpty()) {
+                        return cellValue;
+                    }
+                }
+            }
+            return "";
+        }
+
+        @Override
+        public boolean canHandle(LayoutContext c, FSFunction function) {
+            if (!c.isPrint() || !function.getName().equals("-fs-running-attr")) {
+                return false;
+            }
+            List<PropertyValue> params = function.getParameters();
+            if (params.size() != 2 ||
+                params.get(0).getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT ||
+                params.get(1).getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT) {
+                return false;
+            }
+            String position = params.get(1).getStringValue();
+            return position.equals("start") || position.equals("last");
+        }
+    }
+
+    /**
+     * For one attribute, the value in effect at the end of each page, filled
+     * forward across pages that carry no row of their own.
+     */
+    private static class PageValues {
+        final int firstPage;
+        private final int lastPage;
+        private final String[] endOfPage; // indexed by (page - firstPage)
+
+        PageValues(Map<Integer, String> lastOnPage, int minPage, int maxPage) {
+            if (lastOnPage.isEmpty()) {
+                this.firstPage = 0;
+                this.lastPage = -1;
+                this.endOfPage = new String[0];
+                return;
+            }
+
+            this.firstPage = minPage;
+            this.lastPage = maxPage;
+            this.endOfPage = new String[maxPage - minPage + 1];
+
+            String carried = "";
+            for (int p = minPage; p <= maxPage; p++) {
+                String v = lastOnPage.get(p);
+                if (v != null) {
+                    carried = v;
+                }
+                endOfPage[p - minPage] = carried;
+            }
+        }
+
+        String endOfPage(int page) {
+            if (page < firstPage || endOfPage.length == 0) {
+                return "";
+            }
+            if (page > lastPage) {
+                return endOfPage[endOfPage.length - 1];
+            }
+            return endOfPage[page - firstPage];
+        }
+    }
+
     private static abstract class PageNumberFunction extends ContentFunctionAbstract {
         
         @Override

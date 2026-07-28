@@ -1179,6 +1179,10 @@ public class CSSParser {
             selector.addOddChildCondition();
         } else if (value.equals("last-child")) {
             selector.addLastChildCondition();
+        } else if (value.equals("-fs-first-fragment")) {
+            selector.setPseudoClass(Selector.FIRST_FRAGMENT_PSEUDOCLASS);
+        } else if (value.equals("-fs-last-fragment")) {
+            selector.setPseudoClass(Selector.LAST_FRAGMENT_PSEUDOCLASS);
         } else if (CSS21_PSEUDO_ELEMENTS.contains(value)) {
             selector.setPseudoElement(value);
         } else {

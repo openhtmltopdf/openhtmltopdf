@@ -69,6 +69,11 @@ public class Selector {
     public final static int ACTIVE_PSEUDOCLASS = 8;
     public final static int FOCUS_PSEUDOCLASS = 16;
     public final static int MARKER_PSEUDOCLASS = 32;
+    // Proprietary: matches on the first / last page appearance (fragment) of a
+    // repeated table section. Not a normal cascade participant; the matcher
+    // diverts it to a paint-time hide flag (see Matcher.getFragmentHide).
+    public final static int FIRST_FRAGMENT_PSEUDOCLASS = 64;
+    public final static int LAST_FRAGMENT_PSEUDOCLASS = 128;
 
     /**
      * Give each a unique ID to be able to create a key to internalize Matcher.Mappers
