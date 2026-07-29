@@ -1,6 +1,7 @@
 package com.openhtmltopdf.pdfboxout;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 import org.apache.fontbox.afm.FontMetrics;
 import org.apache.fontbox.ttf.HorizontalHeaderTable;
@@ -14,6 +15,8 @@ import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 import com.openhtmltopdf.extend.FSCacheValue;
+import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.XRLog;
 
 public class PdfBoxRawPDFontMetrics implements FSCacheValue {
     public final float _ascent;
@@ -112,6 +115,7 @@ public class PdfBoxRawPDFontMetrics implements FSCacheValue {
             }
         } catch (IOException e) {
             // Fall back to no line gap.
+            XRLog.log(Level.FINE, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_READ_FONT_PROGRAM_METRICS, font.getName(), e);
         }
         return 0f;
     }
@@ -145,6 +149,7 @@ public class PdfBoxRawPDFontMetrics implements FSCacheValue {
             }
         } catch (IOException e) {
             // Fall back to the descent based underline position.
+            XRLog.log(Level.FINE, LogMessageId.LogMessageId1Param.EXCEPTION_COULD_NOT_READ_FONT_PROGRAM_METRICS, font.getName(), e);
         }
         return null;
     }
