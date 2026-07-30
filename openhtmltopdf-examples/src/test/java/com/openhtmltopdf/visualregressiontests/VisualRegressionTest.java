@@ -1782,6 +1782,20 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("issue-34-table-row-borders"));
     }
 
+    /**
+     * Tests that a table with -fs-table-paginate: paginate inside a
+     * column-count container paints. Column content is laid out with
+     * pagination switched off, so the rows are never page break analyzed,
+     * while painting still takes the paginated branch. Covers the separated
+     * and the collapsing borders models and a header row above a spanning
+     * row, plus a paginated table outside the container as a control.
+     * Issue 202.
+     */
+    @Test
+    public void testTablePaginateInColumn() throws IOException {
+        assertTrue(vt.runTest("issue-202-table-paginate-in-column", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
