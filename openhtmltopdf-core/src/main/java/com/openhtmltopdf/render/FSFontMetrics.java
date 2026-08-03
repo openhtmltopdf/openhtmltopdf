@@ -49,10 +49,14 @@ public interface FSFontMetrics {
     }
 
     /**
-     * The extra space the font asks for between consecutive lines (its line
-     * gap, also known as external leading), on top of ascent plus descent.
-     * Browsers add it when computing <code>line-height: normal</code>, so we do
-     * too. Zero for fonts that do not declare one.
+     * The extra space to leave between consecutive lines (the line gap, also
+     * known as external leading), on top of the ascent and descent reported
+     * here. Browsers add it when computing <code>line-height: normal</code>, so
+     * we do too. Zero when no font asks for one.
+     *
+     * <p>Where several fonts are in play the ascent and descent above are the
+     * largest of each, which taken together can already be more than any one
+     * font asks for a line; this is only what is missing on top of them.</p>
      */
     default float getLineGap() {
         return 0f;

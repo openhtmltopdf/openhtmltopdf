@@ -101,13 +101,16 @@ public class TestSupport {
      * that does rather than depend on one we do not control.
      *
      * @param lineGap the line gap in font design units.
+     * @return the font file written.
      */
-    public static void makeFontFileWithLineGap(String resource, String outputName, int lineGap) throws IOException {
+    public static File makeFontFileWithLineGap(String resource, String outputName, int lineGap) throws IOException {
         File fontFile = new File("target/test/visual-tests/" + outputName);
 
         if (fontFile.exists()) {
-            return;
+            return fontFile;
         }
+
+        fontFile.getParentFile().mkdirs();
 
         byte[] font;
         try (InputStream in = TestSupport.class.getResourceAsStream("/visualtest/html/fonts/" + resource)) {
@@ -127,7 +130,7 @@ public class TestSupport {
             if (tag.equals("hhea")) {
                 buffer.putShort(buffer.getInt(record + 8) + 8, (short) lineGap);
                 Files.write(fontFile.toPath(), font);
-                return;
+                return fontFile;
             }
         }
 
