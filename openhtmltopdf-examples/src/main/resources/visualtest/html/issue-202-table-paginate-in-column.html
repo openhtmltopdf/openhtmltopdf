@@ -1,0 +1,102 @@
+<html>
+<head>
+<style>
+@page {
+  size: 400px 200px;
+  margin: 0;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 10px;
+}
+section {
+  column-count: 2;
+  column-gap: 20px;
+  margin: 10px;
+}
+#outside {
+  margin: 10px;
+}
+p {
+  margin: 0 0 6px 0;
+}
+table {
+  -fs-table-paginate: paginate;
+  border-spacing: 0;
+  margin-bottom: 10px;
+  width: 100%;
+}
+td {
+  height: 16px;
+  padding: 0;
+  background-color: silver;
+}
+
+/* (1) The reported case: a paginated table inside a column-count container.
+       Its background and its borders in the separated model. */
+#plain td {
+  border: 2px solid green;
+}
+
+/* (2) The same table in the collapsing borders model, which computes the
+       painting bounds by a different route. */
+#collapse {
+  border-collapse: collapse;
+}
+#collapse td {
+  border: 2px solid blue;
+}
+
+/* (3) A header row above a row spanning the rows below it, which is the shape
+       that reads the content limit to keep clear of a repeated header. */
+#header thead td {
+  background-color: gray;
+}
+#header td {
+  border: 2px solid red;
+}
+
+/* (4) A control outside the container: an ordinary paginated table on the
+       same page is unaffected. */
+#control td {
+  border: 2px solid orange;
+}
+</style>
+</head>
+<body>
+<section>
+<p>Notices</p>
+
+<table id="plain">
+<tbody>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+</tbody>
+</table>
+
+<table id="collapse">
+<tbody>
+<tr><td></td><td></td></tr>
+<tr><td></td><td></td></tr>
+</tbody>
+</table>
+
+<table id="header">
+<thead><tr><td></td><td></td></tr></thead>
+<tbody>
+<tr><td rowspan="2"></td><td></td></tr>
+<tr><td></td></tr>
+</tbody>
+</table>
+</section>
+
+<div id="outside">
+<table id="control">
+<tbody>
+<tr><td></td><td></td></tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>

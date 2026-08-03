@@ -408,8 +408,16 @@ public class TableCellBox extends BlockBox {
         }
         
         ContentLimitContainer contentLimitContainer = ((TableRowBox)getParent()).getContentLimitContainer();
+
+        // Null when the row was never page break analyzed, which happens when the table was laid
+        // out with pagination off (for example inside a multi-column container) but is painted
+        // with it on. Such a table doesn't straddle a page break, so the plain border edge holds.
+        if (contentLimitContainer == null) {
+            return result;
+        }
+
         ContentLimit limit = contentLimitContainer.getContentLimit(c.getPageNo());
-        
+
         if (limit == null) {
             return null;
         } else {
@@ -987,7 +995,12 @@ public class TableCellBox extends BlockBox {
             return result;
         }
         
-        return c.isPrint() && getTable().getStyle().isPaginateTable() &&
-                ((TableRowBox)getParent()).getContentLimitContainer().isContainsMultiplePages();
+        if (!c.isPrint() || !getTable().getStyle().isPaginateTable()) {
+            return false;
+        }
+
+        ContentLimitContainer contentLimitContainer = ((TableRowBox)getParent()).getContentLimitContainer();
+
+        return contentLimitContainer != null && contentLimitContainer.isContainsMultiplePages();
     }
 }
