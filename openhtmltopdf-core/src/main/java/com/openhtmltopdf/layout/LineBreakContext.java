@@ -141,9 +141,12 @@ public class LineBreakContext {
     }
 
     /**
-     * Whether the master text must stay on one line, even under word-wrap: break-word.
+     * Whether the master text must not be broken mid word, even under word-wrap: break-word.
      * Used for dynamic content functions, whose layout placeholder is substituted in full
      * by every InlineText it produces.
+     * <p>
+     * Deliberately not cleared by {@link #reset()}: it is a property of the master text,
+     * not of the line currently being filled.
      */
     public boolean isAtomic() {
         return _atomic;

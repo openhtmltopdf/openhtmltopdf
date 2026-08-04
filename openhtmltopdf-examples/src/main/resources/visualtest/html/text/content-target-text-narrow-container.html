@@ -1,0 +1,33 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 120px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+  color: black;
+}
+a {
+  color: black;
+  text-decoration: none;
+}
+a::after {
+  content: target-text(attr(href));
+}
+/* Narrower than the word target-text resolves to, so it has to break. */
+div.narrow {
+  width: 40px;
+  word-wrap: break-word;
+  border: 1px solid black;
+}
+</style>
+</head>
+<body>
+<div class="narrow"><a href="#target"></a></div>
+<div id="target">AAAAAAAAAAAA</div>
+</body>
+</html>
