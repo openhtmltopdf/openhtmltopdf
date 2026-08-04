@@ -1187,7 +1187,10 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     private PDFormXObject createXForm(float width, float height, OutputDeviceGraphicsDrawer renderer) {
         try {
-            PdfBoxGraphics2D pdfBoxGraphics2D = new PdfBoxGraphics2D(_writer, (int) width, (int) height);
+            // The size given here is the BBox of the form, so anything drawn outside it is
+            // clipped away. Keep it fractional: truncating to whole pixels shaves the last
+            // sliver off artwork sized in units that do not land on a pixel, such as 5mm.
+            PdfBoxGraphics2D pdfBoxGraphics2D = new PdfBoxGraphics2D(_writer, width, height);
 			/*
 			 * Create and set the fontTextDrawer to perform the font mapping.
 			 */

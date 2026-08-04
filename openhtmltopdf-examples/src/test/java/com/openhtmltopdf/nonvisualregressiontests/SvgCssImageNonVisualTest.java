@@ -2,7 +2,6 @@ package com.openhtmltopdf.nonvisualregressiontests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.either;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -289,8 +288,9 @@ public class SvgCssImageNonVisualTest {
         assertEquals("the bar should start at the top of the cell", 0, painted.y);
         assertEquals("the bar should fill the height of the cell", 90, painted.height);
 
-        // 5mm is 18.9px at 96dpi, so the last, only part covered, pixel column may blend away.
-        assertThat(painted.width, either(equalTo(18)).or(equalTo(19)));
+        // 5mm is 18.9px at 96dpi, so the bar reaches into a nineteenth, nine tenths covered,
+        // pixel column, rather than stopping at the whole pixel inside it.
+        assertEquals("the bar should be a full 5mm wide", 19, painted.width);
     }
 
     /**
