@@ -53,6 +53,7 @@ public class LineBreakContext {
     private boolean _endsOnWordBreak;
     private boolean _finishedInCharBreakingMode;
     private boolean _isFirstChar;
+    private boolean _atomic;
 
     // These keep track of our attempts to move to a newline
     // before outputting the same content.
@@ -137,6 +138,22 @@ public class LineBreakContext {
             return _master.substring(_start, _end-1);
         }
         return _master.substring(_start, _end);
+    }
+
+    /**
+     * Whether the master text must not be broken mid word, even under word-wrap: break-word.
+     * Used for dynamic content functions, whose layout placeholder is substituted in full
+     * by every InlineText it produces.
+     * <p>
+     * Deliberately not cleared by {@link #reset()}: it is a property of the master text,
+     * not of the line currently being filled.
+     */
+    public boolean isAtomic() {
+        return _atomic;
+    }
+
+    public void setAtomic(boolean atomic) {
+        _atomic = atomic;
     }
 
     public boolean isUnbreakable() {

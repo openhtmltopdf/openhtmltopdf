@@ -488,7 +488,26 @@ public class TextVisualRegressionTest {
     public void testContentPageNumbers() throws IOException {
         assertTrue(run("content-page-numbers"));
     }
-    
+
+    /**
+     * Tests that the page counter is not broken across lines by a container narrower than the
+     * placeholder it is laid out with, which would paint the page number once per fragment.
+     */
+    @Test
+    public void testContentPageNumberNarrowContainer() throws IOException {
+        assertTrue(run("content-page-number-narrow-container"));
+    }
+
+    /**
+     * Tests that a content function which is calculated at layout, such as target-text, still
+     * breaks like ordinary text. Unlike the page counter it is laid out with its real value
+     * rather than a placeholder, so there is nothing that has to stay on one line.
+     */
+    @Test
+    public void testContentTargetTextNarrowContainer() throws IOException {
+        assertTrue(run("content-target-text-narrow-container"));
+    }
+
     /**
      * Tests a typical table-of-contents setup with leader function, attr function and target-counter function.
      * With overflow page in the middle.

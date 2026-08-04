@@ -172,6 +172,11 @@ public class InlineBoxing {
                     lbContext.setMaster(
                          inlineBox.getContentFunction().getPostBoxingLayoutReplacementText(
                             c, current.layoutBox.getParent().getElement(), inlineBox.getFunction()));
+                    // Only a function resolved at paint time is laid out as a placeholder that
+                    // every InlineText substitutes in full, so only that one must stay in one
+                    // piece. A function calculated at layout holds its real text and breaks
+                    // like any other text.
+                    lbContext.setAtomic(!inlineBox.getContentFunction().isCalculableAtLayout());
                 } else {
                     lbContext.setMaster(inlineBox.getText());
                 }

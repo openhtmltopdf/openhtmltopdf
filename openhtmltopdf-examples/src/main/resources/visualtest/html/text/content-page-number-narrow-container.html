@@ -1,0 +1,51 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 120px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+  color: black;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+td {
+  border: 1px solid black;
+  word-wrap: break-word;
+}
+/* Narrower than the "999" the page counter is laid out with. */
+td.number {
+  width: 8px;
+  text-align: right;
+}
+span::after {
+  content: counter(page);
+}
+</style>
+</head>
+<body>
+PAGE 1.
+<table>
+  <tr>
+    <td>Reference</td>
+    <td class="number"><span></span></td>
+  </tr>
+</table>
+
+<div style="page-break-before: always;"></div>
+
+PAGE 2.
+<table>
+  <tr>
+    <td>Reference</td>
+    <td class="number"><span></span></td>
+  </tr>
+</table>
+</body>
+</html>
