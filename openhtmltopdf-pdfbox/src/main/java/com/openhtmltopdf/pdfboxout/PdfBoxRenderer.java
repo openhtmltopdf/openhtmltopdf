@@ -58,6 +58,8 @@ import com.openhtmltopdf.util.ThreadCtx;
 import com.openhtmltopdf.util.XRLog;
 
 import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.pdfwriter.compress.COSWriterCompressionPool;
+import org.apache.pdfbox.pdfwriter.compress.CompressParameters;
 import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDMetadata;
@@ -366,6 +368,17 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
         return _pdfVersion == 0f ? 1.7f : _pdfVersion;
     }
 
+    /**
+     * PDFBox writes object streams by default, which require a cross-reference stream
+     * and silently raise the document's PDF version. Output tied to an earlier version
+     * - PDF/A-1 is PDF 1.4 - must forgo compression to stay conformant.
+     */
+    private static CompressParameters compressParametersForVersion(float pdfVersion) {
+        return pdfVersion < COSWriterCompressionPool.MINIMUM_SUPPORTED_VERSION
+                ? CompressParameters.NO_COMPRESSION
+                : CompressParameters.DEFAULT_COMPRESSION;
+    }
+
     public void layout() {
         LayoutContext c = newLayoutContext();
         BlockBox root = BoxBuilder.createRootBox(c, _doc);
@@ -503,7 +516,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
                 try {
                     fireOnClose();
                     if (success) {
-                        _pdfDoc.save(_os);
+                        _pdfDoc.save(_os, compressParametersForVersion(getPDFVersion()));
                     }
                 } finally {
                     OpenUtil.closeQuietly(_pdfDoc);
