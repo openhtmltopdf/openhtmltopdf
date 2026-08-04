@@ -172,6 +172,7 @@ public class InlineBoxing {
                     lbContext.setMaster(
                          inlineBox.getContentFunction().getPostBoxingLayoutReplacementText(
                             c, current.layoutBox.getParent().getElement(), inlineBox.getFunction()));
+                    lbContext.setAtomic(true);
                 } else {
                     lbContext.setMaster(inlineBox.getText());
                 }

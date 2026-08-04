@@ -182,7 +182,7 @@ public class Breaker {
 
         context.setEndsOnNL(false);
 
-        if (style.getWordWrap() != IdentValue.BREAK_WORD) {
+        if (style.getWordWrap() != IdentValue.BREAK_WORD || context.isAtomic()) {
             // Ordinary old word wrap which will overflow too long unbreakable words.
             return toBreakTextResult(
                     doBreakText(c, context, avail, style, tryToBreakAnywhere));
