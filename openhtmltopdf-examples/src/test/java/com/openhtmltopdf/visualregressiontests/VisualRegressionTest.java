@@ -1001,6 +1001,20 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests how a SVG that does have a size of its own is scaled to the size CSS asks for.
+     * Without a viewBox it is a picture, and is stretched to that size the way a PNG would be;
+     * with one, preserveAspectRatio decides, so by default it is fitted and centred instead.
+     * The drawing is a circle, so a change of shape shows up as an ellipse.
+     *
+     * <p>Reported against issue 32: a bar sized with <code>background-size: 20px 100%</code>
+     * kept the height of the drawing rather than filling the box.</p>
+     */
+    @Test
+    public void testSvgCssBackgroundImageScaling() throws IOException {
+        assertTrue(vt.runTest("svg-css-background-image-scaling", TestSupport.WITH_SVG));
+    }
+
+    /**
      * Tests that a linked SVG file works as a CSS image too, both as a background-image
      * and as a list-style-image. Issue 32.
      */
