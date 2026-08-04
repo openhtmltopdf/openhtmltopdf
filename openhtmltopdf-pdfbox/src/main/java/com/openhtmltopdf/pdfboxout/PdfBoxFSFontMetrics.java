@@ -29,7 +29,8 @@ public class PdfBoxFSFontMetrics implements FSFontMetrics {
     private float _underlineOffset;
     private float _underlineThickness;
     private float _typoDescent;
-    
+    private float _lineGap;
+
     @Override
     public float getAscent() {
         return _ascent;
@@ -90,5 +91,14 @@ public class PdfBoxFSFontMetrics implements FSFontMetrics {
 
     public void setTypoDescent(float typoDescent) {
         _typoDescent = typoDescent;
+    }
+
+    @Override
+    public float getLineGap() {
+        return _lineGap;
+    }
+
+    public void setLineGap(float lineGap) {
+        _lineGap = lineGap;
     }
 }

@@ -96,11 +96,32 @@ public class LineMetricsAdapter implements FSFontMetrics {
 
     public float getUnderlineThickness() {
     	float max = -Float.MAX_VALUE;
-    	
+
     	for (LineMetrics met : _lineMetrics) {
     		max = Math.max(max, met.getUnderlineThickness());
     	}
-    	
+
     	return max;
+    }
+
+    @Override
+    public float getLineGap() {
+    	// Fonts trade ascent, descent and line gap off against each other, so the
+    	// largest of each taken on its own can add up to a taller line than any
+    	// font in the list asks for. Take the tallest line asked for instead, and
+    	// report whatever is left of it once the ascent and descent above are
+    	// accounted for. Unlike the values above, this one is added to them rather
+    	// than compared with them, so an empty list has to give zero.
+    	if (_lineMetrics.isEmpty()) {
+    		return 0f;
+    	}
+
+    	float tallestLine = -Float.MAX_VALUE;
+
+    	for (LineMetrics met : _lineMetrics) {
+    		tallestLine = Math.max(tallestLine, met.getHeight());
+    	}
+
+    	return Math.max(0f, tallestLine - (getAscent() + getDescent()));
     }
 }

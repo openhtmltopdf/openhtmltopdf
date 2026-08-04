@@ -84,6 +84,10 @@ public class PdfBoxTextRenderer implements TextRenderer {
         float largestUnderlinePosition = -Float.MAX_VALUE;
         float largestUnderlineThickness = -Float.MAX_VALUE;
         float largestTypoDescent = -Float.MAX_VALUE;
+        // Fonts trade ascent, descent and line gap off against each other, so the
+        // largest of each taken on its own can add up to a taller line than any
+        // font in the list asks for. Track the tallest line asked for instead.
+        float tallestLine = 0f;
 
         for (FontDescription des : descrs) {
             PdfBoxRawPDFontMetrics metrics = des.getFontMetrics();
@@ -130,6 +134,12 @@ public class PdfBoxTextRenderer implements TextRenderer {
             if (metrics._typoDescent > largestTypoDescent) {
                 largestTypoDescent = metrics._typoDescent;
             }
+
+            float loopLine = loopAscent + loopDescent + metrics._lineGap;
+
+            if (loopLine > tallestLine) {
+                tallestLine = loopLine;
+            }
         }
 
         result.setAscent(largestAscent / 1000f * size);
@@ -145,6 +155,16 @@ public class PdfBoxTextRenderer implements TextRenderer {
         result.setUnderlineOffset(largestUnderlinePosition / 1000f * size);
         result.setUnderlineThickness(largestUnderlineThickness / 1000f * size);
         result.setTypoDescent(largestTypoDescent / 1000f * size);
+
+        // Whatever is left of the tallest line once the ascent and descent above
+        // are accounted for, and zero when no font had usable metrics: unlike the
+        // values above this one is added to them rather than compared with them,
+        // so the sentinel must not reach the result.
+        float lineGap = tallestLine > 0f
+                ? Math.max(0f, tallestLine - (largestAscent + largestDescent))
+                : 0f;
+
+        result.setLineGap(lineGap / 1000f * size);
 
         return result;
     }

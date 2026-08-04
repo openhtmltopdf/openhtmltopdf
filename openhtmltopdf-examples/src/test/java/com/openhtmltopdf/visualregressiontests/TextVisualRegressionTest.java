@@ -736,4 +736,17 @@ public class TextVisualRegressionTest {
             builder.useFont(new File("target/test/visual-tests/NotoSansJP-Regular.ttf"), "notosansjp");
         }));
     }
+
+    /**
+     * Tests that <code>line-height: normal</code> includes the line gap the font asks
+     * for, as browsers do. The two blocks are set in the same font, one of which asks
+     * for a line gap of a fifth of an em: its lines must be that much further apart,
+     * with the extra space split evenly above and below each line.
+     *
+     * @see <a href="https://github.com/openhtmltopdf/openhtmltopdf/issues/42">Issue 42</a>
+     */
+    @Test
+    public void testLineHeightNormalLineGap() throws IOException {
+        assertTrue(vtester.runTest("line-height-normal-line-gap", TestSupport.WITH_LINE_GAP_FONT));
+    }
 }

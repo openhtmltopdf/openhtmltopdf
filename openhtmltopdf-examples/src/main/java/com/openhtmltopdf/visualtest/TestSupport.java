@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -93,13 +95,57 @@ public class TestSupport {
     }
 
     /**
-     * Output the test fonts from classpath to files in target so we can use them 
+     * Output a copy of the font file with a line gap written into its hhea table.
+     * None of our test fonts asks for a line gap, yet the line gap is part of how
+     * browsers space lines for <code>line-height: normal</code>, so we make a font
+     * that does rather than depend on one we do not control.
+     *
+     * @param lineGap the line gap in font design units.
+     * @return the font file written.
+     */
+    public static File makeFontFileWithLineGap(String resource, String outputName, int lineGap) throws IOException {
+        File fontFile = new File("target/test/visual-tests/" + outputName);
+
+        if (fontFile.exists()) {
+            return fontFile;
+        }
+
+        fontFile.getParentFile().mkdirs();
+
+        byte[] font;
+        try (InputStream in = TestSupport.class.getResourceAsStream("/visualtest/html/fonts/" + resource)) {
+            font = IOUtils.toByteArray(in);
+        }
+
+        // A TrueType font opens with a 12 byte header followed by a directory of
+        // 16 byte table records: tag, checksum, offset and length. The hhea table
+        // holds the line gap after its version, ascender and descender.
+        ByteBuffer buffer = ByteBuffer.wrap(font);
+        int tableCount = buffer.getShort(4) & 0xFFFF;
+
+        for (int i = 0; i < tableCount; i++) {
+            int record = 12 + (i * 16);
+            String tag = new String(font, record, 4, StandardCharsets.US_ASCII);
+
+            if (tag.equals("hhea")) {
+                buffer.putShort(buffer.getInt(record + 8) + 8, (short) lineGap);
+                Files.write(fontFile.toPath(), font);
+                return fontFile;
+            }
+        }
+
+        throw new IOException("No hhea table in font: " + resource);
+    }
+
+    /**
+     * Output the test fonts from classpath to files in target so we can use them
      * without streams.
      */
     public static void makeFontFiles() throws IOException {
         makeFontFile("Karla-Bold.ttf");
         makeFontFile("NotoNaskhArabic-Regular.ttf");
         makeFontFile("SourceSansPro-Regular.ttf");
+        makeFontFileWithLineGap("Karla-Bold.ttf", "Karla-Bold-LineGap.ttf", 200);
     }
 
     public static class StringBuilderLogger implements XRLogger {
@@ -189,6 +235,15 @@ public class TestSupport {
     public static final BuilderConfig WITH_FONT = (builder) -> {
         builder.useFont(new File("target/test/visual-tests/Karla-Bold.ttf"), "TestFont");
         builder.useUnicodeLineBreaker(new SimpleTextBreaker());
+    };
+
+    /**
+     * Adds a font that asks for a line gap, as <code>GapFont</code>, alongside the
+     * otherwise identical {@link #WITH_FONT} so the two can be compared.
+     */
+    public static final BuilderConfig WITH_LINE_GAP_FONT = (builder) -> {
+        WITH_FONT.configure(builder);
+        builder.useFont(new File("target/test/visual-tests/Karla-Bold-LineGap.ttf"), "GapFont");
     };
 
     /**

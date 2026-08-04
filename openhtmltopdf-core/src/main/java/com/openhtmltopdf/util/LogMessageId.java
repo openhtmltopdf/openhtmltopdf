@@ -183,7 +183,8 @@ public interface LogMessageId {
         EXCEPTION_COULD_NOT_LOAD_DEFAULT_CSS(XRLog.EXCEPTION, "Can't load default CSS from {}. This file must be on your CLASSPATH. Please check before continuing."),
         EXCEPTION_DEFAULT_USERAGENT_IS_NOT_ABLE_TO_RESOLVE_BASE_URL_FOR(XRLog.EXCEPTION, "The default NaiveUserAgent doesn't know how to resolve the base URL for {}"),
         EXCEPTION_FAILED_TO_LOAD_BACKGROUND_IMAGE_AT_URI(XRLog.EXCEPTION, "Failed to load background image at uri {}"),
-        EXCEPTION_COULD_NOT_LOAD_EMBEDDED_FILE(XRLog.EXCEPTION, "Was not able to create an embedded file for embedding with uri {}");
+        EXCEPTION_COULD_NOT_LOAD_EMBEDDED_FILE(XRLog.EXCEPTION, "Was not able to create an embedded file for embedding with uri {}"),
+        EXCEPTION_COULD_NOT_READ_FONT_PROGRAM_METRICS(XRLog.EXCEPTION, "Couldn't read the metrics of the embedded font program of font ({}), falling back to defaults.");
 
         private final String where;
         private final String messageFormat;
