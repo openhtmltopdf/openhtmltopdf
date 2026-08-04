@@ -7,6 +7,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
 
 import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +25,7 @@ import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -221,6 +224,76 @@ public class SvgCssImageNonVisualTest {
     }
 
     /**
+     * A SVG with a size of its own but no viewBox is a picture, and CSS scales a picture to
+     * the size it asks for - stretching it when that size has another shape, exactly as it
+     * would a PNG. The artwork inside has to follow, not just the box around it.
+     *
+     * <p>Batik will only ever rescale such a SVG uniformly, so background-size used to be able
+     * to set the box and yet leave the drawing at the size and shape it was written at.</p>
+     */
+    @Test
+    public void testSizedSvgWithoutViewBoxIsStretchedByBackgroundSize() throws IOException {
+        // Artwork in fixed user units, so it can only cover the box if it is stretched too.
+        String artwork = "%3Crect%20x='0'%20y='0'%20width='10'%20height='10'%20fill='%23cc0000'/%3E";
+
+        assertEquals("the drawing should be stretched to the whole background-size",
+                new Rectangle(0, 0, 100, 50),
+                paintedArea("width='10'%20height='10'", artwork, "background-size: 100% 100%;"));
+
+        // The same SVG left at its own size is untouched.
+        assertEquals(new Rectangle(0, 0, 10, 10),
+                paintedArea("width='10'%20height='10'", artwork, ""));
+    }
+
+    /**
+     * The counterpart: a viewBox says how the drawing maps onto whatever size it is given, so
+     * preserveAspectRatio decides, and by default the SVG is fitted rather than stretched.
+     * A browser does the same, so this must not be "fixed" into stretching.
+     */
+    @Test
+    public void testSvgWithViewBoxIsFittedRatherThanStretched() throws IOException {
+        String artwork = "%3Crect%20x='0'%20y='0'%20width='10'%20height='10'%20fill='%23cc0000'/%3E";
+        String size = "background-size: 100% 100%;";
+
+        // A square drawing in a 100x50 box: 50x50, centred, because preserveAspectRatio
+        // defaults to xMidYMid meet.
+        assertEquals(new Rectangle(25, 0, 50, 50),
+                paintedArea("width='10'%20height='10'%20viewBox='0%200%2010%2010'", artwork, size));
+
+        // Unless the SVG says not to fit it.
+        assertEquals(new Rectangle(0, 0, 100, 50),
+                paintedArea("width='10'%20height='10'%20viewBox='0%200%2010%2010'" +
+                            "%20preserveAspectRatio='none'", artwork, size));
+    }
+
+    /**
+     * The shape this turned up in: a fixed width bar down the side of a table cell, drawn with
+     * <code>background-size: 5mm 100%</code>. When the cell ran to several lines the bar kept
+     * the height of the drawing instead of growing with the cell.
+     */
+    @Test
+    public void testBackgroundSizeFillsTheHeightOfATableCell() throws IOException {
+        String svg = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='10'%20height='10'" +
+                "%3E%3Crect%20x='0'%20y='0'%20width='10'%20height='10'%20fill='%23cc0000'/%3E%3C/svg%3E";
+        String html =
+                "<html><head><style>@page { size: 300px 300px; margin: 0; }" +
+                "body { margin: 0; } table { border-collapse: collapse; width: 200px; }" +
+                "td { padding: 0; font: 20px/1.5 sans-serif; background-repeat: no-repeat;" +
+                " background-size: 5mm 100%; background-image: url(\"" + svg + "\"); }" +
+                "</style></head><body><table><tr><td>one<br/>two<br/>three</td></tr></table></body></html>";
+
+        Rectangle painted = paintedArea(html);
+
+        // Three lines of 20px/1.5 make the cell 90px tall, and the bar has to grow with it.
+        assertEquals("the bar should start at the top of the cell", 0, painted.y);
+        assertEquals("the bar should fill the height of the cell", 90, painted.height);
+
+        // 5mm is 18.9px at 96dpi, so the bar reaches into a nineteenth, nine tenths covered,
+        // pixel column, rather than stopping at the whole pixel inside it.
+        assertEquals("the bar should be a full 5mm wide", 19, painted.width);
+    }
+
+    /**
      * A percentage is normal and is not complained about, but a unit we can not resolve
      * although a browser could, such as em, is worth saying out loud.
      */
@@ -252,6 +325,50 @@ public class SvgCssImageNonVisualTest {
             // The form is built at the size the image is drawn at, in CSS pixels.
             PDRectangle box = forms.get(0).getBBox();
             return new Dimension(Math.round(box.getWidth()), Math.round(box.getHeight()));
+        }
+    }
+
+    /**
+     * The area the background image actually covers, in CSS pixels relative to the box, as
+     * opposed to the size of the box the image was given. The two come apart when the artwork
+     * inside the image is not laid out to match the size CSS settled on.
+     *
+     * @param artwork the drawing, which is red, so that it can be picked out of the page
+     */
+    private Rectangle paintedArea(String svgAttributes, String artwork, String extraCss) throws IOException {
+        String svg = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20" + svgAttributes +
+                "%3E" + artwork + "%3C/svg%3E";
+        String html =
+                "<html><head><style>@page { size: 300px 300px; margin: 0; } body { margin: 0; }" +
+                "div { width: 100px; height: 50px; background-repeat: no-repeat;" +
+                " background-image: url(\"" + svg + "\");" + extraCss + " }" +
+                "</style></head><body><div></div></body></html>";
+
+        return paintedArea(html);
+    }
+
+    /** As above, for a document that needs more setting up than a single box. */
+    private Rectangle paintedArea(String html) throws IOException {
+        try (PDDocument doc = render(html, builder -> builder.useSVGDrawer(new BatikSVGDrawer()))) {
+            // The page is 300 CSS px, ie. 225pt, so render at 4/3 to measure in CSS pixels.
+            BufferedImage img = new PDFRenderer(doc).renderImage(0, 4f / 3f);
+
+            int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, maxX = -1, maxY = -1;
+
+            for (int y = 0; y < img.getHeight(); y++) {
+                for (int x = 0; x < img.getWidth(); x++) {
+                    int rgb = img.getRGB(x, y);
+
+                    if (((rgb >> 16) & 0xff) > 130 && ((rgb >> 8) & 0xff) < 90 && (rgb & 0xff) < 90) {
+                        minX = Math.min(minX, x); minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+
+            assertThat("nothing was painted", maxX, not(equalTo(-1)));
+
+            return new Rectangle(minX, minY, maxX - minX + 1, maxY - minY + 1);
         }
     }
 

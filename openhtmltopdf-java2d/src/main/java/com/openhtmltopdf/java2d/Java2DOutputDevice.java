@@ -38,6 +38,7 @@ import java.awt.*;
 import java.awt.RenderingHints.Key;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -191,7 +192,12 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
 
 	@Override
 	public void drawWithGraphics(float x, float y, float width, float height, OutputDeviceGraphicsDrawer renderer) {
-		Graphics2D graphics = (Graphics2D) _graphics.create((int) x, (int) y, (int) width, (int) height);
+		// Same as Graphics#create(x, y, width, height), except that it keeps the fractional
+		// part of the area: truncating to whole pixels shaves the last sliver off artwork
+		// sized in units that do not land on a pixel, such as 5mm.
+		Graphics2D graphics = (Graphics2D) _graphics.create();
+		graphics.clip(new Rectangle2D.Float(x, y, width, height));
+		graphics.translate(x, y);
 		renderer.render(graphics);
 		graphics.dispose();
 	}
