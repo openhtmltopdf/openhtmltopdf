@@ -33,6 +33,7 @@ import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.bidi.ParagraphSplitter.Paragraph;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.FSDerivedValue;
@@ -901,6 +902,8 @@ public class InlineBoxing {
         List<IdentValue> idents = style.getTextDecorations();
         if (idents != null) {
             result = new ArrayList<>(idents.size());
+            FSColor decorationColor = style.getTextDecorationColor();
+
             if (idents.contains(IdentValue.UNDERLINE)) {
                 TextDecoration decoration = new TextDecoration(IdentValue.UNDERLINE);
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
@@ -936,6 +939,7 @@ public class InlineBoxing {
                 }
 
                 decoration.setOffset(offset);
+                decoration.setColor(decorationColor);
                 result.add(decoration);
             }
 
@@ -943,6 +947,7 @@ public class InlineBoxing {
                 TextDecoration decoration = new TextDecoration(IdentValue.LINE_THROUGH);
                 decoration.setOffset(Math.round(baseline + fm.getStrikethroughOffset()));
                 decoration.setThickness(Math.round(fm.getStrikethroughThickness()));
+                decoration.setColor(decorationColor);
                 result.add(decoration);
             }
 
@@ -950,6 +955,7 @@ public class InlineBoxing {
                 TextDecoration decoration = new TextDecoration(IdentValue.OVERLINE);
                 decoration.setOffset(0);
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
+                decoration.setColor(decorationColor);
                 result.add(decoration);
             }
         }

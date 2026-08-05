@@ -20,11 +20,13 @@
 package com.openhtmltopdf.render;
 
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.css.parser.FSColor;
 
 public class TextDecoration {
     private IdentValue _identValue;
     private int _offset;
     private int _thickness;
+    private FSColor _color;
     
     public TextDecoration(IdentValue identValue) {
         _identValue = identValue;
@@ -52,5 +54,18 @@ public class TextDecoration {
     
     public IdentValue getIdentValue() {
         return _identValue;
+    }
+
+    /**
+     * The color to use when painting this decoration, as specified via
+     * the text-decoration shorthand (eg. text-decoration: underline red;).
+     * May be null, in which case the current text color should be used.
+     */
+    public FSColor getColor() {
+        return _color;
+    }
+
+    public void setColor(FSColor color) {
+        _color = color;
     }
 }

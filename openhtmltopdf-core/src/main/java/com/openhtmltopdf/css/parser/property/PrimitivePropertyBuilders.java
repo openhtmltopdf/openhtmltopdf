@@ -1408,20 +1408,52 @@ public class PrimitivePropertyBuilders {
                 }
             }
 
+            List<PropertyValue> result = new ArrayList<>(values.size());
+
             for (Iterator<PropertyValue> i = values.iterator(); i.hasNext(); ) {
                 PropertyValue value = i.next();
                 checkInheritAllowed(value, false);
+
+                // text-decoration is a shorthand that also allows a color
+                // component (eg. text-decoration: underline red;). We don't
+                // validate it as one of the line-type idents in that case,
+                // we normalize it to a color value so it can be picked up
+                // later as the decoration color.
+                FSColor color = asColorOrNull(value);
+                if (color != null) {
+                    result.add(new PropertyValue(color));
+                    continue;
+                }
+
                 checkIdentType(cssName, value);
                 IdentValue ident = checkIdent(cssName, value);
                 if (ident == IdentValue.NONE) {
                     throw new CSSParseException("Value none may not be used in this position", -1);
                 }
                 checkValidity(cssName, getAllowed(), ident);
+                result.add(value);
             }
 
             return Collections.singletonList(
-                    new PropertyDeclaration(cssName, new PropertyValue(values), important, origin));
+                    new PropertyDeclaration(cssName, new PropertyValue(result), important, origin));
 
+        }
+
+        /**
+         * Returns this value as a color, either specified directly
+         * (eg. #ff0000, rgb(...)) or as a named color (eg. red), or
+         * null if it isn't a color at all.
+         */
+        private FSColor asColorOrNull(PropertyValue value) {
+            if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_RGBCOLOR) {
+                return value.getFSColor();
+            }
+
+            if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
+                return Conversions.getColor(value.getStringValue());
+            }
+
+            return null;
         }
     }
 
