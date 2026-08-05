@@ -35,7 +35,9 @@ public class GradientHelper {
         shading.setShadingType(PDShading.SHADING_TYPE2);
         shading.setColorSpace(PDDeviceRGB.INSTANCE);
 
-        for (StopPoint stop : gradient.getStopPoints()) {
+        List<StopPoint> stopPoints = gradient.getStopPoints();
+
+        for (StopPoint stop : stopPoints) {
             if (stop.getColor() instanceof FSRGBColor && ((FSRGBColor) stop.getColor()).hasAlpha()) {
                 XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_GRADIENT_STOP_ALPHA_NOT_SUPPORTED);
                 break;
@@ -44,8 +46,15 @@ public class GradientHelper {
 
         Rectangle rect = bounds.getBounds();
 
-        Point2D ptStart = new Point2D.Float(gradient.getX1() + (float) rect.getMinX(), gradient.getY1() + (float) rect.getMinY());
-        Point2D ptEnd = new Point2D.Float(gradient.getX2() + (float) rect.getMinX(), gradient.getY2() + (float) rect.getMinY());
+        // The stops are positioned along the gradient line and the first and last of
+        // them may sit well short of its ends, so the shading axis runs from the first
+        // stop to the last one rather than from end to end. Whatever of the box is
+        // left over before and after is covered by extending the outermost colours.
+        float axisStart = gradient.getAxisStart();
+        float axisEnd = gradient.getAxisEnd();
+
+        Point2D ptStart = pointOnGradientLine(gradient, rect, axisStart);
+        Point2D ptEnd = pointOnGradientLine(gradient, rect, axisEnd);
 
         Point2D ptStartDevice = transform.transform(ptStart, null);
         Point2D ptEndDevice = transform.transform(ptEnd, null);
@@ -62,14 +71,26 @@ public class GradientHelper {
         coords.add(new COSFloat(endY));
         shading.setCoords(coords);
 
-        PDFunctionType3 type3 = buildType3Function(gradient.getStopPoints(), (float) ptEnd.distance(ptStart));
+        PDFunctionType3 type3 = buildType3Function(stopPoints, axisStart, axisEnd - axisStart);
 
         COSArray extend = new COSArray();
-        extend.add(COSBoolean.FALSE);
-        extend.add(COSBoolean.FALSE);
+        extend.add(COSBoolean.TRUE);
+        extend.add(COSBoolean.TRUE);
         shading.setFunction(type3);
         shading.setExtend(extend);
         return shading;
+    }
+
+    /**
+     * The point the given distance along the gradient line, in the coordinate
+     * space of the box being painted.
+     */
+    private static Point2D pointOnGradientLine(FSLinearGradient gradient, Rectangle rect, float distance) {
+        float fraction = distance / gradient.getGradientLineLength();
+
+        return new Point2D.Float(
+                gradient.getX1() + ((gradient.getX2() - gradient.getX1()) * fraction) + (float) rect.getMinX(),
+                gradient.getY1() + ((gradient.getY2() - gradient.getY1()) * fraction) + (float) rect.getMinY());
     }
 
     /**
@@ -79,10 +100,13 @@ public class GradientHelper {
      *         gradient.
      * @param stopPoints
      *            colours and lengths of linear gradient.
+     * @param axisStart
+     *            distance along the gradient line at which the shading axis starts.
+     * @param axisLength
+     *            length of the shading axis, ie. how far apart the first and last
+     *            stop points are.
      */
-    private static PDFunctionType3 buildType3Function(List<StopPoint> stopPoints, float distance) {
-        float max = stopPoints.get(stopPoints.size() - 1).getLength();
-
+    private static PDFunctionType3 buildType3Function(List<StopPoint> stopPoints, float axisStart, float axisLength) {
         COSDictionary function = new COSDictionary();
         function.setInt(COSName.FUNCTION_TYPE, 3);
 
@@ -97,7 +121,7 @@ public class GradientHelper {
         range.add(new COSFloat(1));
         COSArray bounds = new COSArray();
         for (int i = 1; i < stopPoints.size() - 1; i++) {
-            float pos = ((stopPoints.get(i).getLength() / max) * distance) * (1 / distance);
+            float pos = (stopPoints.get(i).getLength() - axisStart) / axisLength;
             bounds.add(new COSFloat(pos));
         }
 

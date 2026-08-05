@@ -887,6 +887,12 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     @Override
     public void drawLinearGradient(FSLinearGradient backgroundLinearGradient, Shape bounds) {
+        if (backgroundLinearGradient.getStopPoints().size() < 2 ||
+            backgroundLinearGradient.getGradientLineLength() == 0f) {
+            // A shading needs a ramp between two stop points and a line to run along.
+            return;
+        }
+
         PDShading shading = GradientHelper.createLinearGradient(this, getTransform(), backgroundLinearGradient, bounds);
         _cp.paintGradient(shading);
     }

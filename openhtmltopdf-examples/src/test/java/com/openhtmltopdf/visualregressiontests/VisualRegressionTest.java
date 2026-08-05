@@ -1303,6 +1303,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that gradient stops given as absolute lengths or percentages are
+     * measured along the gradient line rather than scaled to the box width.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/102
+     */
+    @Test
+    public void testIssue102GradientStopPositions() throws IOException {
+        assertTrue(vt.runTest("issue-102-gradient-stop-positions"));
+    }
+
+    /**
      * Tests that a font-face rule with multiple sources in different formats
      * loads the truetype font only.
      */

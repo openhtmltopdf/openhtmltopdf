@@ -40,7 +40,9 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
 public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDevice {
     private final Deque<Shape> _clipStack = new ArrayDeque<>();
@@ -271,34 +273,71 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
 
     @Override
     public void drawLinearGradient(FSLinearGradient lg, Shape bounds) {
-        if (lg.getStopPoints().size() < 2) {
+        List<StopPoint> stopPoints = lg.getStopPoints();
+
+        if (stopPoints.size() < 2 || lg.getGradientLineLength() == 0f) {
             return;
         }
 
-        Color[] colors = new Color[lg.getStopPoints().size()];
-        float[] fractions = new float[lg.getStopPoints().size()];
+        // The ramp of colours runs from the first stop point to the last, both of
+        // which are positioned along the gradient line and may sit well short of its
+        // ends. The rest of the box takes the colour of the nearest of the two.
+        float axisStart = lg.getAxisStart();
+        float axisLength = lg.getAxisEnd() - axisStart;
 
-        float maxLength = lg.getStopPoints().get(lg.getStopPoints().size() - 1).getLength();
+        List<Color> colors = new ArrayList<>(stopPoints.size());
+        List<Float> fractions = new ArrayList<>(stopPoints.size());
 
-        if (maxLength == 0f) {
-            return;
-        }
+        for (StopPoint sp : stopPoints) {
+            float fraction = (sp.getLength() - axisStart) / axisLength;
 
-        for (int i = 0; i < lg.getStopPoints().size(); i++) {
-            StopPoint sp = lg.getStopPoints().get(i);
+            if (!fractions.isEmpty()) {
+                // LinearGradientPaint insists on strictly increasing fractions, so two
+                // stops at the same position are nudged as little apart as possible.
+                fraction = Math.max(fraction, Math.nextUp(fractions.get(fractions.size() - 1)));
+
+                if (fraction > 1f) {
+                    // There is no room left for another change of colour, so this stop
+                    // and any after it could not be seen anyway.
+                    break;
+                }
+            }
+
             FSRGBColor col = (FSRGBColor) sp.getColor();
 
-            colors[i] = new Color(col.getRed() / 255f, col.getGreen() / 255f, col.getBlue() / 255f);
-            fractions[i] = sp.getLength() / maxLength;
+            colors.add(new Color(col.getRed() / 255f, col.getGreen() / 255f, col.getBlue() / 255f));
+            fractions.add(fraction);
+        }
+
+        if (fractions.size() < 2) {
+            return;
+        }
+
+        float[] fractionArray = new float[fractions.size()];
+        for (int i = 0; i < fractions.size(); i++) {
+            fractionArray[i] = fractions.get(i);
         }
 
         Rectangle rect = bounds.getBounds();
-        Point2D pt1 = new Point2D.Double(lg.getX1() + rect.getMinX(), lg.getY1() + rect.getMinY());
-        Point2D pt2 = new Point2D.Double(lg.getX2() + rect.getMinX(), lg.getY2() + rect.getMinY());
+        Point2D pt1 = pointOnGradientLine(lg, rect, axisStart);
+        Point2D pt2 = pointOnGradientLine(lg, rect, lg.getAxisEnd());
 
         Paint oldPaint = _graphics.getPaint();
-        _graphics.setPaint(new LinearGradientPaint(pt1, pt2, fractions, colors));
+        _graphics.setPaint(new LinearGradientPaint(
+                pt1, pt2, fractionArray, colors.toArray(new Color[0])));
         _graphics.fill(bounds);
         _graphics.setPaint(oldPaint);
+    }
+
+    /**
+     * The point the given distance along the gradient line, in the coordinate
+     * space of the box being painted.
+     */
+    private static Point2D pointOnGradientLine(FSLinearGradient lg, Rectangle rect, float distance) {
+        double fraction = distance / lg.getGradientLineLength();
+
+        return new Point2D.Double(
+                lg.getX1() + ((lg.getX2() - lg.getX1()) * fraction) + rect.getMinX(),
+                lg.getY1() + ((lg.getY2() - lg.getY1()) * fraction) + rect.getMinY());
     }
 }
