@@ -1418,7 +1418,7 @@ public class PrimitivePropertyBuilders {
             }
 
             List<PropertyValue> lines = new ArrayList<>(values.size());
-            FSColor color = null;
+            PropertyValue color = null;
 
             for (Iterator<PropertyValue> i = values.iterator(); i.hasNext(); ) {
                 PropertyValue value = i.next();
@@ -1428,7 +1428,7 @@ public class PrimitivePropertyBuilders {
                 // component (eg. text-decoration: underline red;). Such a value
                 // is not one of the line-type idents, it sets the longhand
                 // text-decoration-color instead.
-                FSColor valueColor = asColorOrNull(value);
+                PropertyValue valueColor = asColorOrNull(value);
                 if (valueColor != null) {
                     if (color == null) {
                         color = valueColor;
@@ -1451,7 +1451,7 @@ public class PrimitivePropertyBuilders {
             // As a shorthand, text-decoration also resets the color longhand
             // when no color of its own was given.
             PropertyValue colorValue = color != null
-                    ? new PropertyValue(color)
+                    ? color
                     : new PropertyValue(IdentValue.CURRENT_COLOR);
 
             List<PropertyDeclaration> result = new ArrayList<>(2);
@@ -1463,17 +1463,26 @@ public class PrimitivePropertyBuilders {
         }
 
         /**
-         * Returns this value as a color, either specified directly
-         * (eg. #ff0000, rgb(...)) or as a named color (eg. red), or
-         * null if it isn't a color at all.
+         * Returns the value to give the text-decoration-color longhand if this
+         * value is a color - specified directly (eg. #ff0000, rgb(...)), as a
+         * named color (eg. red), or as one of the color keywords - or null if
+         * it isn't a color at all.
          */
-        private FSColor asColorOrNull(PropertyValue value) {
+        private PropertyValue asColorOrNull(PropertyValue value) {
             if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_RGBCOLOR) {
-                return value.getFSColor();
+                return value;
             }
 
             if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
-                return Conversions.getColor(value.getStringValue());
+                IdentValue ident = IdentValue.valueOf(value.getStringValue());
+                if (ident == IdentValue.CURRENT_COLOR || ident == IdentValue.TRANSPARENT) {
+                    return new PropertyValue(ident);
+                }
+
+                FSRGBColor named = Conversions.getColor(value.getStringValue());
+                if (named != null) {
+                    return new PropertyValue(named);
+                }
             }
 
             return null;

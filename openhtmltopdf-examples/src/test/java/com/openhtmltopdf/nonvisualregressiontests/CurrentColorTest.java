@@ -4,12 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Collections;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.w3c.dom.Element;
 
 import com.openhtmltopdf.css.constants.CSSName;
+import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.pdfboxout.PdfBoxRenderer;
@@ -197,5 +199,34 @@ public class CurrentColorTest {
                 "<div id='target'>text</div>", "target");
 
         assertEquals(GREEN, style.asColor(CSSName.TEXT_DECORATION_COLOR));
+    }
+
+    /**
+     * The keyword is also a color the text-decoration shorthand can carry. The
+     * shorthand comes last here, so a dropped declaration would leave the red
+     * behind rather than reset it - the keyword resolving to green is the only
+     * way to get there.
+     */
+    @Test
+    public void testTextDecorationShorthandCurrentColor() throws IOException {
+        CalculatedStyle style = styleOf(
+                "#target { color: green; text-decoration-color: red;" +
+                " text-decoration: underline currentColor; }",
+                "<div id='target'>text</div>", "target");
+
+        assertEquals(GREEN, style.asColor(CSSName.TEXT_DECORATION_COLOR));
+        assertEquals(Collections.singletonList(IdentValue.UNDERLINE), style.getTextDecorations());
+    }
+
+    /** transparent is the other color keyword the shorthand has to take. */
+    @Test
+    public void testTextDecorationShorthandTransparent() throws IOException {
+        CalculatedStyle style = styleOf(
+                "#target { color: green; text-decoration-color: red;" +
+                " text-decoration: underline transparent; }",
+                "<div id='target'>text</div>", "target");
+
+        assertEquals(FSRGBColor.TRANSPARENT, style.asColor(CSSName.TEXT_DECORATION_COLOR));
+        assertEquals(Collections.singletonList(IdentValue.UNDERLINE), style.getTextDecorations());
     }
 }

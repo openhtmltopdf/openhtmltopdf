@@ -161,6 +161,45 @@ public class TextDecorationColorTest {
         assertEquals("#ff0000", color(declarationFor(decls, CSSName.TEXT_DECORATION_COLOR)));
     }
 
+    /**
+     * The color component of the shorthand takes any color, the two color
+     * keywords included. Getting this wrong costs the whole declaration, so
+     * the line types go missing too, not just the color.
+     */
+    @Test
+    public void testShorthandWithCurrentColorKeyword() throws IOException {
+        List<PropertyDeclaration> decls = parseDeclarations("p { text-decoration: underline currentColor; }");
+        assertTrue(errors.isEmpty());
+
+        assertEquals(Collections.singletonList("underline"), lines(declarationFor(decls, CSSName.TEXT_DECORATION)));
+
+        PropertyDeclaration colorDecl = declarationFor(decls, CSSName.TEXT_DECORATION_COLOR);
+        assertEquals(IdentValue.CURRENT_COLOR, ((PropertyValue) colorDecl.getValue()).getIdentValue());
+    }
+
+    @Test
+    public void testShorthandWithTransparentKeyword() throws IOException {
+        List<PropertyDeclaration> decls = parseDeclarations("p { text-decoration: underline transparent; }");
+        assertTrue(errors.isEmpty());
+
+        assertEquals(Collections.singletonList("underline"), lines(declarationFor(decls, CSSName.TEXT_DECORATION)));
+
+        PropertyDeclaration colorDecl = declarationFor(decls, CSSName.TEXT_DECORATION_COLOR);
+        assertEquals(IdentValue.TRANSPARENT, ((PropertyValue) colorDecl.getValue()).getIdentValue());
+    }
+
+    /** A keyword may lead, as the shorthand is unordered. */
+    @Test
+    public void testShorthandWithColorKeywordFirst() throws IOException {
+        List<PropertyDeclaration> decls = parseDeclarations("p { text-decoration: currentColor line-through; }");
+        assertTrue(errors.isEmpty());
+
+        assertEquals(Collections.singletonList("line-through"), lines(declarationFor(decls, CSSName.TEXT_DECORATION)));
+
+        PropertyDeclaration colorDecl = declarationFor(decls, CSSName.TEXT_DECORATION_COLOR);
+        assertEquals(IdentValue.CURRENT_COLOR, ((PropertyValue) colorDecl.getValue()).getIdentValue());
+    }
+
     @Test
     public void testLonghand() throws IOException {
         List<PropertyDeclaration> decls = parseDeclarations(
