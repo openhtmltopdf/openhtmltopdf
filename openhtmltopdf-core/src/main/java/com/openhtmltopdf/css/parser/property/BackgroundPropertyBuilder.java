@@ -110,11 +110,11 @@ public class BackgroundPropertyBuilder extends AbstractPropertyBuilder {
                             CSSName.BACKGROUND_ATTACHMENT, new PropertyValue(Collections.singletonList(value)), important, origin);
                 }
 
-                if (ident == IdentValue.TRANSPARENT) {
+                if (ident == IdentValue.TRANSPARENT || ident == IdentValue.CURRENT_COLOR) {
                     if (backgroundColor != null) {
                         throw new CSSParseException("A background-color value cannot be set twice", -1);
                     }
-                    
+
                     backgroundColor = new PropertyDeclaration(
                             CSSName.BACKGROUND_COLOR, value, important, origin);
                 }

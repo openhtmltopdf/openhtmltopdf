@@ -84,8 +84,8 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue COVER = addValue("cover");
     public final static IdentValue CREATE = addValue("create");
     /**
-     * The element's own text color. Currently only honoured by
-     * {@link CSSName#TEXT_DECORATION_COLOR}, whose initial value it is.
+     * The element's own text color, accepted wherever a color is. On the
+     * <code>color</code> property itself it means the inherited color.
      */
     public final static IdentValue CURRENT_COLOR = addValue("currentcolor");
     public final static IdentValue DASHED = addValue("dashed");

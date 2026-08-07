@@ -1721,6 +1721,19 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("text-decoration-color", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the currentColor keyword, which stands for the element's own text
+     * color, on borders (shorthand, longhand and the one-to-four form),
+     * backgrounds and the text decoration, including a color inherited rather
+     * than set on the element itself.
+     * <p>
+     * See https://github.com/openhtmltopdf/openhtmltopdf/issues/115
+     */
+    @Test
+    public void testIssue115CurrentColor() throws IOException {
+        assertTrue(vt.runTest("current-color", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));

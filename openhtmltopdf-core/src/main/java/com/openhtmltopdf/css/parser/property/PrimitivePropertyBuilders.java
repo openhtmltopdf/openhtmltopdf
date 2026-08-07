@@ -173,7 +173,7 @@ public class PrimitivePropertyBuilders {
 
     static class GenericColor extends AbstractPropertyBuilder {
         private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.TRANSPARENT });
+                new IdentValue[] { IdentValue.CURRENT_COLOR, IdentValue.TRANSPARENT });
 
         @Override
         public List<PropertyDeclaration> buildDeclarations(
@@ -1488,36 +1488,7 @@ public class PrimitivePropertyBuilders {
      * <p>Its initial value, <code>currentcolor</code>, means the element's own
      * text color, resolved when the decoration is painted.</p>
      */
-    public static class TextDecorationColor extends AbstractPropertyBuilder {
-        private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.CURRENT_COLOR, IdentValue.TRANSPARENT });
-
-        @Override
-        public List<PropertyDeclaration> buildDeclarations(
-                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
-            checkValueCount(cssName, 1, values.size());
-            CSSPrimitiveValue value = values.get(0);
-            checkInheritAllowed(value, inheritAllowed);
-
-            if (value.getCssValueType() != CSSValue.CSS_INHERIT) {
-                checkIdentOrColorType(cssName, value);
-
-                if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
-                    FSRGBColor color = Conversions.getColor(value.getStringValue());
-                    if (color != null) {
-                        return Collections.singletonList(
-                                new PropertyDeclaration(
-                                        cssName, new PropertyValue(color), important, origin));
-                    }
-
-                    IdentValue ident = checkIdent(cssName, value);
-                    checkValidity(cssName, ALLOWED, ident);
-                }
-            }
-
-            return Collections.singletonList(
-                    new PropertyDeclaration(cssName, value, important, origin));
-        }
+    public static class TextDecorationColor extends GenericColor {
     }
 
     public static class TextIndent extends LengthLike {

@@ -1,0 +1,30 @@
+<html>
+<head>
+<style>
+    @page { size: 400px 330px; margin: 15px; }
+    body { font-family: 'TestFont'; font-size: 16px; margin: 0; }
+    div { margin: 0 0 10px 0; padding: 4px; }
+
+    .border     { color: red; border: 3px solid currentColor; }
+    .sides      { color: green; border-color: blue; border: 3px solid currentColor; }
+    .one-to-four{ color: purple; border-style: solid; border-width: 3px;
+                  border-color: currentColor orange; }
+    .background { color: #ccffcc; background-color: currentColor; }
+    .bg-short   { color: #ffcccc; background: currentColor; }
+    .decoration { color: blue; text-decoration: underline; text-decoration-color: currentColor; }
+
+    /* Inherited from the parent, since the element sets no color of its own. */
+    .parent     { color: teal; }
+    .parent div { border: 3px solid currentColor; }
+</style>
+</head>
+<body>
+<div class="border">border: 3px solid currentColor, on red</div>
+<div class="sides">border-color blue, then currentColor, on green</div>
+<div class="one-to-four">border-color: currentColor orange, on purple</div>
+<div class="background">background-color: currentColor, pale green</div>
+<div class="bg-short">background: currentColor, pale red</div>
+<div class="decoration">text-decoration-color: currentColor, on blue</div>
+<div class="parent"><div>border takes the inherited teal</div></div>
+</body>
+</html>

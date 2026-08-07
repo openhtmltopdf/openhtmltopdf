@@ -273,9 +273,27 @@ public class CalculatedStyle {
         FSDerivedValue prop = valueByName(cssName);
         if (prop == IdentValue.TRANSPARENT) {
             return FSRGBColor.TRANSPARENT;
+        } else if (prop == IdentValue.CURRENT_COLOR) {
+            return asCurrentColor(cssName);
         } else {
             return prop.asColor();
         }
+    }
+
+    /**
+     * The <code>currentcolor</code> keyword: this element's own text color.
+     *
+     * <p>On the <code>color</code> property itself there would be no way out of
+     * that, so there it means the inherited color, as the spec says.</p>
+     */
+    private FSColor asCurrentColor(CSSName cssName) {
+        if (cssName != CSSName.COLOR) {
+            return getColor();
+        }
+
+        return _parent != null
+                ? _parent.getColor()
+                : CSSName.initialDerivedValue(CSSName.COLOR).asColor();
     }
 
     public float asFloat(CSSName cssName) {
