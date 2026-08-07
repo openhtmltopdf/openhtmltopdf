@@ -1,0 +1,47 @@
+<html>
+<head>
+<style>
+@page {
+  size: 55mm 210mm;
+  margin: 0;
+}
+body {
+  margin: 0;
+}
+div {
+  border: 1mm solid black;
+  margin: 3mm;
+}
+.h1 { height: 1cm; }
+.h3 { height: 3cm; }
+.w1 { width: 1cm; }
+.w3 { width: 3cm; }
+
+/* Every box must show a 5mm red bar at the bottom, whatever its size. */
+.up {
+  background-image: linear-gradient(to top, red 0, red 5mm, white 5mm, white);
+}
+/* Every box must show a 5mm red bar at the left, whatever its size. */
+.right {
+  background-image: linear-gradient(to right, red 0, red 5mm, white 5mm, white);
+}
+/* Percentages are measured along the gradient line, so the red bar must be
+   half the height of the box - not a share of its width. */
+.up-pct {
+  background-image: linear-gradient(to top, red 0, red 50%, white 50%, white);
+}
+</style>
+</head>
+<body>
+<div class="up h1 w1"></div>
+<div class="up h1 w3"></div>
+<div class="up h3 w1"></div>
+<div class="up h3 w3"></div>
+
+<div class="right h1 w1"></div>
+<div class="right h3 w3"></div>
+
+<div class="up-pct h1 w1"></div>
+<div class="up-pct h1 w3"></div>
+</body>
+</html>
