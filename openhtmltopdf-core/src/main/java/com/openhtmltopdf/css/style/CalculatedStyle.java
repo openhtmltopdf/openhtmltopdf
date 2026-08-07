@@ -41,7 +41,6 @@ import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.parser.property.PrimitivePropertyBuilders;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
-import com.openhtmltopdf.css.style.derived.ColorValue;
 import com.openhtmltopdf.css.style.derived.CountersValue;
 import com.openhtmltopdf.css.style.derived.DerivedValueFactory;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
@@ -1265,33 +1264,27 @@ public class CalculatedStyle {
         } else {
             List<PropertyValue> idents = ((ListValue) value).getValues();
             return idents.stream()
-                    .filter(val -> val.getPropertyValueType() == PropertyValue.VALUE_TYPE_IDENT)
                     .map(val -> (IdentValue) DerivedValueFactory.newDerivedValue(this, CSSName.TEXT_DECORATION, val))
                     .collect(Collectors.toList());
         }
     }
 
     /**
-     * The color specified as part of the text-decoration shorthand
-     * (eg. <code>text-decoration: underline red;</code>), or
-     * <code>null</code> if no color was specified, in which case the
-     * decoration should be painted using the current text color.
+     * The color to paint the text decoration in, set either with the
+     * <code>text-decoration-color</code> longhand or as part of the
+     * <code>text-decoration</code> shorthand (eg.
+     * <code>text-decoration: underline red;</code>).
+     *
+     * <p>Returns <code>null</code> for the initial value,
+     * <code>currentcolor</code>, meaning the decoration takes the element's own
+     * text color.</p>
      */
     public FSColor getTextDecorationColor() {
-        FSDerivedValue value = valueByName(CSSName.TEXT_DECORATION);
-        if (value == IdentValue.NONE || !(value instanceof ListValue)) {
+        if (valueByName(CSSName.TEXT_DECORATION_COLOR) == IdentValue.CURRENT_COLOR) {
             return null;
         }
 
-        List<PropertyValue> values = ((ListValue) value).getValues();
-        for (PropertyValue val : values) {
-            if (val.getPropertyValueType() == PropertyValue.VALUE_TYPE_COLOR) {
-                return ((ColorValue)
-                        DerivedValueFactory.newDerivedValue(this, CSSName.TEXT_DECORATION, val)).asColor();
-            }
-        }
-
-        return null;
+        return asColor(CSSName.TEXT_DECORATION_COLOR);
     }
 
     public IdentValue getTextUnderlinePosition() {
