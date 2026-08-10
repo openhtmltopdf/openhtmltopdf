@@ -137,7 +137,8 @@ public abstract class AbstractOutputDevice implements OutputDevice {
     @Override
     public void drawTextDecoration(
             RenderingContext c, InlineLayoutBox iB, TextDecoration decoration) {
-        setColor(iB.getStyle().getColor());
+        FSColor decorationColor = decoration.getColor();
+        setColor(decorationColor != null ? decorationColor : iB.getStyle().getColor());
 
         Rectangle edge = iB.getContentAreaEdge(iB.getAbsX(), iB.getAbsY(), c);
 
@@ -147,11 +148,12 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
     @Override
     public void drawTextDecoration(RenderingContext c, LineBox lineBox) {
-        setColor(lineBox.getStyle().getColor());
         Box parent = lineBox.getParent();
         List<TextDecoration> decorations = lineBox.getTextDecorations();
         for (Iterator<TextDecoration> i = decorations.iterator(); i.hasNext(); ) {
             TextDecoration textDecoration = i.next();
+            FSColor decorationColor = textDecoration.getColor();
+            setColor(decorationColor != null ? decorationColor : lineBox.getStyle().getColor());
             if (parent.getStyle().isIdent(
                     CSSName.FS_TEXT_DECORATION_EXTENT, IdentValue.BLOCK)) {
                 fillRect(

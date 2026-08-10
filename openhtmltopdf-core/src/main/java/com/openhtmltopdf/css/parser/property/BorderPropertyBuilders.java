@@ -168,10 +168,10 @@ public class BorderPropertyBuilders {
                 }
                 
                 IdentValue ident = IdentValue.valueOf(value.getCssText());
-                if (ident == null || ident != IdentValue.TRANSPARENT) {
+                if (ident != IdentValue.TRANSPARENT && ident != IdentValue.CURRENT_COLOR) {
                     return null;
                 }
-                
+
                 return value;
             }
         }

@@ -1716,6 +1716,34 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("text-underline-position", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests a color specified as part of the text-decoration shorthand
+     * (eg. text-decoration: underline red;) for underline, line-through,
+     * overline, named colors, hex colors, rgb() colors, multiple
+     * line-types combined with a color, inheritance independent of the
+     * text color, and that an invalid text-decoration value is rejected
+     * without affecting other declarations in the same rule.
+     * <p>
+     * See https://github.com/openhtmltopdf/openhtmltopdf/issues/101
+     */
+    @Test
+    public void testIssue101TextDecorationColor() throws IOException {
+        assertTrue(vt.runTest("text-decoration-color", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the currentColor keyword, which stands for the element's own text
+     * color, on borders (shorthand, longhand and the one-to-four form),
+     * backgrounds and the text decoration, including a color inherited rather
+     * than set on the element itself.
+     * <p>
+     * See https://github.com/openhtmltopdf/openhtmltopdf/issues/115
+     */
+    @Test
+    public void testIssue115CurrentColor() throws IOException {
+        assertTrue(vt.runTest("current-color", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));

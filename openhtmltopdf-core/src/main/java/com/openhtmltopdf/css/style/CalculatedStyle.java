@@ -273,9 +273,27 @@ public class CalculatedStyle {
         FSDerivedValue prop = valueByName(cssName);
         if (prop == IdentValue.TRANSPARENT) {
             return FSRGBColor.TRANSPARENT;
+        } else if (prop == IdentValue.CURRENT_COLOR) {
+            return asCurrentColor(cssName);
         } else {
             return prop.asColor();
         }
+    }
+
+    /**
+     * The <code>currentcolor</code> keyword: this element's own text color.
+     *
+     * <p>On the <code>color</code> property itself there would be no way out of
+     * that, so there it means the inherited color, as the spec says.</p>
+     */
+    private FSColor asCurrentColor(CSSName cssName) {
+        if (cssName != CSSName.COLOR) {
+            return getColor();
+        }
+
+        return _parent != null
+                ? _parent.getColor()
+                : CSSName.initialDerivedValue(CSSName.COLOR).asColor();
     }
 
     public float asFloat(CSSName cssName) {
@@ -1267,6 +1285,24 @@ public class CalculatedStyle {
                     .map(val -> (IdentValue) DerivedValueFactory.newDerivedValue(this, CSSName.TEXT_DECORATION, val))
                     .collect(Collectors.toList());
         }
+    }
+
+    /**
+     * The color to paint the text decoration in, set either with the
+     * <code>text-decoration-color</code> longhand or as part of the
+     * <code>text-decoration</code> shorthand (eg.
+     * <code>text-decoration: underline red;</code>).
+     *
+     * <p>Returns <code>null</code> for the initial value,
+     * <code>currentcolor</code>, meaning the decoration takes the element's own
+     * text color.</p>
+     */
+    public FSColor getTextDecorationColor() {
+        if (valueByName(CSSName.TEXT_DECORATION_COLOR) == IdentValue.CURRENT_COLOR) {
+            return null;
+        }
+
+        return asColor(CSSName.TEXT_DECORATION_COLOR);
     }
 
     public IdentValue getTextUnderlinePosition() {

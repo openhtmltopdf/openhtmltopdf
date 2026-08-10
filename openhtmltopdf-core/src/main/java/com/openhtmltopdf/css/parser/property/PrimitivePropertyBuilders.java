@@ -173,7 +173,7 @@ public class PrimitivePropertyBuilders {
 
     static class GenericColor extends AbstractPropertyBuilder {
         private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.TRANSPARENT });
+                new IdentValue[] { IdentValue.CURRENT_COLOR, IdentValue.TRANSPARENT });
 
         @Override
         public List<PropertyDeclaration> buildDeclarations(
@@ -1390,39 +1390,114 @@ public class PrimitivePropertyBuilders {
         public List<PropertyDeclaration> buildDeclarations(
                 CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
             if (values.size() == 1) {
-                CSSPrimitiveValue value = values.get(0);
-                boolean goWithSingle = false;
+                PropertyValue value = values.get(0);
+
                 if (value.getCssValueType() == CSSValue.CSS_INHERIT) {
-                    goWithSingle = true;
-                } else {
-                    checkIdentType(CSSName.TEXT_DECORATION, value);
-                    IdentValue ident = checkIdent(cssName, value);
-                    if (ident == IdentValue.NONE) {
-                        goWithSingle = true;
-                    }
+                    // Every longhand the shorthand stands for inherits, the color
+                    // included.
+                    List<PropertyDeclaration> inherited = new ArrayList<>(2);
+                    inherited.add(new PropertyDeclaration(cssName, value, important, origin));
+                    inherited.add(new PropertyDeclaration(
+                            CSSName.TEXT_DECORATION_COLOR, value, important, origin));
+                    return inherited;
                 }
 
-                if (goWithSingle) {
-                    return Collections.singletonList(
-                            new PropertyDeclaration(cssName, value, important, origin));
+                // A lone color (eg. text-decoration: red;) is a valid, if
+                // pointless, declaration: it asks for no line at all. Leave it
+                // to the loop below, which turns it into an empty line list
+                // plus a decoration color.
+                if (asColorOrNull(value) == null) {
+                    checkIdentType(CSSName.TEXT_DECORATION, value);
+                    IdentValue ident = checkIdent(cssName, value);
+
+                    if (ident == IdentValue.NONE) {
+                        return Collections.singletonList(
+                                new PropertyDeclaration(cssName, value, important, origin));
+                    }
                 }
             }
+
+            List<PropertyValue> lines = new ArrayList<>(values.size());
+            PropertyValue color = null;
 
             for (Iterator<PropertyValue> i = values.iterator(); i.hasNext(); ) {
                 PropertyValue value = i.next();
                 checkInheritAllowed(value, false);
+
+                // text-decoration is a shorthand that also allows a color
+                // component (eg. text-decoration: underline red;). Such a value
+                // is not one of the line-type idents, it sets the longhand
+                // text-decoration-color instead.
+                PropertyValue valueColor = asColorOrNull(value);
+                if (valueColor != null) {
+                    if (color == null) {
+                        color = valueColor;
+                    }
+                    // A second color makes the declaration invalid per the spec.
+                    // We are lenient and keep the first, so that at least the
+                    // lines asked for are still drawn.
+                    continue;
+                }
+
                 checkIdentType(cssName, value);
                 IdentValue ident = checkIdent(cssName, value);
                 if (ident == IdentValue.NONE) {
                     throw new CSSParseException("Value none may not be used in this position", -1);
                 }
                 checkValidity(cssName, getAllowed(), ident);
+                lines.add(value);
             }
 
-            return Collections.singletonList(
-                    new PropertyDeclaration(cssName, new PropertyValue(values), important, origin));
+            // As a shorthand, text-decoration also resets the color longhand
+            // when no color of its own was given.
+            PropertyValue colorValue = color != null
+                    ? color
+                    : new PropertyValue(IdentValue.CURRENT_COLOR);
 
+            List<PropertyDeclaration> result = new ArrayList<>(2);
+            result.add(new PropertyDeclaration(cssName, new PropertyValue(lines), important, origin));
+            result.add(new PropertyDeclaration(
+                    CSSName.TEXT_DECORATION_COLOR, colorValue, important, origin));
+
+            return result;
         }
+
+        /**
+         * Returns the value to give the text-decoration-color longhand if this
+         * value is a color - specified directly (eg. #ff0000, rgb(...)), as a
+         * named color (eg. red), or as one of the color keywords - or null if
+         * it isn't a color at all.
+         */
+        private PropertyValue asColorOrNull(PropertyValue value) {
+            if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_RGBCOLOR) {
+                return value;
+            }
+
+            if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
+                IdentValue ident = IdentValue.valueOf(value.getStringValue());
+                if (ident == IdentValue.CURRENT_COLOR || ident == IdentValue.TRANSPARENT) {
+                    return new PropertyValue(ident);
+                }
+
+                FSRGBColor named = Conversions.getColor(value.getStringValue());
+                if (named != null) {
+                    return new PropertyValue(named);
+                }
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * The color of the line(s) asked for by text-decoration, either set
+     * directly with the text-decoration-color longhand or as part of the
+     * text-decoration shorthand.
+     *
+     * <p>Its initial value, <code>currentcolor</code>, means the element's own
+     * text color, resolved when the decoration is painted.</p>
+     */
+    public static class TextDecorationColor extends GenericColor {
     }
 
     public static class TextIndent extends LengthLike {

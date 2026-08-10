@@ -1082,6 +1082,21 @@ public final class CSSName implements Comparable<CSSName> {
             );
 
     /**
+     * Unique CSSName instance for CSS text-decoration-color property.
+     *
+     * <p>Also set by the <code>text-decoration</code> shorthand, which resets it
+     * to <code>currentcolor</code> when it carries no color of its own.</p>
+     */
+    public final static CSSName TEXT_DECORATION_COLOR =
+            addProperty(
+                    "text-decoration-color",
+                    PRIMITIVE,
+                    "currentcolor",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.TextDecorationColor()
+            );
+
+    /**
      * Unique CSSName instance for CSS text-underline-position property.
      */
     public final static CSSName TEXT_UNDERLINE_POSITION =
