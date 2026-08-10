@@ -1071,7 +1071,10 @@ public class BlockBox extends Box {
 
     private void calcExtraPageClearance(LayoutContext c) {
         if (c.isPageBreaksAllowed() &&
-                c.getExtraSpaceTop() > 0 && (getStyle().isSpecifiedAsBlock() || getStyle().isListItem())) {
+            c.getExtraSpaceTop() > 0 && 
+            (getStyle().isSpecifiedAsBlock() || 
+             getStyle().isListItem())) {
+
             PageBox first = c.getRootLayer().getFirstPage(c, this);
             if (first != null && first.getTop() + c.getExtraSpaceTop() > getAbsY()) {
                 int diff = first.getTop() + c.getExtraSpaceTop() - getAbsY();

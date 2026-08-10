@@ -992,6 +992,7 @@ public class TableBox extends BlockBox {
             _table = table;
         }
 
+        @Override
         public void reset() {
             _widths = null;
         }
