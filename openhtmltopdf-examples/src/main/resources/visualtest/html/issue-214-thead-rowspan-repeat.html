@@ -1,0 +1,94 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 180px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+  font-family: 'TestFont';
+  font-size: 10px;
+}
+table {
+  -fs-table-paginate: paginate;
+  width: 100%;
+  margin-bottom: 10px;
+}
+td, th {
+  height: 14px;
+  padding: 0 2px;
+  text-align: left;
+}
+th {
+  background-color: gray;
+}
+td {
+  background-color: silver;
+}
+
+/* (1) The reported case: a header cell spanning both header rows, in the
+       collapsing borders model. Its background and border must repeat on
+       every page the header repeats on. */
+#collapse {
+  border-collapse: collapse;
+}
+#collapse td, #collapse th {
+  border: 2px solid green;
+}
+
+/* (2) The same header shape in the separated borders model, which takes a
+       different route to the painting bounds. */
+#separate {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+#separate td, #separate th {
+  border: 2px solid blue;
+}
+</style>
+</head>
+<body>
+<table id="collapse">
+<thead>
+<tr><th rowspan="2">Both</th><th>A</th></tr>
+<tr><th>B</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>x</td></tr>
+<tr><td>2</td><td>x</td></tr>
+<tr><td>3</td><td>x</td></tr>
+<tr><td>4</td><td>x</td></tr>
+<tr><td>5</td><td>x</td></tr>
+<tr><td>6</td><td>x</td></tr>
+<tr><td>7</td><td>x</td></tr>
+<tr><td>8</td><td>x</td></tr>
+<tr><td>9</td><td>x</td></tr>
+<tr><td>10</td><td>x</td></tr>
+<tr><td>11</td><td>x</td></tr>
+<tr><td>12</td><td>x</td></tr>
+</tbody>
+</table>
+
+<table id="separate">
+<thead>
+<tr><th rowspan="2">Both</th><th>A</th></tr>
+<tr><th>B</th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>x</td></tr>
+<tr><td>2</td><td>x</td></tr>
+<tr><td>3</td><td>x</td></tr>
+<tr><td>4</td><td>x</td></tr>
+<tr><td>5</td><td>x</td></tr>
+<tr><td>6</td><td>x</td></tr>
+<tr><td>7</td><td>x</td></tr>
+<tr><td>8</td><td>x</td></tr>
+<tr><td>9</td><td>x</td></tr>
+<tr><td>10</td><td>x</td></tr>
+<tr><td>11</td><td>x</td></tr>
+<tr><td>12</td><td>x</td></tr>
+</tbody>
+</table>
+</body>
+</html>

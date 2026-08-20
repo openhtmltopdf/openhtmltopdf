@@ -1835,6 +1835,18 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a header cell spanning both header rows keeps its background
+     * and border on the pages the header repeats on. The overlap avoidance
+     * added for a body cell whose rowspan crosses a page break must not clip
+     * the header's own cells against the header. Covers the collapsing and
+     * the separated borders models. Issue 214.
+     */
+    @Test
+    public void testTheadRowspanRepeat() throws IOException {
+        assertTrue(vt.runTest("issue-214-thead-rowspan-repeat", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that a table with -fs-table-paginate: paginate inside a
      * column-count container paints. Column content is laid out with
      * pagination switched off, so the rows are never page break analyzed,
