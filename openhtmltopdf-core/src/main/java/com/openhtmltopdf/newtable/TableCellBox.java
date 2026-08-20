@@ -308,15 +308,24 @@ public class TableCellBox extends BlockBox {
     }
 
     /**
-     * Adjusts the bounds of a rowspan cell on continuation pages to avoid overlapping with thead.
-     * For rowspan cells that span multiple pages, this ensures the cell's rendering starts
-     * after the thead section on subsequent pages.
+     * Adjusts the bounds of a body rowspan cell on continuation pages to avoid overlapping
+     * with thead. For rowspan cells that span multiple pages, this ensures the cell's
+     * rendering starts after the thead section on subsequent pages.
      *
      * @return adjusted bounds that don't overlap with thead, or the original bounds if no adjustment needed
      */
     private Rectangle adjustBoundsToAvoidTheadOverlap(RenderingContext c, Rectangle bounds) {
         // Only adjust for rowspan cells on subsequent pages
         if (bounds == null || getStyle().getRowSpan() <= 1) {
+            return bounds;
+        }
+
+        // A cell of the header (or the footer) is repositioned for every page it repeats
+        // on, so its bounds are already page local and never content limited. A header
+        // cell spanning the header rows starts at the top of the header, which would
+        // otherwise be clipped away as an overlap with the header itself.
+        TableSectionBox section = getSection();
+        if (section.isHeader() || section.isFooter()) {
             return bounds;
         }
 
