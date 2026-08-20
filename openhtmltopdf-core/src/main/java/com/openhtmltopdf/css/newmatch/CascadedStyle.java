@@ -33,6 +33,7 @@ import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
 import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.sheet.CustomPropertyDeclaration;
+import com.openhtmltopdf.css.sheet.PendingVarPropertyDeclaration;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
 
@@ -82,6 +83,15 @@ public class CascadedStyle {
 
     /** Next rank to assign; increases monotonically across {@link #addProperties}. */
     private int nextSequence;
+
+    /**
+     * Whether any declaration added here was a {@link PendingVarPropertyDeclaration}.
+     * Only then does the order in which declarations are derived matter, so this
+     * keeps documents that use no CSS variables off the ordering path entirely.
+     * It stays set if such a declaration is later overwritten by a plain one,
+     * which costs an unnecessary sort but is never wrong.
+     */
+    private boolean hasPendingVarProperties;
 
     private String fingerprint;
     
@@ -163,6 +173,7 @@ public class CascadedStyle {
         customProperties = new TreeMap<>(startingPoint.customProperties);
         matchSequence = new HashMap<>(startingPoint.matchSequence);
         nextSequence = startingPoint.nextSequence;
+        hasPendingVarProperties = startingPoint.hasPendingVarProperties;
 
         addProperties(props);
     }
@@ -218,6 +229,9 @@ public class CascadedStyle {
                 // Record cascade priority: entries are visited in ascending
                 // priority, so a later put means higher priority.
                 matchSequence.put(prop.getCSSName(), nextSequence++);
+                if (prop instanceof PendingVarPropertyDeclaration) {
+                    hasPendingVarProperties = true;
+                }
             }
         }
     }
@@ -329,6 +343,16 @@ public class CascadedStyle {
     public int getMatchSequence(CSSName cssName) {
         Integer seq = matchSequence.get(cssName);
         return seq == null ? Integer.MIN_VALUE : seq.intValue();
+    }
+
+    /**
+     * Whether this style carries a declaration whose value contains {@code var()}
+     * and therefore has to be derived in cascade order.
+     *
+     * @see #hasPendingVarProperties
+     */
+    public boolean hasPendingVarProperties() {
+        return hasPendingVarProperties;
     }
 
     public int countAssigned() { return cascadedProperties.size(); }

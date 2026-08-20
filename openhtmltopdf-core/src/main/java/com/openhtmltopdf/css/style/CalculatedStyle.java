@@ -22,6 +22,7 @@ package com.openhtmltopdf.css.style;
 
 import java.awt.Cursor;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -645,15 +646,25 @@ public class CalculatedStyle {
         // inherited custom property.
         deriveCustomProperties(matched);
 
-        // Apply in ascending cascade priority so the highest-priority writer of
-        // each longhand wins. This only matters when a var()-bearing shorthand
-        // (kept under the shorthand CSSName, e.g. "padding") and an explicit
-        // longhand (e.g. "padding-left") both target the same longhand, which the
-        // per-CSSName cascade can't order. See CascadedStyle#getMatchSequence.
-        List<PropertyDeclaration> ordered = new ArrayList<>(matched.getCascadedPropertyDeclarations());
-        ordered.sort(Comparator.comparingInt(d -> matched.getMatchSequence(d.getCSSName())));
+        Collection<PropertyDeclaration> declarations = matched.getCascadedPropertyDeclarations();
 
-        for (PropertyDeclaration pd : ordered) {
+        if (matched.hasPendingVarProperties()) {
+            // Apply in ascending cascade priority so the highest-priority writer
+            // of each longhand wins. This only matters when a var()-bearing
+            // shorthand (kept under the shorthand CSSName, e.g. "padding") and an
+            // explicit longhand (e.g. "padding-left") both target the same
+            // longhand, which the per-CSSName cascade can't order. See
+            // CascadedStyle#getMatchSequence.
+            //
+            // Without a pending declaration every entry writes a distinct
+            // _derivedValuesById slot (the cascade is keyed by CSSName), so the
+            // order cannot matter and we skip the copy and the sort.
+            List<PropertyDeclaration> ordered = new ArrayList<>(declarations);
+            ordered.sort(Comparator.comparingInt(d -> matched.getMatchSequence(d.getCSSName())));
+            declarations = ordered;
+        }
+
+        for (PropertyDeclaration pd : declarations) {
             if (pd instanceof PendingVarPropertyDeclaration) {
                 resolvePendingVar((PendingVarPropertyDeclaration) pd);
             } else {
