@@ -22,9 +22,15 @@ package com.openhtmltopdf.css.style;
 
 import java.awt.Cursor;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -32,14 +38,19 @@ import com.openhtmltopdf.context.StyleReference;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.newmatch.CascadedStyle;
+import com.openhtmltopdf.css.parser.CSSParser;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
+import com.openhtmltopdf.css.parser.CSSVariableSubstitution;
 import com.openhtmltopdf.css.parser.CounterData;
 import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.parser.FSFunction;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.parser.property.PrimitivePropertyBuilders;
+import com.openhtmltopdf.css.sheet.CustomPropertyDeclaration;
+import com.openhtmltopdf.css.sheet.PendingVarPropertyDeclaration;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
+import com.openhtmltopdf.css.sheet.Ruleset;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.CountersValue;
 import com.openhtmltopdf.css.style.derived.DerivedValueFactory;
@@ -96,6 +107,14 @@ public class CalculatedStyle {
      * The parent-style we inherit from
      */
     private CalculatedStyle _parent;
+
+    /**
+     * This element's effective CSS custom properties ({@code --*}), keyed by
+     * name and holding raw (possibly {@code var()}-containing) value text. It is
+     * the parent's map overlaid with this element's own custom declarations, so
+     * custom properties inherit by default. Read-only after {@link #derive}.
+     */
+    private Map<String, String> _customProperties = Collections.emptyMap();
 
     private BorderPropertySet _border;
     private RectPropertySet _margin;
@@ -644,10 +663,169 @@ public class CalculatedStyle {
             return;
         }
 
-        for (PropertyDeclaration pd : matched.getCascadedPropertyDeclarations()) {
-            FSDerivedValue val = deriveValue(pd.getCSSName(), pd.getValue());
-            _derivedValuesById[pd.getCSSName().FS_ID] = val;
+        // Build this element's custom property environment before resolving any
+        // var() references, since a reference can resolve against an own or an
+        // inherited custom property.
+        deriveCustomProperties(matched);
+
+        Collection<PropertyDeclaration> declarations = matched.getCascadedPropertyDeclarations();
+
+        if (matched.hasPendingVarProperties()) {
+            // Apply in ascending cascade priority so the highest-priority writer
+            // of each longhand wins. This only matters when a var()-bearing
+            // shorthand (kept under the shorthand CSSName, e.g. "padding") and an
+            // explicit longhand (e.g. "padding-left") both target the same
+            // longhand, which the per-CSSName cascade can't order. See
+            // CascadedStyle#getMatchSequence.
+            //
+            // Without a pending declaration every entry writes a distinct
+            // _derivedValuesById slot (the cascade is keyed by CSSName), so the
+            // order cannot matter and we skip the copy and the sort.
+            List<PropertyDeclaration> ordered = new ArrayList<>(declarations);
+            ordered.sort(Comparator.comparingInt(d -> matched.getMatchSequence(d.getCSSName())));
+            declarations = ordered;
         }
+
+        for (PropertyDeclaration pd : declarations) {
+            if (pd instanceof PendingVarPropertyDeclaration) {
+                resolvePendingVar((PendingVarPropertyDeclaration) pd);
+            } else {
+                FSDerivedValue val = deriveValue(pd.getCSSName(), pd.getValue());
+                _derivedValuesById[pd.getCSSName().FS_ID] = val;
+            }
+        }
+    }
+
+    /**
+     * Builds {@link #_customProperties}: the inherited map overlaid with this
+     * element's own {@code --*} declarations (handling initial/inherit/unset).
+     */
+    private void deriveCustomProperties(CascadedStyle matched) {
+        Map<String, CustomPropertyDeclaration> own = matched.getCustomProperties();
+        Map<String, String> inherited =
+                _parent != null ? _parent._customProperties : Collections.<String, String>emptyMap();
+
+        if (own.isEmpty()) {
+            // Share the parent's map; it is treated as read-only.
+            _customProperties = inherited;
+            return;
+        }
+
+        Map<String, String> map = new HashMap<>(inherited);
+        for (CustomPropertyDeclaration decl : own.values()) {
+            String raw = decl.getValueText().trim();
+            if (raw.equalsIgnoreCase("initial")) {
+                // Custom property initial value is the guaranteed-invalid value.
+                map.remove(decl.getName());
+            } else if (raw.equalsIgnoreCase("inherit") || raw.equalsIgnoreCase("unset")) {
+                // Custom properties inherit, so both keep the inherited value.
+            } else {
+                map.put(decl.getName(), decl.getValueText());
+            }
+        }
+        _customProperties = map;
+    }
+
+    /**
+     * Resolves a {@code var()}-bearing declaration: substitutes the references,
+     * then re-parses the result so shorthands and multi-value properties expand
+     * normally. On failure the property is left unset (inherits/initial), per CSS
+     * "invalid at computed-value time".
+     */
+    private void resolvePendingVar(PendingVarPropertyDeclaration pd) {
+        String substituted = substitutePendingVar(pd);
+        if (substituted == null) {
+            // Known limitation: when a var()-bearing shorthand wins the cascade but
+            // is invalid at computed-value time, we leave the longhands as-is instead
+            // of unsetting them. So a lower-priority explicit longhand applied earlier
+            // (e.g. "padding-left: 5px; padding: var(--undefined)") survives, whereas
+            // per spec the whole shorthand should compute to unset. Rare in practice.
+            return;
+        }
+
+        String declarationText = pd.getPropertyName() + ": " + substituted;
+        try {
+            Ruleset ruleset = newVarCssParser().parseDeclaration(pd.getOrigin(), declarationText);
+            for (PropertyDeclaration newPd : ruleset.getPropertyDeclarations()) {
+                if (newPd instanceof PendingVarPropertyDeclaration) {
+                    // Should not occur once fully substituted; ignore defensively.
+                    continue;
+                }
+                FSDerivedValue val = deriveValue(newPd.getCSSName(), newPd.getValue());
+                _derivedValuesById[newPd.getCSSName().FS_ID] = val;
+            }
+        } catch (RuntimeException e) {
+            XRLog.log(Level.INFO, LogMessageId.LogMessageId2Param.CSS_PARSE_GENERIC_MESSAGE,
+                    "var() substitution",
+                    "Could not parse resolved declaration '" + declarationText +
+                            "'; treating it as unset.");
+        }
+    }
+
+    /**
+     * Like {@link #resolvePendingVar} but returns the resolved value as a single
+     * {@link PropertyValue} (or {@code null}). Used for values read directly
+     * rather than via {@link #valueByName(CSSName)}, such as {@code content}.
+     */
+    public PropertyValue resolvePendingVarPropertyValue(PendingVarPropertyDeclaration pd) {
+        String substituted = substitutePendingVar(pd);
+        if (substituted == null) {
+            return null;
+        }
+        try {
+            return newVarCssParser().parsePropertyValue(pd.getCSSName(), pd.getOrigin(), substituted);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Substitutes the {@code var()} references in a pending declaration against
+     * this element's environment, or returns {@code null} if any is unresolved.
+     */
+    private String substitutePendingVar(PendingVarPropertyDeclaration pd) {
+        Set<String> resolving = new HashSet<>();
+        CSSVariableSubstitution.Result result = CSSVariableSubstitution.substitute(
+                pd.getValueText(), name -> resolveCustomProperty(name, resolving));
+
+        if (!result.isResolved()) {
+            XRLog.log(Level.INFO, LogMessageId.LogMessageId2Param.CSS_PARSE_GENERIC_MESSAGE,
+                    "var() substitution",
+                    "Unresolved var() in '" + pd.getPropertyName() + ": " + pd.getValueText() +
+                            "'; treating the declaration as unset.");
+            return null;
+        }
+        return result.getText();
+    }
+
+    /**
+     * Resolves a custom property name to its fully-substituted value text, or
+     * {@code null} if it is undefined or part of a reference cycle.
+     */
+    private String resolveCustomProperty(String name, Set<String> resolving) {
+        String raw = _customProperties.get(name);
+        if (raw == null || resolving.contains(name)) {
+            return null;
+        }
+        if (!CSSVariableSubstitution.containsVar(raw)) {
+            return raw;
+        }
+        resolving.add(name);
+        try {
+            CSSVariableSubstitution.Result r = CSSVariableSubstitution.substitute(
+                    raw, n -> resolveCustomProperty(n, resolving));
+            return r.isResolved() ? r.getText() : null;
+        } finally {
+            // Remove on exit so a name is blocked only while on the current
+            // resolution stack (a real cycle), not after it has resolved once:
+            // a value like "var(--a) var(--a)" must still resolve the second use.
+            resolving.remove(name);
+        }
+    }
+
+    private static CSSParser newVarCssParser() {
+        return new CSSParser((uri, message) ->
+                XRLog.log(Level.INFO, LogMessageId.LogMessageId2Param.CSS_PARSE_GENERIC_MESSAGE, uri, message));
     }
 
     private FSDerivedValue deriveValue(CSSName cssName, CSSPrimitiveValue value) {

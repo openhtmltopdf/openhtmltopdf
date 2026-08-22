@@ -34,6 +34,7 @@ public class Ruleset {
     private final List<PropertyDeclaration> _props;
     private final List<Selector> _fsSelectors;
     private List<InvalidPropertyDeclaration> _invalidProperties;
+    private List<CustomPropertyDeclaration> _customProperties;
 
     public Ruleset(int orig) {
         _origin = orig;
@@ -104,5 +105,16 @@ public class Ruleset {
 
     public List<InvalidPropertyDeclaration> getInvalidPropertyDeclarations() {
         return _invalidProperties == null ? Collections.emptyList() : _invalidProperties;
+    }
+
+    public void addCustomProperty(CustomPropertyDeclaration customPropertyDeclaration) {
+        if (_customProperties == null) {
+            _customProperties = new ArrayList<>();
+        }
+        _customProperties.add(customPropertyDeclaration);
+    }
+
+    public List<CustomPropertyDeclaration> getCustomPropertyDeclarations() {
+        return _customProperties == null ? Collections.emptyList() : _customProperties;
     }
 }

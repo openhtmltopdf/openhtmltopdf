@@ -756,26 +756,30 @@ public class Matcher {
             Ruleset nonCssStyling = getNonCssStyle(e);
 
             List<PropertyDeclaration> propList = new ArrayList<>();
+            List<CustomPropertyDeclaration> customPropList = new ArrayList<>();
 
             // Specificity 0,0,0,0
             if (nonCssStyling != null) {
                 propList.addAll(nonCssStyling.getPropertyDeclarations());
+                customPropList.addAll(nonCssStyling.getCustomPropertyDeclarations());
             }
 
             // These should have been returned in order of specificity
             for (Selector sel : mappedSelectors) {
                 propList.addAll(sel.getRuleset().getPropertyDeclarations());
+                customPropList.addAll(sel.getRuleset().getCustomPropertyDeclarations());
             }
 
             // Specificity 1,0,0,0
             if (elementStyling != null) {
                 propList.addAll(elementStyling.getPropertyDeclarations());
+                customPropList.addAll(elementStyling.getCustomPropertyDeclarations());
             }
 
-            if (propList.isEmpty()) {
+            if (propList.isEmpty() && customPropList.isEmpty()) {
                 return CascadedStyle.emptyCascadedStyle;
             } else {
-                return new CascadedStyle(propList.iterator());
+                return new CascadedStyle(propList.iterator(), customPropList);
             }
         }
 
@@ -795,15 +799,17 @@ public class Matcher {
             }
 
             List<PropertyDeclaration> propList = new ArrayList<>();
+            List<CustomPropertyDeclaration> customPropList = new ArrayList<>();
 
             for (Selector sel : pe) {
                 propList.addAll(sel.getRuleset().getPropertyDeclarations());
+                customPropList.addAll(sel.getRuleset().getCustomPropertyDeclarations());
             }
 
-            if (propList.isEmpty()) {
+            if (propList.isEmpty() && customPropList.isEmpty()) {
                 return CascadedStyle.emptyCascadedStyle;
             } else {
-                return new CascadedStyle(propList.iterator());
+                return new CascadedStyle(propList.iterator(), customPropList);
             }
         }
     }

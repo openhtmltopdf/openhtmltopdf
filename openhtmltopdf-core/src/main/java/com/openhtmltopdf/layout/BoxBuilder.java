@@ -48,6 +48,7 @@ import com.openhtmltopdf.css.newmatch.PageInfo;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
 import com.openhtmltopdf.css.parser.FSFunction;
 import com.openhtmltopdf.css.parser.PropertyValue;
+import com.openhtmltopdf.css.sheet.PendingVarPropertyDeclaration;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
 import com.openhtmltopdf.css.style.CalculatedStyle;
@@ -326,6 +327,10 @@ public class BoxBuilder {
         result.setElement(c.getRootLayer().getMaster().getElement()); // XXX Doesn't make sense, but we need something here
 
         if (hasContent && ! style.isDisplayNone()) {
+            // TODO: unlike ::before/::after (see resolvePendingVarPropertyValue),
+            // var()/custom properties are not resolved here, so @page margin-box
+            // content can't use them (would also need getPageCascadedStyle to
+            // collect custom-property declarations).
             children.addAll(createGeneratedMarginBoxContent(
                     c,
                     c.getRootLayer().getMaster().getElement(),
@@ -1030,9 +1035,18 @@ public class BoxBuilder {
             }
 
             if (contentDecl != null) {
-                CSSPrimitiveValue propValue = contentDecl.getValue();
-                children.addAll(createGeneratedContent(c, element, peName, calculatedStyle,
-                        (PropertyValue) propValue, info));
+                CSSPrimitiveValue propValue;
+                if (contentDecl instanceof PendingVarPropertyDeclaration) {
+                    // The content value contains var(); resolve it per element.
+                    propValue = calculatedStyle.resolvePendingVarPropertyValue(
+                            (PendingVarPropertyDeclaration) contentDecl);
+                } else {
+                    propValue = contentDecl.getValue();
+                }
+                if (propValue != null) {
+                    children.addAll(createGeneratedContent(c, element, peName, calculatedStyle,
+                            (PropertyValue) propValue, info));
+                }
             }
         }
     }

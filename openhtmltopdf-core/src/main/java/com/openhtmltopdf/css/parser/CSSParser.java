@@ -788,7 +788,8 @@ public class CSSParser {
             }
 
             if (!ruleset.getPropertyDeclarations().isEmpty() ||
-                    !ruleset.getInvalidPropertyDeclarations().isEmpty()) {
+                    !ruleset.getInvalidPropertyDeclarations().isEmpty() ||
+                    !ruleset.getCustomPropertyDeclarations().isEmpty()) {
                 container.addContent(ruleset);
             }
         } catch (CSSParseException e) {
@@ -1173,6 +1174,8 @@ public class CSSParser {
             selector.setPseudoClass(Selector.ACTIVE_PSEUDOCLASS);
         } else if (value.equals("first-child")) {
             selector.addFirstChildCondition();
+        } else if (value.equals("root")) {
+            selector.addRootCondition();
         } else if (value.equals("even")) {
             selector.addEvenChildCondition();
         } else if (value.equals("odd")) {
@@ -1307,11 +1310,30 @@ public class CSSParser {
         //System.out.println("declaration()");
         try {
             Token t = nextWithSave();
-            if (t == Token.TK_IDENT) {
-                String propertyName = property();
-                CSSName cssName = CSSName.getByPropertyName(propertyName);
+            {
+                String propertyName;
+                if (t == Token.TK_IDENT) {
+                    propertyName = property();
+                } else if (t == Token.TK_MINUS) {
+                    // A CSS custom property name ("--foo"). The lexer splits the
+                    // leading "--" into a MINUS token followed by an IDENT, so
+                    // rejoin them here.
+                    propertyName = customPropertyName();
+                    if (propertyName == null) {
+                        throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
+                    }
+                } else {
+                    throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
+                }
 
-                boolean valid = checkCSSName(cssName, propertyName);
+                // A "--" property is a custom property: author-defined (not a
+                // CSSName) and resolved per element at compute time, so we don't
+                // look it up or warn here.
+                boolean customProperty = propertyName.startsWith("--");
+
+                CSSName cssName = customProperty ? null : CSSName.getByPropertyName(propertyName);
+
+                boolean valid = !customProperty && checkCSSName(cssName, propertyName);
 
                 t = next();
                 if (t == Token.TK_COLON) {
@@ -1338,7 +1360,17 @@ public class CSSParser {
                                 getCurrentLine());
                     }
 
-                    if (valid) {
+                    if (customProperty) {
+                        ruleset.addCustomProperty(
+                                new CustomPropertyDeclaration(
+                                        propertyName, CSSValueText.toCSS(values), important, ruleset.getOrigin()));
+                    } else if (valid && CSSValueText.containsVarFunction(values)) {
+                        // Defer validation/building: the value references custom
+                        // properties only resolvable per element at compute time.
+                        ruleset.addProperty(
+                                new PendingVarPropertyDeclaration(
+                                        cssName, CSSValueText.toCSS(values), important, ruleset.getOrigin()));
+                    } else if (valid) {
                         if (cssName == CSSName.FS_NAMED_DESTINATION && values.stream().anyMatch(propertyValue -> IdentValue.valueOf(propertyValue.getStringValue()) == IdentValue.CREATE)) {
                             ThreadCtx.get().sharedContext().setUsingFsNamedDestination(true);
                         }
@@ -1362,13 +1394,36 @@ public class CSSParser {
                     save(t);
                     throw new CSSParseException(t, Token.TK_COLON, getCurrentLine());
                 }
-            } else {
-                throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
             }
         } catch (CSSParseException e) {
             error(e, "declaration", true);
             recover(false, true);
         }
+    }
+
+    /**
+     * Reads a CSS custom property name ("--foo") when the leading "--" has been
+     * lexed as a MINUS token (already consumed/saved). The lexer tokenizes
+     * "--foo" as MINUS followed by IDENT("-foo"); this rejoins them, preserving
+     * case (custom property names are case-sensitive). Returns {@code null} if
+     * what follows is not a custom property name.
+     *
+     * <p>A spec-compliant tokenizer would lex "--foo" as a single ident; that
+     * would remove this rejoin (and the matching one in {@code function()}) but
+     * needs the JFlex lexer regenerated, so we handle it in the parser.</p>
+     */
+    private String customPropertyName() throws IOException {
+        next(); // consume the leading MINUS (saved by the caller)
+        Token t = next();
+        if (t == Token.TK_IDENT) {
+            String identText = getTokenValue(t, true);
+            if (identText.startsWith("-")) {
+                skip_whitespace();
+                return "-" + identText;
+            }
+        }
+        save(t);
+        return null;
     }
 
     //  expr
@@ -1484,7 +1539,9 @@ public class CSSParser {
         //System.out.println("term()");
         float sign = 1;
         Token t = nextWithSave();
+        boolean minusConsumed = false;
         if (t == Token.TK_PLUS || t == Token.TK_MINUS) {
+            minusConsumed = t == Token.TK_MINUS;
             sign = unary_operator();
             t = nextWithSave();
         }
@@ -1613,8 +1670,17 @@ public class CSSParser {
                 next();
                 skip_whitespace();
                 break;
-            case Token.IDENT:
-                String value = getTokenValue(t, literal);
+            case Token.IDENT: {
+                String value;
+                String caseSensitive = getTokenValue(t, true);
+                if (minusConsumed && caseSensitive.startsWith("-")) {
+                    // A custom property reference such as "--foo" (e.g. inside
+                    // var(--foo)). The lexer split the leading "--" into a MINUS
+                    // and an IDENT("-foo"); rejoin, preserving case.
+                    value = "-" + caseSensitive;
+                } else {
+                    value = getTokenValue(t, literal);
+                }
                 result = new PropertyValue(
                         CSSPrimitiveValue.CSS_IDENT,
                         value,
@@ -1622,6 +1688,7 @@ public class CSSParser {
                 next();
                 skip_whitespace();
                 break;
+            }
             case Token.URI:
                 result = new PropertyValue(
                         CSSPrimitiveValue.CSS_URI,
@@ -1664,7 +1731,13 @@ public class CSSParser {
                 throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
             }
 
-            if (f.equals("rgb(") || f.equals("rgba(")) {
+            if (CSSValueText.containsVarFunction(params)) {
+                // A parameter references a custom property, so the function
+                // cannot be evaluated yet. Keep it as a generic function; the
+                // whole declaration becomes pending and is re-parsed (and then
+                // evaluated here) once the var() references are substituted.
+                result = new PropertyValue(new FSFunction(f.substring(0, f.length() - 1), params));
+            } else if (f.equals("rgb(") || f.equals("rgba(")) {
                 result = new PropertyValue(createRGBColorFromFunction(params));
             } else if (f.equals("hsl(") || f.equals("hsla(")) {
                 result = new PropertyValue(createRGBColorFromHSLFunction(params));
