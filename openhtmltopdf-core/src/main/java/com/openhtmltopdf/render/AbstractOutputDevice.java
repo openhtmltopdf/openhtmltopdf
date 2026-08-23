@@ -39,6 +39,7 @@ import com.openhtmltopdf.css.style.derived.LengthValue;
 import com.openhtmltopdf.css.value.FontSpecification;
 import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.extend.OutputDevice;
+import com.openhtmltopdf.layout.TextSpacing;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
 
@@ -73,31 +74,14 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             setColor(iB.getStyle().getColor());
             setFontSpecification(iB.getStyle().getFontSpecification());
             setFont(iB.getStyle().getFSFont(c));
-            if (inlineText.getLetterSpacing() != 0f) {
-                JustificationInfo info = new JustificationInfo();
-                info.setNonSpaceAdjust(inlineText.getLetterSpacing());
-                info.setSpaceAdjust(inlineText.getLetterSpacing());
+            JustificationInfo info = createSpacingInfo(inlineText);
+
+            if (info != null) {
                 c.getTextRenderer().drawString(
                         c.getOutputDevice(),
                         text,
                         iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline(),
                         info);
-            } else if (inlineText.getParent().getStyle().isTextJustify()) {
-                // NOTE: Use of letter-spacing turns off justification
-                JustificationInfo info = inlineText.getParent().getLineBox().getJustificationInfo();
-
-                if (info != null) {
-                    c.getTextRenderer().drawString(
-                            c.getOutputDevice(),
-                            text,
-                            iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline(),
-                            info);
-                } else {
-                    c.getTextRenderer().drawString(
-                            c.getOutputDevice(),
-                            text,
-                            iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline());
-                }
             } else {
                 c.getTextRenderer().drawString(
                         c.getOutputDevice(),
@@ -109,6 +93,34 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         if (c.debugDrawFontMetrics()) {
             drawFontMetrics(c, inlineText);
         }
+    }
+
+    /**
+     * The per-character adjustment to draw this text with, or null when the text
+     * needs no adjustment at all.
+     *
+     * <p>Letter-spacing and word-spacing come from the style and were already
+     * accounted for when the text was measured. Justification, if any, was
+     * calculated on top of those widths, so the three simply add up.
+     */
+    private static JustificationInfo createSpacingInfo(InlineText inlineText) {
+        TextSpacing spacing = inlineText.getTextSpacing();
+
+        JustificationInfo justification = inlineText.getParent().getStyle().isTextJustify() ?
+                inlineText.getParent().getLineBox().getJustificationInfo() : null;
+
+        if (spacing.isNone() && justification == null) {
+            return null;
+        }
+
+        JustificationInfo result = new JustificationInfo();
+
+        result.setNonSpaceAdjust(spacing.getLetterSpacing() +
+                (justification != null ? justification.getNonSpaceAdjust() : 0f));
+        result.setSpaceAdjust(spacing.extraForSeparator() +
+                (justification != null ? justification.getSpaceAdjust() : 0f));
+
+        return result;
     }
 
     private void drawFontMetrics(RenderingContext c, InlineText inlineText) {

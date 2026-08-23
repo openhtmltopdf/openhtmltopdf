@@ -1,0 +1,36 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(../fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 400px 400px;
+  margin: 10px;
+}
+body {
+  font-family: 'TestFont';
+  font-size: 14px;
+}
+p {
+  width: 300px;
+  margin: 0 0 8px 0;
+  border: 1px solid red;
+}
+</style>
+</head>
+<body>
+<p>No word spacing at all, for comparison.</p>
+<p style="word-spacing: 10px">Ten pixels of word spacing between the words.</p>
+<p style="word-spacing: 0.5em">Half an em of word spacing between the words.</p>
+<p style="word-spacing: -2px">Negative word spacing pulls the words together.</p>
+<p style="word-spacing: 10px; letter-spacing: 2px">Word spacing and letter spacing together.</p>
+<p style="word-spacing: 10px; text-align: right">Word spacing with the text aligned right.</p>
+<p style="word-spacing: 10px; text-align: center">Word spacing with the text centered.</p>
+<p style="word-spacing: 10px; white-space: pre">Word spacing on preformatted text.</p>
+</body>
+</html>

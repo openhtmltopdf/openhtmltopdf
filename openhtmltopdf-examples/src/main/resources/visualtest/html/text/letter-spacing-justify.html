@@ -1,0 +1,36 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(../fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 400px 400px;
+  margin: 10px;
+}
+body {
+  font-family: 'TestFont';
+  font-size: 14px;
+}
+p {
+  width: 300px;
+  margin: 0 0 8px 0;
+  border: 1px solid red;
+  text-align: justify;
+  /* The default cap is tight enough to leave a justified line short of the
+     right edge, which would hide what these cases are testing. */
+  -fs-max-justification-inter-char: 5mm;
+}
+</style>
+</head>
+<body>
+<p>Justified with no extra spacing at all, so that the lines below can be compared against it.</p>
+<p style="letter-spacing: 2px">Justified with letter spacing, which used to turn justification off altogether.</p>
+<p style="word-spacing: 5px">Justified with word spacing, which is spread over the same spaces justification uses.</p>
+<p style="letter-spacing: 2px; word-spacing: 5px">Justified with both letter spacing and word spacing applied to it.</p>
+</body>
+</html>

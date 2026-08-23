@@ -22,7 +22,6 @@ import java.text.BreakIterator;
 
 import org.w3c.dom.Element;
 import com.openhtmltopdf.bidi.BidiSplitter;
-import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.extend.ContentFunction;
 import com.openhtmltopdf.css.parser.FSFunction;
@@ -31,6 +30,7 @@ import com.openhtmltopdf.extend.FSTextBreaker;
 import com.openhtmltopdf.layout.Breaker;
 import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.layout.Styleable;
+import com.openhtmltopdf.layout.TextSpacing;
 import com.openhtmltopdf.layout.TextUtil;
 import com.openhtmltopdf.layout.WhitespaceStripper;
 
@@ -213,13 +213,14 @@ public class InlineBox implements Styleable {
     private void calcMaxWidthFromLineLength(LayoutContext c, int cbWidth, boolean trim) {
         int last = 0;
         int current = 0;
+        TextSpacing spacing = TextSpacing.from(getStyle(), c);
 
         while ( (current = _text.indexOf(WhitespaceStripper.EOL, last)) != -1) {
             String target = _text.substring(last, current);
             if (trim) {
                 target = target.trim();
             }
-            int length = getTextWidth(c, target);
+            int length = getTextWidth(c, target) + (int) spacing.extra(target);
             if (last == 0) {
                 length += getStyle().getMarginBorderPadding(c, cbWidth, CalculatedStyle.LEFT);
             }
@@ -236,7 +237,7 @@ public class InlineBox implements Styleable {
         if (trim) {
             target = target.trim();
         }
-        int length = getTextWidth(c, target);
+        int length = getTextWidth(c, target) + (int) spacing.extra(target);
         length += getStyle().getMarginBorderPadding(c, cbWidth, CalculatedStyle.RIGHT);
         if (length > _maxWidth) {
             _maxWidth = length;
@@ -256,7 +257,8 @@ public class InlineBox implements Styleable {
 
     public int getTrailingSpaceWidth(LayoutContext c) {
         if (_text.length() > 0 && _text.charAt(_text.length()-1) == ' ') {
-            return getSpaceWidth(c);
+            // Must match what calcMinWidthFromWordLength counted for the space.
+            return getSpaceWidth(c) + (int) TextSpacing.from(getStyle(), c).extraForSeparator();
         } else {
             return 0;
         }
@@ -275,10 +277,7 @@ public class InlineBox implements Styleable {
         int firstWord = 0;
         int lastWord = 0;
         
-        CalculatedStyle style = getStyle();
-        float letterSpacing = style.hasLetterSpacing()
-                ? style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c)
-                : 0f;
+        TextSpacing spacing = TextSpacing.from(getStyle(), c);
 
         String text = getText(trimLeadingSpace);
         FSTextBreaker breakIterator = Breaker.getLineBreakStream(text, c.getSharedContext());
@@ -296,7 +295,7 @@ public class InlineBox implements Styleable {
             if (getStyle().getWordWrap() == IdentValue.BREAK_WORD) {
                 minWordWidth = getMaxCharWidth(c, currentWord);
             } else {
-                minWordWidth = (int) (wordWidth + (letterSpacing * currentWord.length()));
+                minWordWidth = (int) (wordWidth + spacing.extra(currentWord));
             }
 
             if (spaceCount > 0) {
@@ -332,7 +331,7 @@ public class InlineBox implements Styleable {
                 }
             }
             if (spaceCount > 0 && spaceWidth == -1) {
-                spaceWidth = getSpaceWidth(c);
+                spaceWidth = getSpaceWidth(c) + (int) spacing.extraForSeparator();
             }
         }
 
@@ -342,7 +341,7 @@ public class InlineBox implements Styleable {
         if (getStyle().getWordWrap() == IdentValue.BREAK_WORD) {
             minWordWidth = getMaxCharWidth(c, currentWord);
         } else {
-            minWordWidth = (int) (wordWidth + (letterSpacing * currentWord.length()));
+            minWordWidth = (int) (wordWidth + spacing.extra(currentWord));
         }
         if (spaceCount > 0) {
             if (includeWS) {
@@ -406,7 +405,9 @@ public class InlineBox implements Styleable {
         if (! _minMaxCalculated) {
             IdentValue whitespace = getStyle().getWhitespace();
             if (whitespace == IdentValue.NOWRAP) {
-                _minWidth = _maxWidth = getInlineMBP(c, cbWidth) + getTextWidth(c, getText(trimLeadingSpace));
+                String text = getText(trimLeadingSpace);
+                _minWidth = _maxWidth = getInlineMBP(c, cbWidth) + getTextWidth(c, text) +
+                        (int) TextSpacing.from(getStyle(), c).extra(text);
             } else if (whitespace == IdentValue.PRE) {
                 calcMaxWidthFromLineLength(c, cbWidth, false);
                 _minWidth = _maxWidth;

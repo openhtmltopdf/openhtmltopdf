@@ -1591,6 +1591,10 @@ public class CalculatedStyle {
 	public boolean hasLetterSpacing() {
 	    return !isIdent(CSSName.LETTER_SPACING, IdentValue.NORMAL);
 	}
+
+	public boolean hasWordSpacing() {
+	    return !isIdent(CSSName.WORD_SPACING, IdentValue.NORMAL);
+	}
 	
 	public boolean isParagraphContainerForBidi() {
 		IdentValue display = getIdent(CSSName.DISPLAY);

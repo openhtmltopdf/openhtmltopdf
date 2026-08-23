@@ -424,9 +424,7 @@ public class InlineBoxing {
         InlineText inlineText = layoutText(
                 c, style, space.remainingWidth - fit, lbContext, false, inlineBox.getTextDirection(), tryToBreakAnywhere, space.maxAvailableWidth - fit, forceOutput);
         
-        if (style.hasLetterSpacing()) {
-            inlineText.setLetterSpacing(style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c));
-        }
+        inlineText.setTextSpacing(TextSpacing.from(style, c));
 
         if (lbContext.isUnbreakable() && 
             !current.line.isContainsContent() &&
@@ -577,9 +575,7 @@ public class InlineBoxing {
 
         InlineText text = layoutText(c, iB.getStyle(), remainingWidth, lbContext, true, textDirection, true, maxAvailableWidth, false);
 
-        if (iB.getStyle().hasLetterSpacing()) {
-            text.setLetterSpacing(iB.getStyle().getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c));
-        }
+        text.setTextSpacing(TextSpacing.from(iB.getStyle(), c));
         
         iB.addInlineChild(c, text);
         iB.setInlineWidth(text.getWidth());

@@ -15,10 +15,10 @@ public class WordBreakerTest {
     public void testSingleCharFits() {
         String whole = "A";
         int avail = 1;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -31,10 +31,10 @@ public class WordBreakerTest {
     public void testSingleCharDoesNotFitWithWidthZero() {
         String whole = "A";
         int avail = 0;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_UNBREAKABLE));
         assertContextIs(context, UNBREAKABLE, FINISHED, NEEDS_NEW_LINE);
@@ -47,10 +47,10 @@ public class WordBreakerTest {
     public void testMultiWordDoesNotFitWithWidthZero() {
         String whole = "A b c";
         int avail = 0;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_UNBREAKABLE));
         assertContextIs(context, UNBREAKABLE, NEEDS_NEW_LINE);
@@ -63,10 +63,10 @@ public class WordBreakerTest {
     public void testSingleCharFitsWithLetterSpacing() {
         String whole = "A";
         int avail = 2;
-        float letterSpacing = 1;
+        TextSpacing spacing = TextSpacing.of(1, 0);
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -79,10 +79,10 @@ public class WordBreakerTest {
     public void testMultiCharFitsWithLetterSpacing() {
         String whole = "Abc";
         int avail = 6;
-        float letterSpacing = 1;
+        TextSpacing spacing = TextSpacing.of(1, 0);
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -95,10 +95,10 @@ public class WordBreakerTest {
     public void testMultiWordFitsWithLetterSpacing() {
         String whole = "Abc def";
         int avail = 14;
-        float letterSpacing = 1;
+        TextSpacing spacing = TextSpacing.of(1, 0);
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -111,10 +111,10 @@ public class WordBreakerTest {
     public void testTrailingSoftHyphenWithWidthDoesNotFit() {
         String whole = "\u00ad\u00ad";
         int avail = 1;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         // Returns soft hyphen with real hyphen which in unbreakable
         // in given width.
@@ -130,7 +130,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
         String current = context.getStartSubstring();
 
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER);
 
         // A trailing soft hyphen does not trigger an inserted real hyphen.
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
@@ -146,10 +146,10 @@ public class WordBreakerTest {
     public void testSingleSoftHyphenWithWidthFits() {
         String whole = "\u00ad";
         int avail = 2;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -163,10 +163,10 @@ public class WordBreakerTest {
     public void testTwoSoftHyphenWithWidthFits() {
         String whole = "\u00ad\u00ad";
         int avail = 3;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -180,10 +180,10 @@ public class WordBreakerTest {
     public void testMultilineSoftHyphensWithWidth() {
         String whole = "\u00ad\u00ad";
         int avail = 2;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         // Inserts a real hyphen at the end of the line after the soft hyphen.
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
@@ -198,7 +198,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
 
         String current = context.getStartSubstring();
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER);
 
         // A trailing hyphen at end of string does not trigger inserted real hyphen.
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
@@ -213,10 +213,10 @@ public class WordBreakerTest {
     public void testMultilineSoftHyphensWithWidthInMiddle() {
         String whole = "abc\u00ad\u00adghi";
         int avail = 5;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         // Result includes first soft hyphen plus inserted real hyphen.
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
@@ -231,7 +231,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
 
         String current = context.getStartSubstring();
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -245,10 +245,10 @@ public class WordBreakerTest {
     public void testMultilineSoftHyphensWithWidthLeading() {
         String whole = "\u00ad\u00adabc";
         int avail = 3;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
         assertContextIs(context, NEEDS_NEW_LINE, ENDS_ON_SOFT_HYPHEN);
@@ -262,7 +262,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
 
         String current = context.getStartSubstring();
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -276,10 +276,10 @@ public class WordBreakerTest {
     public void testMultilineSoftHyphensWithOutWidthInMiddle() {
         String whole = "abc\u00ad\u00adghi";
         int avail = 5;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
         assertContextIs(context, NEEDS_NEW_LINE, ENDS_ON_SOFT_HYPHEN);
@@ -293,7 +293,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
 
         String current = context.getStartSubstring();
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -307,10 +307,10 @@ public class WordBreakerTest {
     public void testMultilineSoftHyphensWithOutWidthLeading() {
         String whole = "\u00ad\u00adabc";
         int avail = 2;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
         assertContextIs(context, NEEDS_NEW_LINE, ENDS_ON_SOFT_HYPHEN);
@@ -324,7 +324,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
 
         String current = context.getStartSubstring();
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_UNBREAKABLE));
         assertContextIs(context, FINISHED, UNBREAKABLE, NEEDS_NEW_LINE);
@@ -338,10 +338,10 @@ public class WordBreakerTest {
     public void testSingleSoftHyphenWithOutWidthFits() {
         String whole = "" + Breaker.SOFT_HYPHEN;
         int avail = 1;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
@@ -356,10 +356,10 @@ public class WordBreakerTest {
     public void testTrailingSoftHyphenWithOutWidthFits() {
         String whole = "abc\u00ad";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
@@ -373,10 +373,10 @@ public class WordBreakerTest {
     public void testTwoTrailingSoftHyphensWithOutWidthFits() {
         String whole = "abc\u00ad\u00ad";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
@@ -390,10 +390,10 @@ public class WordBreakerTest {
     public void testThreeTrailingSoftHyphensWithOutWidthFits() {
         String whole = "abc\u00ad\u00ad\u00ad";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
@@ -407,10 +407,10 @@ public class WordBreakerTest {
     public void testMiddleSoftHyphenWithOutWidthFits() {
         String whole = "abc" + Breaker.SOFT_HYPHEN + "def";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
@@ -426,10 +426,10 @@ public class WordBreakerTest {
         String whole = "abc" + Breaker.SOFT_HYPHEN +
                   Breaker.SOFT_HYPHEN + "def";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
@@ -445,10 +445,10 @@ public class WordBreakerTest {
         String whole = "abc" + Breaker.SOFT_HYPHEN +
                   Breaker.SOFT_HYPHEN + Breaker.SOFT_HYPHEN + "def";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing,
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
                 MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
@@ -464,10 +464,10 @@ public class WordBreakerTest {
     public void testMultipleSpaces() {
         String whole = "  ";
         int avail = 2;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
@@ -481,10 +481,10 @@ public class WordBreakerTest {
     public void testMultilinMultiSpacesInMiddle() {
         String whole = "abc  ghi";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
 
-        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), letterSpacing, MEASURER);
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
         assertContextIs(context, NEEDS_NEW_LINE);
@@ -498,7 +498,7 @@ public class WordBreakerTest {
         context.setStart(context.getEnd());
 
         String current = context.getStartSubstring();
-        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), letterSpacing, MEASURER);
+        res = Breaker.doBreakTextWords(current, context, avail, createLine(current), spacing, MEASURER);
 
         assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
         assertContextIs(context, FINISHED);
