@@ -675,4 +675,13 @@ public class Breaker {
     public static int getTextWidthWithSpacing(CssContext c, FSFont font, String text, TextSpacing spacing) {
         return (int) (c.getTextRenderer().getWidth(c.getFontContext(), font, text) + spacing.extra(text));
     }
+
+	/**
+	 * @deprecated Use {@link #getTextWidthWithSpacing(CssContext, FSFont, String, TextSpacing)},
+	 * which accounts for word-spacing as well. This method will be removed in a future release.
+	 */
+	@Deprecated
+    public static int getTextWidthWithLetterSpacing(CssContext c, FSFont font, String text, float letterSpacing) {
+        return getTextWidthWithSpacing(c, font, text, TextSpacing.of(letterSpacing, 0f));
+    }
 }

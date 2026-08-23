@@ -103,6 +103,25 @@ public class InlineText {
         return _rareData != null ? _rareData._textSpacing : TextSpacing.NONE;
     }
     
+    /**
+     * @deprecated Use {@link #setTextSpacing(TextSpacing)}, which sets word-spacing
+     * too. This method leaves any word-spacing already set alone, and will be
+     * removed in a future release.
+     */
+    @Deprecated
+    public void setLetterSpacing(float letterSpacing) {
+        setTextSpacing(TextSpacing.of(letterSpacing, getTextSpacing().getWordSpacing()));
+    }
+    
+    /**
+     * @deprecated Use {@link #getTextSpacing()}, which also carries the word-spacing.
+     * This method will be removed in a future release.
+     */
+    @Deprecated
+    public float getLetterSpacing() {
+        return getTextSpacing().getLetterSpacing();
+    }
+    
     public void trimTrailingSpace(LayoutContext c) {
         if (! isEmpty() && _masterText.charAt(_end-1) == ' ') {
             _end--;
