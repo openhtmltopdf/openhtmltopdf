@@ -49,6 +49,12 @@ public class FSLinearGradient {
         }
     }
 
+    /**
+     * Keeps the gradient axis from collapsing to a point when every stop point
+     * of the gradient sits at the same position.
+     */
+    private static final float MIN_AXIS_LENGTH = 0.01f;
+
     private final List<StopPoint> _stopPoints;
     private final float _angle;
     private int x1;
@@ -67,8 +73,10 @@ public class FSLinearGradient {
         }
 
         this._angle = prelimAngle;
-        this._stopPoints = calculateStopPoints(params, style, ctx, boxWidth, stopsStartIndex);
         endPointsFromAngle(_angle, boxWidth, boxHeight);
+        // Stop points are positioned along the gradient line, so that - rather than
+        // the width of the box - is what a percentage is a percentage of.
+        this._stopPoints = calculateStopPoints(params, style, ctx, getGradientLineLength(), stopsStartIndex);
     }
 
     // Compute the endpoints so that a gradient of the given angle
@@ -156,7 +164,7 @@ public class FSLinearGradient {
     }
 
     private List<StopPoint> calculateStopPoints(
-        List<PropertyValue> params, CalculatedStyle style, CssContext ctx, float boxWidth, int stopsStartIndex) {
+        List<PropertyValue> params, CalculatedStyle style, CssContext ctx, float gradientLineLength, int stopsStartIndex) {
 
         List<IntermediateStopPoint> points = new ArrayList<>();
 
@@ -174,7 +182,7 @@ public class FSLinearGradient {
 
                 PropertyValue lengthValue = params.get(i + 1);
                 float length = LengthValue.calcFloatProportionalValue(style, CSSName.BACKGROUND_IMAGE, "",
-                        lengthValue.getFloatValue(), lengthValue.getPrimitiveType(), boxWidth, ctx);
+                        lengthValue.getFloatValue(), lengthValue.getPrimitiveType(), gradientLineLength, ctx);
                 points.add(new StopPoint(color, length));
                 i += 2;
             } else {
@@ -194,7 +202,7 @@ public class FSLinearGradient {
             } else if (i == 0) {
                 ret.add(new StopPoint(pt.getColor(), 0f));
             } else if (i == points.size() - 1) {
-                float len = FSLinearGradientUtil.get100PercentDefaultStopLength(style, ctx, boxWidth);
+                float len = FSLinearGradientUtil.get100PercentDefaultStopLength(style, ctx, gradientLineLength);
                 ret.add(new StopPoint(pt.getColor(), len));
             } else {
                 // Poo, we've got a length-less stop in the middle.
@@ -206,7 +214,7 @@ public class FSLinearGradient {
                 int prevWithLengthIndex = getPrevStopPointWithLengthIndex(points, i - 1);
 
                 float nextLength = nextWithLengthIndex == -1 ?
-                                    FSLinearGradientUtil.get100PercentDefaultStopLength(style, ctx, boxWidth) :
+                                    FSLinearGradientUtil.get100PercentDefaultStopLength(style, ctx, gradientLineLength) :
                                     ((StopPoint) points.get(nextWithLengthIndex)).getLength();
 
                 float prevLength = prevWithLengthIndex == -1 ? 0 :
@@ -226,6 +234,18 @@ public class FSLinearGradient {
                     float thisLength = prevLength + (interval * thisCount);
                     ret.add(new StopPoint(pt.getColor(), thisLength));
                 }
+            }
+        }
+
+        // A stop point is not allowed to sit before the one preceding it. Where the
+        // author asked for that anyway, it moves up to the previous position, which
+        // gives a hard change of colour there.
+        // https://www.w3.org/TR/css-images-3/#color-stop-fixup
+        for (int i = 1; i < ret.size(); i++) {
+            float previousLength = ret.get(i - 1).getLength();
+
+            if (ret.get(i).getLength() < previousLength) {
+                ret.set(i, new StopPoint(ret.get(i).getColor(), previousLength));
             }
         }
 
@@ -263,6 +283,32 @@ public class FSLinearGradient {
      */
     public float getAngle() {
         return _angle;
+    }
+
+    /**
+     * The length of the gradient line, ie. the distance from (x1, y1) to (x2, y2).
+     * Stop point lengths are distances along this line, measured from (x1, y1).
+     */
+    public float getGradientLineLength() {
+        return (float) Math.hypot((double) x2 - x1, (double) y2 - y1);
+    }
+
+    /**
+     * Where the ramp of colours begins, as a distance along the gradient line: the
+     * position of the first stop point. Whatever comes before takes its colour.
+     */
+    public float getAxisStart() {
+        return _stopPoints.get(0).getLength();
+    }
+
+    /**
+     * Where the ramp of colours ends, as a distance along the gradient line: the
+     * position of the last stop point, held far enough from {@link #getAxisStart()}
+     * that the axis cannot collapse to a point. Whatever follows takes its colour.
+     */
+    public float getAxisEnd() {
+        float start = getAxisStart();
+        return Math.max(_stopPoints.get(_stopPoints.size() - 1).getLength(), start + MIN_AXIS_LENGTH);
     }
 
     public int getX1() {

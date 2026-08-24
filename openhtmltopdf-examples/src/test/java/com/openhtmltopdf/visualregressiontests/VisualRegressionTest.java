@@ -1001,6 +1001,20 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests how a SVG that does have a size of its own is scaled to the size CSS asks for.
+     * Without a viewBox it is a picture, and is stretched to that size the way a PNG would be;
+     * with one, preserveAspectRatio decides, so by default it is fitted and centred instead.
+     * The drawing is a circle, so a change of shape shows up as an ellipse.
+     *
+     * <p>Reported against issue 32: a bar sized with <code>background-size: 20px 100%</code>
+     * kept the height of the drawing rather than filling the box.</p>
+     */
+    @Test
+    public void testSvgCssBackgroundImageScaling() throws IOException {
+        assertTrue(vt.runTest("svg-css-background-image-scaling", TestSupport.WITH_SVG));
+    }
+
+    /**
      * Tests that a linked SVG file works as a CSS image too, both as a background-image
      * and as a list-style-image. Issue 32.
      */
@@ -1123,9 +1137,9 @@ public class VisualRegressionTest {
      */
     @Test
     public void testIssue399TableHeaderFooterWithNoRows() throws IOException {
-        assertTrue(vt.runTest("issue-399-table-header-with-no-rows"));    
+        assertTrue(vt.runTest("issue-399-table-header-with-no-rows"));
     }
-    
+
     /**
      * Tests that a paginated table pushed to the next page does not have too
      * much height in the first body row and the thead section is not orphaned on
@@ -1148,8 +1162,8 @@ public class VisualRegressionTest {
             // broken over two or more pages.
     public void testIssue202PaginatedTableAllowBreakThead() throws IOException {
         assertTrue(vt.runTest("issue-202-paginated-table-allow-break-thead"));
-    }    
-    
+    }
+
     /**
      * Tests that paginated tables with cells which have large border and padding
      * lays out correctly.
@@ -1166,6 +1180,43 @@ public class VisualRegressionTest {
     @Test
     public void testPaginatedTableMutliPageRow() throws IOException {
         assertTrue(vt.runTest("paginated-table-multi-page-row"));
+    }
+
+    /**
+     * Tests that a paginated table whose first body row is too tall to stay on the
+     * page moves the repeated header with it, rather than leaving the header orphaned
+     * at the foot of the page with no body row beneath it. Here the first body row is
+     * kept together with {@code page-break-inside: avoid} and its first text baseline
+     * still fits on the page, so the row is moved on its own -- a path that, before the
+     * fix, did not escalate to move the whole table.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PaginatedTableHeadWithTallFirstRow() throws IOException {
+        assertTrue(vt.runTest("issue-162-paginated-table-head-with-tall-first-row", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the same orphaned-header defect reached through a different path: an
+     * inherited {@code -fs-page-break-min-height} on the table also applies to the
+     * body section and forces a page break there without escalating to the table.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PaginatedTableHeadWithMinHeight() throws IOException {
+        assertTrue(vt.runTest("issue-162-paginated-table-head-with-min-height", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests that the min-height escalation also covers non-paginated tables: without
+     * {@code -fs-table-paginate} the header is not repeated on later pages, so a break
+     * taken on the body section alone strands the only copy of the header at the foot
+     * of the page while all rows sit on the next one.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PlainTableHeadWithMinHeight() throws IOException {
+        assertTrue(vt.runTest("issue-162-plain-table-head-with-min-height", TestSupport.WITH_FONT));
     }
 
     /**
@@ -1326,6 +1377,16 @@ public class VisualRegressionTest {
     @Test
     public void testIssue439LinearGradient() throws IOException {
         assertTrue(vt.runTest("issue-439-linear-gradient"));
+    }
+
+    /**
+     * Tests that gradient stops given as absolute lengths or percentages are
+     * measured along the gradient line rather than scaled to the box width.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/102
+     */
+    @Test
+    public void testIssue102GradientStopPositions() throws IOException {
+        assertTrue(vt.runTest("issue-102-gradient-stop-positions"));
     }
 
     /**
@@ -1732,6 +1793,34 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("text-underline-position", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests a color specified as part of the text-decoration shorthand
+     * (eg. text-decoration: underline red;) for underline, line-through,
+     * overline, named colors, hex colors, rgb() colors, multiple
+     * line-types combined with a color, inheritance independent of the
+     * text color, and that an invalid text-decoration value is rejected
+     * without affecting other declarations in the same rule.
+     * <p>
+     * See https://github.com/openhtmltopdf/openhtmltopdf/issues/101
+     */
+    @Test
+    public void testIssue101TextDecorationColor() throws IOException {
+        assertTrue(vt.runTest("text-decoration-color", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the currentColor keyword, which stands for the element's own text
+     * color, on borders (shorthand, longhand and the one-to-four form),
+     * backgrounds and the text decoration, including a color inherited rather
+     * than set on the element itself.
+     * <p>
+     * See https://github.com/openhtmltopdf/openhtmltopdf/issues/115
+     */
+    @Test
+    public void testIssue115CurrentColor() throws IOException {
+        assertTrue(vt.runTest("current-color", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
@@ -1795,14 +1884,13 @@ public class VisualRegressionTest {
 
     /**
      * Tests an invoice whose item table spans multiple pages: the thead with
-     * the brought forward row and the tfoot with the carried forward row have
-     * to be repeated on every page, while the letterhead and the grand total
-     * table appear once.
-     * <p>
-     * The carry over amounts themselves are still blank: the cells ask for
-     * them with content: attr(data-running-sum), but attr() resolves against
-     * the cell itself, which has no such attribute. This pins that behaviour
-     * until a page aware running attribute function exists.
+     * the brought forward row and the tfoot with the carried forward row are
+     * repeated on every page, while the letterhead and the grand total table
+     * appear once. The carry over amounts are produced by
+     * content: -fs-running-attr(data-running-sum, start|last), reading back
+     * the per page latch of the body rows' attribute, and the brought/carried
+     * rows are suppressed on their first/last page appearance via the
+     * :-fs-first-fragment/:-fs-last-fragment pseudo-classes.
      */
     @Test
     public void testInvoiceMultiPage() throws IOException {
@@ -1823,6 +1911,18 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a header cell spanning both header rows keeps its background
+     * and border on the pages the header repeats on. The overlap avoidance
+     * added for a body cell whose rowspan crosses a page break must not clip
+     * the header's own cells against the header. Covers the collapsing and
+     * the separated borders models. Issue 214.
+     */
+    @Test
+    public void testTheadRowspanRepeat() throws IOException {
+        assertTrue(vt.runTest("issue-214-thead-rowspan-repeat", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that a table with -fs-table-paginate: paginate inside a
      * column-count container paints. Column content is laid out with
      * pagination switched off, so the rows are never page break analyzed,
@@ -1834,6 +1934,42 @@ public class VisualRegressionTest {
     @Test
     public void testTablePaginateInColumn() throws IOException {
         assertTrue(vt.runTest("issue-202-table-paginate-in-column", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Variant of {@link #testInvoiceMultiPage()} for the tall totals problem:
+     * a grand total block that merely FOLLOWS the table can be pushed to the
+     * next page without the table breaking, so the carried forward foot is
+     * suppressed one page early (its page still counts as the table's last
+     * fragment) and the totals land on a page no brought forward row
+     * annotates. Here the totals are a second tfoot instead: only the first
+     * table-footer-group becomes the repeating footer, every further one is
+     * laid out as a body section at the table's end. The totals are
+     * deliberately too tall for the space under the last item row, so the
+     * TABLE breaks: the previous page keeps its carried forward foot and the
+     * last page opens with the brought forward head above the totals.
+     */
+    @Test
+    public void testInvoiceMultiPageTall() throws IOException {
+        assertTrue(vt.runTest("invoice-multi-page-tall", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Variant of {@link #testInvoiceMultiPageTall()} pinning the flush edge:
+     * the item count is chosen so body plus totals end flush at a page's
+     * bottom edge, with less than a foot's height to spare. The carry foot's
+     * natural position would spill past the boundary and open a phantom
+     * fragment - a page printing nothing but the repeated head - while the
+     * true last page kept a carried forward foot below the grand total. The
+     * engine clamps the fragment span to the last page with in-flow content
+     * and folds the hidden foot's never-painted resting position back into
+     * the content bounds, so this invoice must end on page two: brought
+     * forward, items, totals - no carried forward under the sums, no third
+     * page.
+     */
+    @Test
+    public void testInvoiceMultiPageFlush() throws IOException {
+        assertTrue(vt.runTest("invoice-multi-page-flush", TestSupport.WITH_FONT));
     }
 
     // TODO:

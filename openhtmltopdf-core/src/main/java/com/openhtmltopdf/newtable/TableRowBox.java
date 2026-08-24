@@ -96,30 +96,27 @@ public class TableRowBox extends BlockBox {
         
         if (running) {
             if (isShouldMoveToNextPage(c)) {
-                    setNeedPageClear(true);
+                setNeedPageClear(true);
             }
             c.setExtraSpaceTop(prevExtraTop);
             c.setExtraSpaceBottom(prevExtraBottom);
         }
     }
-    
+
     @Override
     public void setNeedPageClear(boolean needPageClear) {
         if (needPageClear && getTable().getFirstBodyRow() == this) {
-            // Always move the table itself to a new page, if the first body
-            // row is moved. Otherwise, we can get header/footer with no body rows on
-            // a page. This is a fix for:
-            // https://github.com/danfickle/openhtmltopdf/issues/399
-            
-            // XXX Performance problem here.  This forces the table
-            // to move to the next page (which we want), but the initial
-            // table layout run still completes (which we don't)
+            // Whatever moves the first body row to the next page must move the table with it,
+            // or the repeated header stays behind on a page that has no rows. Issue #162.
+            //
+            // XXX Performance problem here.  This forces the table to move to the next page
+            // (which we want), but the initial table layout run still completes (which we don't)
             getTable().setNeedPageClear(true);
         } else {
             super.setNeedPageClear(needPageClear);
         }
     }
-    
+
     private boolean isShouldMoveToNextPage(LayoutContext c) {
         PageBox page = c.getRootLayer().getFirstPage(c, this);
         int pageBottomUsable = page.getBottom(c);
@@ -137,7 +134,7 @@ public class TableRowBox extends BlockBox {
 
         return true;
     }
-    
+
     @Override
     public void analyzePageBreaks(LayoutContext c, ContentLimitContainer container) {
         if (getTable().getStyle().isPaginateTable()) {
@@ -319,7 +316,7 @@ public class TableRowBox extends BlockBox {
             return result;
         }
     }
-    
+
     @Override
     protected void calcLayoutHeight(
             LayoutContext c, BorderPropertySet border, 
@@ -465,7 +462,7 @@ public class TableRowBox extends BlockBox {
         
         cell.layout(c, contentStart);
     } 
-    
+
     @Override
     public void initStaticPos(LayoutContext c, BlockBox parent, int childOffset) {
         setX(0);
@@ -513,7 +510,7 @@ public class TableRowBox extends BlockBox {
     public void setHaveBaseline(boolean haveBaseline) {
         _haveBaseline = haveBaseline;
     }
-    
+
     @Override
     protected String getExtraBoxDescription() {
         if (isHaveBaseline()) {

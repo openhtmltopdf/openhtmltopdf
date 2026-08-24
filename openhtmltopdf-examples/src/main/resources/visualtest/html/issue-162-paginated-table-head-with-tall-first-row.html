@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <style type="text/css">
+        /*
+         * Issue #162, case A: a paginated table whose first body row is too tall
+         * to stay on the page, with page-break-inside: avoid so it cannot be split.
+         * The row's first text baseline still fits on the page, so the engine's
+         * isShouldMoveToNextPage() heuristic does not fire; the row is moved on its
+         * own and, before the fix, the repeated thead is left orphaned at the foot
+         * of page 1 with no body row beneath it.
+         *
+         * The first row is made tall with a fixed height (not wrapped text) so the
+         * geometry does not depend on the exact font metrics: the head lands well
+         * clear of the page bottom while the tall row cannot fit under it.
+         */
+        @page {
+            size: A4;
+            margin: 35mm 20mm;
+        }
+        body {
+            margin: 0;
+            font-family: TestFont, sans-serif;
+            font-size: 10pt;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8pt 0 10pt;
+            -fs-table-paginate: paginate;
+        }
+        th, td {
+            border: 0.5pt solid #999;
+            padding: 4pt;
+            text-align: left;
+            vertical-align: top;
+        }
+        thead {
+            display: table-header-group;
+        }
+        thead th {
+            color: #fff;
+            background-color: #6d7778;
+        }
+        thead, tr {
+            page-break-inside: avoid;
+        }
+        tbody tr:first-child td {
+            height: 150pt;
+        }
+        .spacer {
+            height: 520pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="spacer">spacer</div>
+    <table>
+        <thead>
+            <tr><th>Head A</th><th>Head B</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>row 1 a</td><td>row 1 b</td></tr>
+            <tr><td>row 2 a</td><td>row 2 b</td></tr>
+            <tr><td>row 3 a</td><td>row 3 b</td></tr>
+            <tr><td>row 4 a</td><td>row 4 b</td></tr>
+            <tr><td>row 5 a</td><td>row 5 b</td></tr>
+            <tr><td>row 6 a</td><td>row 6 b</td></tr>
+            <tr><td>row 7 a</td><td>row 7 b</td></tr>
+            <tr><td>row 8 a</td><td>row 8 b</td></tr>
+            <tr><td>row 9 a</td><td>row 9 b</td></tr>
+            <tr><td>row 10 a</td><td>row 10 b</td></tr>
+            <tr><td>row 11 a</td><td>row 11 b</td></tr>
+            <tr><td>row 12 a</td><td>row 12 b</td></tr>
+        </tbody>
+    </table>
+</body>
+</html>

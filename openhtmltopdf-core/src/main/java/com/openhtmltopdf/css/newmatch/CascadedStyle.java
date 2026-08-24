@@ -22,6 +22,7 @@ package com.openhtmltopdf.css.newmatch;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,8 @@ import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
 import com.openhtmltopdf.css.parser.PropertyValue;
+import com.openhtmltopdf.css.sheet.CustomPropertyDeclaration;
+import com.openhtmltopdf.css.sheet.PendingVarPropertyDeclaration;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
 
@@ -61,6 +64,35 @@ public class CascadedStyle {
      */
     private final Map<CSSName, PropertyDeclaration> cascadedProperties;
 
+    /**
+     * Map of CSS custom property ({@code --*}) declarations, keyed by name.
+     * Custom properties are not {@link CSSName}s, so they cascade separately.
+     * A {@link TreeMap} is used so iteration order (and thus the fingerprint)
+     * is deterministic.
+     */
+    private final Map<String, CustomPropertyDeclaration> customProperties;
+
+    /**
+     * Cascade-priority rank per {@link CSSName} (higher = higher priority),
+     * assigned in {@link #addProperties} as declarations are applied in
+     * ascending-priority order. Lets {@code CalculatedStyle.derive()} order a
+     * var()-bearing shorthand against an explicit longhand it expands into, which
+     * the per-CSSName cascade cannot.
+     */
+    private final Map<CSSName, Integer> matchSequence;
+
+    /** Next rank to assign; increases monotonically across {@link #addProperties}. */
+    private int nextSequence;
+
+    /**
+     * Whether any declaration added here was a {@link PendingVarPropertyDeclaration}.
+     * Only then does the order in which declarations are derived matter, so this
+     * keeps documents that use no CSS variables off the ordering path entirely.
+     * It stays set if such a declaration is later overwritten by a plain one,
+     * which costs an unnecessary sort but is never wrong.
+     */
+    private boolean hasPendingVarProperties;
+
     private String fingerprint;
     
     /**
@@ -79,6 +111,20 @@ public class CascadedStyle {
         this();
 
         addProperties(iter);
+    }
+
+    /**
+     * As {@link #CascadedStyle(Iterator)} but also captures CSS custom property
+     * ({@code --*}) declarations, given in order of specificity.
+     *
+     * @param iter        PropertyDeclarations in order of specificity.
+     * @param customDecls custom property declarations in order of specificity.
+     */
+    CascadedStyle(java.util.Iterator<PropertyDeclaration> iter, List<CustomPropertyDeclaration> customDecls) {
+        this();
+
+        addProperties(iter);
+        addCustomProperties(customDecls);
     }
     
     /**
@@ -124,6 +170,10 @@ public class CascadedStyle {
 
     private CascadedStyle(CascadedStyle startingPoint, Iterator<PropertyDeclaration> props) {
         cascadedProperties = new TreeMap<>(startingPoint.cascadedProperties);
+        customProperties = new TreeMap<>(startingPoint.customProperties);
+        matchSequence = new HashMap<>(startingPoint.matchSequence);
+        nextSequence = startingPoint.nextSequence;
+        hasPendingVarProperties = startingPoint.hasPendingVarProperties;
 
         addProperties(props);
     }
@@ -135,6 +185,8 @@ public class CascadedStyle {
      */
     private CascadedStyle() {
         cascadedProperties = new TreeMap<>();
+        customProperties = new TreeMap<>();
+        matchSequence = new HashMap<>();
     }
 
     /**
@@ -174,8 +226,56 @@ public class CascadedStyle {
 				continue;
             for (PropertyDeclaration prop : bucket) {
                 cascadedProperties.put(prop.getCSSName(), prop);
+                // Record cascade priority: entries are visited in ascending
+                // priority, so a later put means higher priority.
+                matchSequence.put(prop.getCSSName(), nextSequence++);
+                if (prop instanceof PendingVarPropertyDeclaration) {
+                    hasPendingVarProperties = true;
+                }
             }
         }
+    }
+
+    /**
+     * Cascades CSS custom property declarations into {@link #customProperties},
+     * keyed by name. Uses the same bucket-sort on importance and origin as
+     * {@link #addProperties(Iterator)}; the input is already in order of
+     * specificity.
+     */
+    private void addCustomProperties(List<CustomPropertyDeclaration> decls) {
+        if (decls.isEmpty()) {
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        List<CustomPropertyDeclaration>[] buckets =
+                new java.util.List[PropertyDeclaration.IMPORTANCE_AND_ORIGIN_COUNT];
+
+        for (CustomPropertyDeclaration decl : decls) {
+            List<CustomPropertyDeclaration> bucket = buckets[decl.getImportanceAndOrigin()];
+            if (bucket == null) {
+                bucket = new ArrayList<>();
+                buckets[decl.getImportanceAndOrigin()] = bucket;
+            }
+            bucket.add(decl);
+        }
+
+        for (List<CustomPropertyDeclaration> bucket : buckets) {
+            if (bucket == null)
+                continue;
+            for (CustomPropertyDeclaration decl : bucket) {
+                customProperties.put(decl.getName(), decl);
+            }
+        }
+    }
+
+    /**
+     * The cascaded custom property ({@code --*}) declarations for this style,
+     * keyed by name. The values may still contain {@code var()} references; they
+     * are resolved per element at computed-value time.
+     */
+    public Map<String, CustomPropertyDeclaration> getCustomProperties() {
+        return customProperties;
     }
 
     /**
@@ -233,12 +333,40 @@ public class CascadedStyle {
         return cascadedProperties.values();
     }
 
+    /**
+     * Cascade-priority rank of {@code cssName}'s winning declaration (higher
+     * wins); {@link Integer#MIN_VALUE} if unknown. Used to derive declarations in
+     * priority order.
+     *
+     * @see #matchSequence
+     */
+    public int getMatchSequence(CSSName cssName) {
+        Integer seq = matchSequence.get(cssName);
+        return seq == null ? Integer.MIN_VALUE : seq.intValue();
+    }
+
+    /**
+     * Whether this style carries a declaration whose value contains {@code var()}
+     * and therefore has to be derived in cascade order.
+     *
+     * @see #hasPendingVarProperties
+     */
+    public boolean hasPendingVarProperties() {
+        return hasPendingVarProperties;
+    }
+
     public int countAssigned() { return cascadedProperties.size(); }
 
     public String getFingerprint() {
         if (this.fingerprint == null) {
             StringBuilder sb = new StringBuilder();
             for (PropertyDeclaration o : cascadedProperties.values()) {
+                sb.append(o.getFingerprint());
+            }
+            // Custom properties must contribute too: identical regular declarations
+            // but different --* values can resolve var() differently, so two such
+            // elements must not share a cached style.
+            for (CustomPropertyDeclaration o : customProperties.values()) {
                 sb.append(o.getFingerprint());
             }
             this.fingerprint = sb.toString();

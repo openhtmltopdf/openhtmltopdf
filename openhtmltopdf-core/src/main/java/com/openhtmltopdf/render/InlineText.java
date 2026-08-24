@@ -24,6 +24,7 @@ import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.layout.Breaker;
 import com.openhtmltopdf.layout.FunctionData;
 import com.openhtmltopdf.layout.LayoutContext;
+import com.openhtmltopdf.layout.TextSpacing;
 import com.openhtmltopdf.layout.WhitespaceStripper;
 import com.openhtmltopdf.util.OpenUtil;
 
@@ -50,7 +51,7 @@ public class InlineText {
     static class InlineTextRareData {
         FunctionData _functionData;
         boolean _endsOnSoftHyphen = false;
-        float _letterSpacing = 0f;
+        TextSpacing _textSpacing = TextSpacing.NONE;
         byte _textDirection = BidiSplitter.LTR;
     }
     
@@ -84,27 +85,50 @@ public class InlineText {
     	return _rareData != null ? _rareData._textDirection : BidiSplitter.LTR;
     }
     
-    public void setLetterSpacing(float letterSpacing) {
-        if (letterSpacing != 0f) {
+    /**
+     * The extra spacing (letter-spacing and word-spacing) that was applied to
+     * this text during layout and must be applied again when it is drawn.
+     */
+    public void setTextSpacing(TextSpacing spacing) {
+        if (!spacing.isNone()) {
             ensureRareData();
         }
         
         if (_rareData != null) {
-            _rareData._letterSpacing = letterSpacing;
+            _rareData._textSpacing = spacing;
         }
     }
     
+    public TextSpacing getTextSpacing() {
+        return _rareData != null ? _rareData._textSpacing : TextSpacing.NONE;
+    }
+    
+    /**
+     * @deprecated Use {@link #setTextSpacing(TextSpacing)}, which sets word-spacing
+     * too. This method leaves any word-spacing already set alone, and will be
+     * removed in a future release.
+     */
+    @Deprecated
+    public void setLetterSpacing(float letterSpacing) {
+        setTextSpacing(TextSpacing.of(letterSpacing, getTextSpacing().getWordSpacing()));
+    }
+    
+    /**
+     * @deprecated Use {@link #getTextSpacing()}, which also carries the word-spacing.
+     * This method will be removed in a future release.
+     */
+    @Deprecated
     public float getLetterSpacing() {
-        return _rareData != null ? _rareData._letterSpacing : 0f;
+        return getTextSpacing().getLetterSpacing();
     }
     
     public void trimTrailingSpace(LayoutContext c) {
         if (! isEmpty() && _masterText.charAt(_end-1) == ' ') {
             _end--;
-            setWidth(Breaker.getTextWidthWithLetterSpacing(c,
+            setWidth(Breaker.getTextWidthWithSpacing(c,
                     getParent().getStyle().getFSFont(c),
                     getSubstring(),
-                    getLetterSpacing()));
+                    getTextSpacing()));
             setTrimmedTrailingSpace(true);
         } 
     }
@@ -208,10 +232,10 @@ public class InlineText {
         _end = value.length();
         _masterText = value;
         
-        setWidth(Breaker.getTextWidthWithLetterSpacing(c,
+        setWidth(Breaker.getTextWidthWithSpacing(c,
                 getParent().getStyle().getFSFont(c),
                 value,
-                getLetterSpacing()));
+                getTextSpacing()));
     }
     
     @Override
@@ -274,12 +298,6 @@ public class InlineText {
     }
 
     public void countJustifiableChars(CharCounts counts) {
-        if (getLetterSpacing() != 0f) {
-            // We can't mess with character spacing if
-            // letter spacing is already explicitly set.
-            return;
-        }
-
         // Our own personal copy we can use in the calcTotalAdjustment method.
         _counts = new CharCounts();
 
@@ -303,12 +321,6 @@ public class InlineText {
     }
 
     public float calcTotalAdjustment(JustificationInfo info) {
-        if (getLetterSpacing() != 0f) {
-            // We can't mess with character spacing if
-            // letter spacing is already explicitly set.
-            return 0f;
-        }
-
         if (_counts == null) {
             // This will only happen for non-justifiable text nested inside
             // justifiable text (eg. white-space: pre).

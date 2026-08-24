@@ -129,6 +129,24 @@ public class TableSectionBox extends BlockBox {
         }
     }
     
+    @Override
+    public boolean isPageBreakNeededBecauseOfMinHeight(LayoutContext c) {
+        boolean needed = super.isPageBreakNeededBecauseOfMinHeight(c);
+
+        if (needed && !isHeader() && !isFooter()
+                && getTable().getFirstBodyRow() != null
+                && getTable().getFirstBodyRow().getParent() == this) {
+            // -fs-page-break-min-height inherits, so a reserve declared on the table also
+            // applies to its sections. When it pushes the first BODY section to the next page,
+            // the whole table has to move, or the header section is left behind on a page
+            // with no rows -- a repeated header for a paginated table, the only copy of it
+            // otherwise. Issue #162.
+            getTable().setNeedPageClear(true);
+        }
+
+        return needed;
+    }
+
     public TableBox getTable() {
         return (TableBox)getParent();
     }

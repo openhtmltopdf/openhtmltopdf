@@ -1,0 +1,49 @@
+<html>
+<head>
+<style>
+    @page { size: 500px 620px; margin: 20px; }
+    body { font-family: 'TestFont'; font-size: 20px; margin: 0; }
+    div { margin: 0 0 10px 0; }
+    .default        { text-decoration: underline; }
+    .named          { text-decoration: underline red; }
+    .hex            { text-decoration: underline #00ff00; }
+    .rgb            { text-decoration: underline rgb(0, 0, 255); }
+    .strike-named   { text-decoration: line-through orange; }
+    .over-named     { text-decoration: overline purple; }
+    .multi          { text-decoration: underline overline magenta; }
+    .inherited      { text-decoration: underline red; }
+    .inherited span { color: blue; }
+    .invalid        { text-decoration: bogus; color: teal; }
+
+    /* The longhand, on its own and over a different text color. */
+    .longhand       { text-decoration: underline; text-decoration-color: red; }
+    .longhand-blue  { color: blue; text-decoration: underline; text-decoration-color: red; }
+
+    /* The longhand wins over a color the shorthand set before it. */
+    .longhand-wins  { text-decoration: underline blue; text-decoration-color: red; }
+
+    /* A later shorthand with no color of its own resets the color. */
+    .reset          { text-decoration-color: red; }
+    .reset          { text-decoration: underline; }
+
+    /* currentcolor is the initial value, spelled out. */
+    .current        { color: green; text-decoration: underline; text-decoration-color: currentColor; }
+</style>
+</head>
+<body>
+<div class="default">Default underline (text color): gjpqy</div>
+<div class="named">Underline, named color red: gjpqy</div>
+<div class="hex">Underline, hex color #00ff00: gjpqy</div>
+<div class="rgb">Underline, rgb() color blue: gjpqy</div>
+<div class="strike-named">Line-through, named color orange: gjpqy</div>
+<div class="over-named">Overline, named color purple: gjpqy</div>
+<div class="multi">Underline + overline, magenta: gjpqy</div>
+<div class="inherited">Decoration color red, independent of text color: <span>blue text</span></div>
+<div class="longhand">Longhand text-decoration-color red: gjpqy</div>
+<div class="longhand-blue">Longhand red on blue text: gjpqy</div>
+<div class="longhand-wins">Longhand red beats the shorthand's blue: gjpqy</div>
+<div class="reset">Later shorthand resets the color to black: gjpqy</div>
+<div class="current">currentcolor, so green like the text: gjpqy</div>
+<div class="invalid">Invalid text-decoration value (bogus) must not remove other properties (teal text, no decoration)</div>
+</body>
+</html>

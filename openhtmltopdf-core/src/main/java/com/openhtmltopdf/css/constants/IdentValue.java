@@ -83,6 +83,11 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue CONTAIN = addValue("contain");
     public final static IdentValue COVER = addValue("cover");
     public final static IdentValue CREATE = addValue("create");
+    /**
+     * The element's own text color, accepted wherever a color is. On the
+     * <code>color</code> property itself it means the inherited color.
+     */
+    public final static IdentValue CURRENT_COLOR = addValue("currentcolor");
     public final static IdentValue DASHED = addValue("dashed");
     public final static IdentValue DECIMAL = addValue("decimal");
     public final static IdentValue DECIMAL_LEADING_ZERO = addValue("decimal-leading-zero");

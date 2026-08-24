@@ -33,6 +33,7 @@ import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.bidi.ParagraphSplitter.Paragraph;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.FSDerivedValue;
@@ -172,6 +173,11 @@ public class InlineBoxing {
                     lbContext.setMaster(
                          inlineBox.getContentFunction().getPostBoxingLayoutReplacementText(
                             c, current.layoutBox.getParent().getElement(), inlineBox.getFunction()));
+                    // Only a function resolved at paint time is laid out as a placeholder that
+                    // every InlineText substitutes in full, so only that one must stay in one
+                    // piece. A function calculated at layout holds its real text and breaks
+                    // like any other text.
+                    lbContext.setAtomic(!inlineBox.getContentFunction().isCalculableAtLayout());
                 } else {
                     lbContext.setMaster(inlineBox.getText());
                 }
@@ -418,9 +424,7 @@ public class InlineBoxing {
         InlineText inlineText = layoutText(
                 c, style, space.remainingWidth - fit, lbContext, false, inlineBox.getTextDirection(), tryToBreakAnywhere, space.maxAvailableWidth - fit, forceOutput);
         
-        if (style.hasLetterSpacing()) {
-            inlineText.setLetterSpacing(style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c));
-        }
+        inlineText.setTextSpacing(TextSpacing.from(style, c));
 
         if (lbContext.isUnbreakable() && 
             !current.line.isContainsContent() &&
@@ -571,9 +575,7 @@ public class InlineBoxing {
 
         InlineText text = layoutText(c, iB.getStyle(), remainingWidth, lbContext, true, textDirection, true, maxAvailableWidth, false);
 
-        if (iB.getStyle().hasLetterSpacing()) {
-            text.setLetterSpacing(iB.getStyle().getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c));
-        }
+        text.setTextSpacing(TextSpacing.from(iB.getStyle(), c));
         
         iB.addInlineChild(c, text);
         iB.setInlineWidth(text.getWidth());
@@ -896,6 +898,8 @@ public class InlineBoxing {
         List<IdentValue> idents = style.getTextDecorations();
         if (idents != null) {
             result = new ArrayList<>(idents.size());
+            FSColor decorationColor = style.getTextDecorationColor();
+
             if (idents.contains(IdentValue.UNDERLINE)) {
                 TextDecoration decoration = new TextDecoration(IdentValue.UNDERLINE);
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
@@ -931,6 +935,7 @@ public class InlineBoxing {
                 }
 
                 decoration.setOffset(offset);
+                decoration.setColor(decorationColor);
                 result.add(decoration);
             }
 
@@ -938,6 +943,7 @@ public class InlineBoxing {
                 TextDecoration decoration = new TextDecoration(IdentValue.LINE_THROUGH);
                 decoration.setOffset(Math.round(baseline + fm.getStrikethroughOffset()));
                 decoration.setThickness(Math.round(fm.getStrikethroughThickness()));
+                decoration.setColor(decorationColor);
                 result.add(decoration);
             }
 
@@ -945,6 +951,7 @@ public class InlineBoxing {
                 TextDecoration decoration = new TextDecoration(IdentValue.OVERLINE);
                 decoration.setOffset(0);
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
+                decoration.setColor(decorationColor);
                 result.add(decoration);
             }
         }

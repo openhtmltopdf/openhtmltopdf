@@ -1,6 +1,7 @@
 package com.openhtmltopdf.svgsupport;
 
 import java.awt.Point;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -60,6 +61,12 @@ public class BatikSVGImage implements SVGImage {
     private final float intrinsicRatio;
 
     /**
+     * The size the SVG asks for, in pixels. Only meaningful for a standalone image, where it
+     * is the size the artwork is laid out at before CSS scales the image to the size it wants.
+     */
+    private final Point ownSize;
+
+    /**
      * Creates an image for an SVG used as a CSS image, ie. a <code>background-image</code>
      * or a <code>list-style-image</code>, where there is no box to size the image against.
      *
@@ -88,6 +95,7 @@ public class BatikSVGImage implements SVGImage {
         this.intrinsicRatio = parseViewBoxRatio(svgElement);
 
         Point dimensions = parseDimensions(svgElement, null, null);
+        this.ownSize = dimensions;
 
         double w = targetWidth >= 0 ? targetWidth / dotsPerPixel : dimensions.x;
         double h = targetHeight >= 0 ? targetHeight / dotsPerPixel : dimensions.y;
@@ -112,6 +120,7 @@ public class BatikSVGImage implements SVGImage {
         this.standalone = false;
         this.sizedByAttributes = false;   // Not used, this image is sized by its box.
         this.intrinsicRatio = 0;
+        this.ownSize = null;
         this.pdfTranscoder = new PDFTranscoder(box, dotsPerPixel, cssWidth, cssHeight);
 
         if (cssWidth >= 0) {
@@ -288,6 +297,14 @@ public class BatikSVGImage implements SVGImage {
     }
 
     /**
+     * Whether the root carries a <code>viewBox</code> at all, asked the same way Batik asks it
+     * when deciding how to fit the SVG into the size it was given.
+     */
+    private static boolean hasViewBox(Element e) {
+        return !e.getAttribute("viewBox").isEmpty();
+    }
+
+    /**
      * The width to height ratio from the <code>viewBox</code>, or 0 when there is no usable
      * one. This is what gives an SVG without a size of its own a shape to be scaled to.
      */
@@ -318,6 +335,16 @@ public class BatikSVGImage implements SVGImage {
     @Override
     public float getIntrinsicRatio() {
         return this.intrinsicRatio;
+    }
+
+    /**
+     * Formats a size in pixels for a <code>width</code> or <code>height</code> attribute: plain
+     * user units, and never the scientific notation {@link Float#toString} can produce, which
+     * SVG does not accept. Kept fractional, so that the artwork covers the whole of the area
+     * CSS asked for rather than the whole pixel inside it.
+     */
+    private static String lengthAttribute(float pixels) {
+        return String.format(Locale.US, "%.4f", pixels);
     }
 
     private Point parseWidthHeightAttributes(Element e, Box box, CssContext ctx) {
@@ -404,17 +431,29 @@ public class BatikSVGImage implements SVGImage {
                         importedAttr.getNodeValue());
             }
 
-            if (this.standalone && !this.sizedByAttributes) {
-                // The SVG has no size of its own, so CSS supplies the viewport. Set it on the
-                // copy so that percentages inside the SVG resolve against it, exactly as they
-                // do in a browser. Without this, a root width such as 50% is resolved by Batik
-                // against a viewport of its own choosing, which produces nonsense geometry.
-                // An SVG that does carry an absolute width and height is left alone: it is a
-                // sized image, and is scaled as a whole rather than laid out again.
-                // The copy is written to rather than the element itself, which is shared
-                // between every use of this image.
-                newDocument.getDocumentElement().setAttribute("width", Integer.toString((int) this.pdfTranscoder.getWidth()));
-                newDocument.getDocumentElement().setAttribute("height", Integer.toString((int) this.pdfTranscoder.getHeight()));
+            if (this.standalone) {
+                // CSS has settled the size, so that is the viewport the SVG is drawn into.
+                // Set it on the copy - written to rather than the element itself, which is
+                // shared between every use of this image - so that lengths inside the SVG
+                // resolve against it, exactly as they do in a browser. Without this, a root
+                // width such as 50% is resolved by Batik against a viewport of its own
+                // choosing, which produces nonsense geometry.
+                Element root = newDocument.getDocumentElement();
+                root.setAttribute("width", lengthAttribute(this.pdfTranscoder.getWidth()));
+                root.setAttribute("height", lengthAttribute(this.pdfTranscoder.getHeight()));
+
+                if (this.sizedByAttributes && !hasViewBox(this.svgElement)) {
+                    // An SVG with a size of its own but no viewBox is a picture, and CSS
+                    // scales a picture to the size it asks for, stretching it if that size
+                    // has another shape - the same as it would a PNG. Batik will only scale
+                    // such an SVG uniformly, so say what is meant with a viewBox covering the
+                    // size the artwork was drawn at. With a viewBox already there we leave
+                    // well alone: it is mapped onto the viewport set above, honouring
+                    // preserveAspectRatio, which is what a browser does too.
+                    root.setAttribute("viewBox",
+                            "0 0 " + lengthAttribute(this.ownSize.x) + " " + lengthAttribute(this.ownSize.y));
+                    root.setAttribute("preserveAspectRatio", "none");
+                }
             }
 
             TranscoderInput in = new TranscoderInput(newDocument);

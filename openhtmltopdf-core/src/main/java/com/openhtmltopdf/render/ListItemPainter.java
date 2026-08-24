@@ -27,6 +27,7 @@ import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.layout.Breaker;
+import com.openhtmltopdf.layout.TextSpacing;
 
 /**
  * A utility class to paint list markers (all types).
@@ -136,10 +137,11 @@ public class ListItemPainter {
             String displayText = listStyleType;
             text.setMasterText(displayText);
             text.setSubstring(0, displayText.length());
-            text.setWidth(Breaker.getTextWidthWithLetterSpacing(c, 
+            text.setTextSpacing(TextSpacing.from(box.getStyle(), c));
+            text.setWidth(Breaker.getTextWidthWithSpacing(c, 
                     box.getStyle().getFSFont(c),
                     displayText, // text
-                    text.getLetterSpacing()));
+                    text.getTextSpacing()));
 
 
             InlineLayoutBox box1 = new InlineLayoutBox(null, null, box.getStyle(), 0);

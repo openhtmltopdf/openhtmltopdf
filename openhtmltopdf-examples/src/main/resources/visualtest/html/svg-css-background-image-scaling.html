@@ -1,0 +1,55 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 400px;
+  margin: 0;
+}
+div {
+  width: 120px;
+  height: 60px;
+  margin: 5px;
+  border: 1px solid black;
+  background-repeat: no-repeat;
+}
+/* All five use the same drawing: a 20x20 image of a round circle, in fixed user units, so
+   any change of shape shows up as the circle turning into an ellipse. */
+
+/* No background-size, so the image is drawn at the size it asks for. */
+.natural {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+}
+/* A SVG with a size of its own but no viewBox is a picture, so CSS scales it to the size it
+   asks for, stretching it when that size has another shape, just as it would a PNG. The
+   circle comes out a wide ellipse. */
+.stretched {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+/* The shape this turned up in: a fixed width bar down the side of a box, told to take the
+   whole height. The bar used to keep the height of the drawing instead. */
+.bar {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 20px 100%;
+}
+/* A viewBox says how the drawing maps onto whatever size it is given, and preserveAspectRatio
+   defaults to fitting it, so this one is made as large as it fits and centred, still round. */
+.viewbox-fitted {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+/* Unless the SVG says not to fit it. */
+.viewbox-stretched {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='20'%20height='20'%20viewBox='0%200%2020%2020'%20preserveAspectRatio='none'%3E%3Crect%20x='0'%20y='0'%20width='20'%20height='20'%20fill='%23ffdddd'/%3E%3Ccircle%20cx='10'%20cy='10'%20r='8'%20fill='none'%20stroke='%23cc0000'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+</style>
+</head>
+<body>
+  <div class="natural"></div>
+  <div class="stretched"></div>
+  <div class="bar"></div>
+  <div class="viewbox-fitted"></div>
+  <div class="viewbox-stretched"></div>
+</body>
+</html>
