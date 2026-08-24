@@ -14,10 +14,10 @@ public class BreakerTest {
     public void testCharacterBreakerSingleChar() {
         String whole = "A";
         int avail = 5;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
         
         assertFalse(context.isUnbreakable());
         assertFalse(context.isNeedsNewLine());
@@ -29,10 +29,10 @@ public class BreakerTest {
     public void testCharacterBreakerEmptyString() {
         String whole = "";
         int avail = 5;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
         
         assertFalse(context.isUnbreakable());
         assertFalse(context.isNeedsNewLine());
@@ -44,10 +44,10 @@ public class BreakerTest {
     public void testCharacterBreakerUntilWord() {
         String whole = "ABCD WORD";
         int avail = 15;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
         
         assertFalse(context.isUnbreakable());
         assertFalse(context.isNeedsNewLine());
@@ -59,10 +59,10 @@ public class BreakerTest {
     public void testCharacterBreakerNoFit() {
         String whole = "ABCDEF";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
         
         assertFalse(context.isUnbreakable());
         assertTrue(context.isNeedsNewLine());
@@ -75,10 +75,10 @@ public class BreakerTest {
     public void testCharacterBreakerExactFit() {
         String whole = "ABCD";
         int avail = 4;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
         
         assertFalse(context.isUnbreakable());
         assertFalse(context.isNeedsNewLine());
@@ -91,10 +91,10 @@ public class BreakerTest {
     public void testCharacterBreakerPartialFit() {
         String whole = "ABCDEF";
         int avail = 13;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER3);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER3);
         
         assertFalse(context.isUnbreakable());
         assertTrue(context.isNeedsNewLine());
@@ -107,10 +107,10 @@ public class BreakerTest {
     public void testCharacterBreakerNoFit2() {
         String whole = "ABCDEF";
         int avail = 2;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER3);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER3);
         
         // Breaks off minimum of one character.
         assertTrue(context.isUnbreakable());
@@ -124,10 +124,10 @@ public class BreakerTest {
     public void testCharacterBreakerWordBreakAtStart() {
         String whole = "  ABCDEF";
         int avail = 20;
-        float letterSpacing = 0;
+        TextSpacing spacing = TextSpacing.NONE;
         LineBreakContext context = createContext(whole);
         
-        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, letterSpacing, MEASURER);
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
         
         assertFalse(context.isUnbreakable());
         assertFalse(context.isNeedsNewLine());

@@ -580,6 +580,24 @@ public class TextVisualRegressionTest {
     }
     
     /**
+     * Tests the word-spacing property on its own, together with letter-spacing,
+     * and under the various text alignments.
+     */
+    @Test
+    public void testWordSpacing() throws IOException {
+        assertTrue(run("word-spacing"));
+    }
+
+    /**
+     * Tests that letter-spacing and word-spacing compose with text-align: justify
+     * rather than turning it off.
+     */
+    @Test
+    public void testLetterSpacingJustify() throws IOException {
+        assertTrue(run("letter-spacing-justify"));
+    }
+
+    /**
      * Tests that text-justification works when fallback fonts are being used.
      */
     @Test

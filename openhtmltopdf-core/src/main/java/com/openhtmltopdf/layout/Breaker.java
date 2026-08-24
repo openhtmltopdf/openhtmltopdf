@@ -22,7 +22,6 @@ package com.openhtmltopdf.layout;
 
 import java.util.function.ToIntFunction;
 
-import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
@@ -40,13 +39,11 @@ public class Breaker {
     public static void breakFirstLetter(LayoutContext c, LineBreakContext context,
             int avail, CalculatedStyle style) {
         FSFont font = style.getFSFont(c);
-        float letterSpacing = style.hasLetterSpacing() ?
-                style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c) :
-                0f;
-        
+        TextSpacing spacing = TextSpacing.from(style, c);
+
         context.setEnd(getFirstLetterEnd(context.getMaster(), context.getStart()));
-        context.setWidth(c.getTextRenderer().getWidth(
-                c.getFontContext(), font, context.getCalculatedSubstring()) + (int) letterSpacing);
+        context.setWidth(getTextWidthWithSpacing(
+                c, font, context.getCalculatedSubstring(), spacing));
 
         if (context.getWidth() > avail) {
             context.setNeedsNewLine(true);
@@ -127,12 +124,11 @@ public class Breaker {
 
         FSFont font = style.getFSFont(c);
         IdentValue whitespace = style.getWhitespace();
-        float letterSpacing = style.hasLetterSpacing() ?
-                style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c) : 0f;
+        TextSpacing spacing = TextSpacing.from(style, c);
 
         // ====== handle nowrap
         if (whitespace == IdentValue.NOWRAP) {
-            int width = Breaker.getTextWidthWithLetterSpacing(c, font, context.getMaster(), letterSpacing);
+            int width = Breaker.getTextWidthWithSpacing(c, font, context.getMaster(), spacing);
             if (width <= avail || forceOutput) {
                 c.setLineBreakedBecauseOfNoWrap(false);
                 context.setEnd(context.getLast());
@@ -162,12 +158,12 @@ public class Breaker {
             int n = context.getStartSubstring().indexOf(WhitespaceStripper.EOL);
             if (n > -1) {
                 context.setEnd(context.getStart() + n + 1);
-                context.setWidth(Breaker.getTextWidthWithLetterSpacing(c, font, context.getCalculatedSubstring(), letterSpacing));
+                context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing));
                 context.setNeedsNewLine(true);
                 context.setEndsOnNL(true);
             } else if (whitespace == IdentValue.PRE) {
                 context.setEnd(context.getLast());
-                context.setWidth(Breaker.getTextWidthWithLetterSpacing(c, font, context.getCalculatedSubstring(), letterSpacing));
+                context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing));
                 context.setNeedsNewLine(false);
             }
         }
@@ -318,9 +314,7 @@ public class Breaker {
         } else {
             FSFont font = style.getFSFont(c);
 
-            float letterSpacing = style.hasLetterSpacing()
-                    ? style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c)
-                    : 0f;
+            TextSpacing spacing = TextSpacing.from(style, c);
 
             ToIntFunction<String> measurer = (str) ->
                    c.getTextRenderer().getWidth(c.getFontContext(), font, str);
@@ -329,7 +323,7 @@ public class Breaker {
             FSTextBreaker lineIterator = STANDARD_LINE_BREAKER.getBreaker(currentString, c.getSharedContext());
             FSTextBreaker charIterator = STANDARD_CHARACTER_BREAKER.getBreaker(currentString, c.getSharedContext());
 
-            return doBreakCharacters(currentString, lineIterator, charIterator, context, avail, letterSpacing, measurer);
+            return doBreakCharacters(currentString, lineIterator, charIterator, context, avail, spacing, measurer);
         }
     }
 
@@ -343,7 +337,7 @@ public class Breaker {
             FSTextBreaker charIterator,
             LineBreakContext context,
             int avail,
-            float letterSpacing,
+            TextSpacing spacing,
             ToIntFunction<String> measurer) {
 
         // The next word break opportunity. We don't want to go past this
@@ -383,7 +377,7 @@ public class Breaker {
                nextCharBreak <= nextWordBreak &&
                graphicsLength < avail) {
             String subString = currentString.substring(left, nextCharBreak);
-            float extraSpacing = (nextCharBreak - left) * letterSpacing;
+            float extraSpacing = spacing.extra(currentString, left, nextCharBreak);
             
             int splitWidth = (int) (measurer.applyAsInt(subString) + extraSpacing);
             
@@ -426,7 +420,7 @@ public class Breaker {
             
             nextCharBreak = nextWordBreak;
             
-            float extraSpacing = (nextCharBreak - left) * letterSpacing;
+            float extraSpacing = spacing.extra(currentString, left, nextCharBreak);
             int splitWidth = (int) (measurer.applyAsInt(currentString.substring(left, nextCharBreak)) + extraSpacing);
 
             graphicsLength += splitWidth;
@@ -470,7 +464,7 @@ public class Breaker {
         } else if (!currentString.isEmpty()) {
             // Not even one character fit!
             int end = 1;
-            float extraSpacing = letterSpacing;
+            float extraSpacing = spacing.extra(currentString, 0, end);
             int splitWidth = (int) (measurer.applyAsInt(currentString.substring(0, end)) + extraSpacing); 
 
             context.setUnbreakable(true);
@@ -518,9 +512,7 @@ public class Breaker {
 
         FSFont font = style.getFSFont(c);
 
-        float letterSpacing = style.hasLetterSpacing()
-                ? style.getFloatPropertyProportionalWidth(CSSName.LETTER_SPACING, 0, c)
-                : 0f;
+        TextSpacing spacing = TextSpacing.from(style, c);
 
         ToIntFunction<String> measurer = (str) ->
                c.getTextRenderer().getWidth(c.getFontContext(), font, str);
@@ -528,7 +520,7 @@ public class Breaker {
         String currentString = context.getStartSubstring();
         FSTextBreaker lineIterator = lineBreaker.getBreaker(currentString, c.getSharedContext());
 
-        return doBreakTextWords(currentString, context, avail, lineIterator, letterSpacing, measurer);
+        return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer);
     }
 
     static LineBreakResult doBreakTextWords(
@@ -536,7 +528,7 @@ public class Breaker {
             LineBreakContext context,
             int avail,
             FSTextBreaker iterator,
-            float letterSpacing,
+            TextSpacing spacing,
             ToIntFunction<String> measurer) {
 
         int lastWrap = 0;
@@ -555,7 +547,7 @@ public class Breaker {
             current.copyTo(prev);
             
             String subString = currentString.substring(current.left, current.right);
-            float extraSpacing = (current.right - current.left) * letterSpacing;
+            float extraSpacing = spacing.extra(currentString, current.left, current.right);
             
             int normalSplitWidth = (int) (measurer.applyAsInt(subString) + extraSpacing);
 
@@ -563,7 +555,7 @@ public class Breaker {
                 current.isSoftHyphenBreak = true;
                 int withTrailingHyphenSplitWidth = (int)
                      (measurer.applyAsInt(subString + '-') + 
-                        extraSpacing + letterSpacing);
+                        extraSpacing + spacing.getLetterSpacing());
                 current.withHyphenGraphicsLength = current.graphicsLength + withTrailingHyphenSplitWidth;
                 
                 if (current.withHyphenGraphicsLength >= avail &&
@@ -591,7 +583,7 @@ public class Breaker {
             lastWrap = current.left;
             current.copyTo(prev);
             current.right = currentString.length();
-            float extraSpacing = (current.right - current.left) * letterSpacing;
+            float extraSpacing = spacing.extra(currentString, current.left, current.right);
             int splitWidth = (int) (measurer.applyAsInt(
                     currentString.substring(current.left)) + extraSpacing);
             current.graphicsLength += splitWidth;
@@ -634,7 +626,7 @@ public class Breaker {
                 context.setWidth(current.withHyphenGraphicsLength);
             } else if (current.left == currentString.length()) {
                 String text = context.getCalculatedSubstring();
-                float extraSpacing = text.length() * letterSpacing;
+                float extraSpacing = spacing.extra(text);
                 context.setWidth((int) (measurer.applyAsInt(text) + extraSpacing));
             } else {
                 context.setWidth(current.graphicsLength);
@@ -677,11 +669,19 @@ public class Breaker {
 	}
 
 	/**
-	 * Gets the width of a string with letter spacing factored in.
+	 * Gets the width of a string with letter and word spacing factored in.
 	 * Favor this method over using the text renderer directly.
 	 */
+    public static int getTextWidthWithSpacing(CssContext c, FSFont font, String text, TextSpacing spacing) {
+        return (int) (c.getTextRenderer().getWidth(c.getFontContext(), font, text) + spacing.extra(text));
+    }
+
+	/**
+	 * @deprecated Use {@link #getTextWidthWithSpacing(CssContext, FSFont, String, TextSpacing)},
+	 * which accounts for word-spacing as well. This method will be removed in a future release.
+	 */
+	@Deprecated
     public static int getTextWidthWithLetterSpacing(CssContext c, FSFont font, String text, float letterSpacing) {
-        float extraSpace = text.length() * letterSpacing;
-        return (int) (c.getTextRenderer().getWidth(c.getFontContext(), font, text) + extraSpace);
+        return getTextWidthWithSpacing(c, font, text, TextSpacing.of(letterSpacing, 0f));
     }
 }
