@@ -1165,6 +1165,18 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("issue-162-paginated-table-head-with-min-height", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that the min-height escalation also covers non-paginated tables: without
+     * {@code -fs-table-paginate} the header is not repeated on later pages, so a break
+     * taken on the body section alone strands the only copy of the header at the foot
+     * of the page while all rows sit on the next one.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PlainTableHeadWithMinHeight() throws IOException {
+        assertTrue(vt.runTest("issue-162-plain-table-head-with-min-height", TestSupport.WITH_FONT));
+    }
+
 
     /**
      * Tests that justified text with non-justified content (br) nested inside it
