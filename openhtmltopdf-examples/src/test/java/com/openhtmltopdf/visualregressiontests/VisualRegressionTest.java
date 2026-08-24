@@ -1183,6 +1183,18 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a paginated table escalated to the next page because its thead
+     * straddles the page boundary lays out with natural heights: the running-header
+     * trial layout must not react to the page geometry at the table's stale pre-move
+     * position, or the first body row gets the phantom straddle gap as extra height.
+     * https://github.com/danfickle/openhtmltopdf/issues/202
+     */
+    @Test
+    public void testPaginatedTableEscalatedHeadGap() throws IOException {
+        assertTrue(vt.runTest("paginated-table-escalated-head-gap", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that a paginated table whose first body row is too tall to stay on the
      * page moves the repeated header with it, rather than leaving the header orphaned
      * at the foot of the page with no body row beneath it. Here the first body row is

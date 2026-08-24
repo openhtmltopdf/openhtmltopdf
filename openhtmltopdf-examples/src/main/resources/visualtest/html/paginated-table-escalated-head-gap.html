@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <style type="text/css">
+        /*
+         * A paginated table whose thead straddles the page boundary, so the
+         * whole table is escalated to the next page. The running-header trial
+         * layout used to run against the table's stale pre-move coordinates,
+         * react to the page boundary there, and reserve a header height inflated
+         * by the phantom straddle gap -- which then surfaced as extra height on
+         * the first body row (danfickle/openhtmltopdf#202's escalated variant).
+         * The head and every row must lay out at their natural heights, exactly
+         * as if the table had started at the top of the page.
+         */
+        @page {
+            size: A4;
+            margin: 35mm 20mm;
+        }
+        body {
+            margin: 0;
+            font-family: TestFont, sans-serif;
+            font-size: 10pt;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            -fs-table-paginate: paginate;
+        }
+        th, td {
+            border: 0.5pt solid #999;
+            padding: 4pt;
+            text-align: left;
+        }
+        thead th {
+            color: #fff;
+            background-color: #6d7778;
+        }
+        .spacer {
+            height: 640pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="spacer">spacer</div>
+    <table>
+        <thead>
+            <tr><th>Head A1</th><th>Head B1</th></tr>
+            <tr><th>Head A2</th><th>Head B2</th></tr>
+        </thead>
+        <tbody>
+            <tr><td>row 1 a</td><td>row 1 b</td></tr>
+            <tr><td>row 2 a</td><td>row 2 b</td></tr>
+            <tr><td>row 3 a</td><td>row 3 b</td></tr>
+            <tr><td>row 4 a</td><td>row 4 b</td></tr>
+            <tr><td>row 5 a</td><td>row 5 b</td></tr>
+            <tr><td>row 6 a</td><td>row 6 b</td></tr>
+            <tr><td>row 7 a</td><td>row 7 b</td></tr>
+            <tr><td>row 8 a</td><td>row 8 b</td></tr>
+        </tbody>
+    </table>
+</body>
+</html>
