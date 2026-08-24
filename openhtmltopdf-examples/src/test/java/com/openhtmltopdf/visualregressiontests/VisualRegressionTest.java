@@ -1136,11 +1136,47 @@ public class VisualRegressionTest {
      * https://github.com/danfickle/openhtmltopdf/issues/399
      */
     @Test
-    @Ignore // Failing for now.
     public void testIssue399TableHeaderFooterWithNoRows() throws IOException {
-        assertTrue(vt.runTest("issue-399-table-header-with-no-rows"));    
+        assertTrue(vt.runTest("issue-399-table-header-with-no-rows"));
     }
-    
+
+    /**
+     * Tests that a paginated table whose first body row is too tall to stay on the
+     * page moves the repeated header with it, rather than leaving the header orphaned
+     * at the foot of the page with no body row beneath it. Here the first body row is
+     * kept together with {@code page-break-inside: avoid} and its first text baseline
+     * still fits on the page, so the row is moved on its own -- a path that, before the
+     * fix, did not escalate to move the whole table.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PaginatedTableHeadWithTallFirstRow() throws IOException {
+        assertTrue(vt.runTest("issue-162-paginated-table-head-with-tall-first-row", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the same orphaned-header defect reached through a different path: an
+     * inherited {@code -fs-page-break-min-height} on the table also applies to the
+     * body section and forces a page break there without escalating to the table.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PaginatedTableHeadWithMinHeight() throws IOException {
+        assertTrue(vt.runTest("issue-162-paginated-table-head-with-min-height", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests that the min-height escalation also covers non-paginated tables: without
+     * {@code -fs-table-paginate} the header is not repeated on later pages, so a break
+     * taken on the body section alone strands the only copy of the header at the foot
+     * of the page while all rows sit on the next one.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testIssue162PlainTableHeadWithMinHeight() throws IOException {
+        assertTrue(vt.runTest("issue-162-plain-table-head-with-min-height", TestSupport.WITH_FONT));
+    }
+
 
     /**
      * Tests that justified text with non-justified content (br) nested inside it
