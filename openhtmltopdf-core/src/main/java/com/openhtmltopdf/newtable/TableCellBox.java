@@ -31,6 +31,7 @@ import com.openhtmltopdf.css.style.Length;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.RectPropertySet;
 import com.openhtmltopdf.layout.CollapsedBorderSide;
+import com.openhtmltopdf.layout.FloatManager;
 import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.render.BorderPainter;
@@ -223,7 +224,12 @@ public class TableCellBox extends BlockBox {
             b.setY(b.getY() + deltaY);
         }
         
-        getPersistentBFC().getFloatManager().performFloatOperation(floater -> floater.setY(floater.getY() + deltaY));
+        getPersistentBFC().getFloatManager().performFloatOperation(
+                new FloatManager.FloatOperation() {
+                    public void operate(Box floater) {
+                        floater.setY(floater.getY() + deltaY);
+                    }
+                });
         
         calcChildLocations();
     }
@@ -909,7 +915,7 @@ public class TableCellBox extends BlockBox {
         
         return bounds;
     }
-    
+
     @Override
     public Rectangle getPaintingClipEdge(CssContext c) {
         if (hasCollapsedPaintingBorder()) {

@@ -209,7 +209,7 @@ public class TableSectionBox extends BlockBox {
         cell.setRow(cRow);
         cell.setCol(getTable().effColToCol(col));
     }
-    
+
     @Override
     public void reset(LayoutContext c) {
         super.reset(c);

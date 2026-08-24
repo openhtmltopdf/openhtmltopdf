@@ -42,27 +42,22 @@ public class TableColumn implements Styleable {
         _style = style;
     }
     
-    @Override
     public Element getElement() {
         return _element;
     }
 
-    @Override
     public String getPseudoElementOrClass() {
         return null;
     }
 
-    @Override
     public CalculatedStyle getStyle() {
         return _style;
     }
 
-    @Override
     public void setElement(Element e) {
         _element = e;
     }
 
-    @Override
     public void setStyle(CalculatedStyle style) {
         _style = style;
     }
