@@ -379,4 +379,13 @@ public class TableSectionBox extends BlockBox {
     public void setOriginalAbsY(int originalAbsY) {
         _originalAbsY = originalAbsY;
     }
+    
+    @Override
+    public void setNeedPageClear(boolean needPageClear) {
+        if (needPageClear && isHeader()) {
+            getTable().setNeedPageClear(true);
+        } else {
+            super.setNeedPageClear(needPageClear);
+        }
+    }
 }
