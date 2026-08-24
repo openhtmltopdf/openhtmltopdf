@@ -1807,14 +1807,13 @@ public class VisualRegressionTest {
 
     /**
      * Tests an invoice whose item table spans multiple pages: the thead with
-     * the brought forward row and the tfoot with the carried forward row have
-     * to be repeated on every page, while the letterhead and the grand total
-     * table appear once.
-     * <p>
-     * The carry over amounts themselves are still blank: the cells ask for
-     * them with content: attr(data-running-sum), but attr() resolves against
-     * the cell itself, which has no such attribute. This pins that behaviour
-     * until a page aware running attribute function exists.
+     * the brought forward row and the tfoot with the carried forward row are
+     * repeated on every page, while the letterhead and the grand total table
+     * appear once. The carry over amounts are produced by
+     * content: -fs-running-attr(data-running-sum, start|last), reading back
+     * the per page latch of the body rows' attribute, and the brought/carried
+     * rows are suppressed on their first/last page appearance via the
+     * :-fs-first-fragment/:-fs-last-fragment pseudo-classes.
      */
     @Test
     public void testInvoiceMultiPage() throws IOException {
@@ -1858,6 +1857,42 @@ public class VisualRegressionTest {
     @Test
     public void testTablePaginateInColumn() throws IOException {
         assertTrue(vt.runTest("issue-202-table-paginate-in-column", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Variant of {@link #testInvoiceMultiPage()} for the tall totals problem:
+     * a grand total block that merely FOLLOWS the table can be pushed to the
+     * next page without the table breaking, so the carried forward foot is
+     * suppressed one page early (its page still counts as the table's last
+     * fragment) and the totals land on a page no brought forward row
+     * annotates. Here the totals are a second tfoot instead: only the first
+     * table-footer-group becomes the repeating footer, every further one is
+     * laid out as a body section at the table's end. The totals are
+     * deliberately too tall for the space under the last item row, so the
+     * TABLE breaks: the previous page keeps its carried forward foot and the
+     * last page opens with the brought forward head above the totals.
+     */
+    @Test
+    public void testInvoiceMultiPageTall() throws IOException {
+        assertTrue(vt.runTest("invoice-multi-page-tall", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Variant of {@link #testInvoiceMultiPageTall()} pinning the flush edge:
+     * the item count is chosen so body plus totals end flush at a page's
+     * bottom edge, with less than a foot's height to spare. The carry foot's
+     * natural position would spill past the boundary and open a phantom
+     * fragment - a page printing nothing but the repeated head - while the
+     * true last page kept a carried forward foot below the grand total. The
+     * engine clamps the fragment span to the last page with in-flow content
+     * and folds the hidden foot's never-painted resting position back into
+     * the content bounds, so this invoice must end on page two: brought
+     * forward, items, totals - no carried forward under the sums, no third
+     * page.
+     */
+    @Test
+    public void testInvoiceMultiPageFlush() throws IOException {
+        assertTrue(vt.runTest("invoice-multi-page-flush", TestSupport.WITH_FONT));
     }
 
     // TODO:

@@ -624,6 +624,26 @@ public class PagedBoxCollector {
         // last appearances (fragments) are the table's first and last pages.
         int firstFragmentPage = getValidMinPageNumber(tableStart);
         int lastFragmentPage = getValidMaxPageNumber(tableEnd);
+
+        // A running footer that is hidden on its last fragment must not open a
+        // trailing fragment of its own: when the body content ends flush at a
+        // page boundary, the footer's natural position spills onto the next
+        // page, which would (a) repeat the header onto a page without a single
+        // body row and (b) rob the true last body page of its last-fragment
+        // status, so the carried-forward foot would paint below the totals
+        // there. Clamp the span to the last page carrying non-running content.
+        TableSectionBox foot = runningFooter(table);
+        if (foot != null && (fragmentHide(rc, foot) & Matcher.HIDE_ON_LAST_FRAGMENT) != 0) {
+            Box lastContent = lastContentSection(table);
+            if (lastContent != null) {
+                int contentEnd = getValidMaxPageNumber(
+                        findEndPage(c, lastContent, layer.getCurrentTransformMatrix()));
+                if (contentEnd >= firstFragmentPage && contentEnd < lastFragmentPage) {
+                    lastFragmentPage = contentEnd;
+                }
+            }
+        }
+
         int sectionHide = fragmentHide(rc, container);
 
         for (int pgTable = firstFragmentPage; pgTable <= lastFragmentPage; pgTable++) {
@@ -652,6 +672,37 @@ public class PagedBoxCollector {
     private static int fragmentHide(RenderingContext c, Box box) {
         Element el = box.getElement();
         return el == null ? 0 : c.getCss().getFragmentHide(el);
+    }
+
+    /**
+     * The table's running footer: the last child, if it is one. The running
+     * header/footer are moved to the first/last child slot at box building
+     * time, so no search is needed.
+     */
+    private static TableSectionBox runningFooter(TableBox table) {
+        if (table.getChildCount() > 0) {
+            Box last = table.getChild(table.getChildCount() - 1);
+            if (last instanceof TableSectionBox && ((TableSectionBox) last).isFooter()) {
+                return (TableSectionBox) last;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The last section that is laid out in flow (not a running header/footer),
+     * i.e. the section whose end marks the last page with body content.
+     */
+    private static Box lastContentSection(TableBox table) {
+        for (int i = table.getChildCount() - 1; i >= 0; i--) {
+            Box child = table.getChild(i);
+            if (child instanceof TableSectionBox &&
+                !((TableSectionBox) child).isHeader() &&
+                !((TableSectionBox) child).isFooter()) {
+                return child;
+            }
+        }
+        return null;
     }
 
     private static boolean isHiddenOnFragment(int hideBits, int page, int firstPage, int lastPage) {
