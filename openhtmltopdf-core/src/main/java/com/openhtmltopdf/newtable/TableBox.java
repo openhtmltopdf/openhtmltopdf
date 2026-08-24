@@ -349,8 +349,42 @@ public class TableBox extends BlockBox {
         if ((hide & Matcher.HIDE_ON_LAST_FRAGMENT) == 0) {
             return;
         }
-        int reclaim = footer.getHeight() + getStyle().getBorderVSpacing(c);
+        // Reclaim everything below the last in-flow section, not just the
+        // footer's own height: when the body ends flush at a page boundary the
+        // footer's natural position was pushed past it, and that gap would
+        // otherwise keep a phantom trailing page alive.
+        Box lastContent = null;
+        for (int i = getChildCount() - 2; i >= 0; i--) {
+            Box child = getChild(i);
+            if (child instanceof TableSectionBox &&
+                !((TableSectionBox) child).isHeader() &&
+                !((TableSectionBox) child).isFooter()) {
+                lastContent = child;
+                break;
+            }
+        }
+        int reclaim = lastContent != null ?
+                (footer.getY() + footer.getHeight())
+                    - (lastContent.getY() + lastContent.getHeight())
+                    + getStyle().getBorderVSpacing(c) :
+                footer.getHeight() + getStyle().getBorderVSpacing(c);
         setHeight(getHeight() - reclaim);
+
+        // The hidden footer is never painted at its resting position: earlier
+        // pages reposition it to the page bottom and the last fragment drops
+        // it. But its resting bounds still count towards the layer's painting
+        // dimension, so a footer that spilled past the last body row's page
+        // would keep a blank trailing page alive (trimEmptyPages trims by
+        // painting dimension). Fold it back so its bottom aligns with the last
+        // in-flow content.
+        if (lastContent != null) {
+            int newY = lastContent.getY() + lastContent.getHeight() - footer.getHeight();
+            if (newY != footer.getY()) {
+                footer.setY(newY);
+                footer.calcCanvasLocation();
+                footer.calcChildLocations();
+            }
+        }
     }
 
     private int layoutRunningHeader(LayoutContext c) {
