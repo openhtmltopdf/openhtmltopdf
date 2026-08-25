@@ -93,9 +93,12 @@ public class TableRowBox extends BlockBox {
         }
         
         super.layout(c, contentStart);
-        
+
         if (running) {
-            if (isShouldMoveToNextPage(c)) {
+            // Position-agnostic layouts (the running header/footer trials, repeated
+            // section repositioning) set noPageBreak; reacting to the page geometry
+            // there would bake a phantom straddle gap into the section's height.
+            if (c.isPageBreaksAllowed() && isShouldMoveToNextPage(c)) {
                 setNeedPageClear(true);
             }
             c.setExtraSpaceTop(prevExtraTop);
