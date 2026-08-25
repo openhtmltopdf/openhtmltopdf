@@ -104,6 +104,30 @@ public class TableRowBox extends BlockBox {
             c.setExtraSpaceTop(prevExtraTop);
             c.setExtraSpaceBottom(prevExtraBottom);
         }
+
+        if (c.isPrint() && c.isPageBreaksAllowed() && getTable().getFirstBodyRow() == this
+                && isHeaderStrandedAbove(c)) {
+            // A head that ends in the last sliver of a page while the first body row
+            // begins on the next one strands the head without any page-clear event
+            // the escalations above could react to: the row was laid on its natural
+            // page and never "moved". Only a header that ends above this row's page
+            // needs the rescue -- one that reaches the row's page is split, not
+            // stranded (possible with thead { page-break-inside: auto }).
+            getTable().setNeedPageClear(true);
+        }
+    }
+
+    private boolean isHeaderStrandedAbove(LayoutContext c) {
+        TableBox table = getTable();
+        if (table.getChildCount() == 0) {
+            return false;
+        }
+        Box first = table.getChild(0);
+        if (!(first instanceof TableSectionBox) || ! ((TableSectionBox)first).isHeader()) {
+            return false;
+        }
+        PageBox rowPage = c.getRootLayer().getFirstPage(c, this);
+        return rowPage != null && first.getAbsY() + first.getHeight() <= rowPage.getTop();
     }
 
     @Override

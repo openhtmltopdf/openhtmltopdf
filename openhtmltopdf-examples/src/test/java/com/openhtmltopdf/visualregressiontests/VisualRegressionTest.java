@@ -1158,8 +1158,6 @@ public class VisualRegressionTest {
      * https://github.com/danfickle/openhtmltopdf/issues/202
      */
     @Test
-    @Ignore // Has both problems. Low priority as very few people want their thead
-            // broken over two or more pages.
     public void testIssue202PaginatedTableAllowBreakThead() throws IOException {
         assertTrue(vt.runTest("issue-202-paginated-table-allow-break-thead"));
     }
