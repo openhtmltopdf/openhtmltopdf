@@ -1,0 +1,93 @@
+<html>
+<head>
+<style>
+@page {
+  /*
+   * The page is made tall enough that all three lists fit on a single
+   * page. This is deliberate: with a shorter page, one of the boxes
+   * would be split across a page break, which currently triggers an
+   * unrelated rendering bug where a box's content escapes its border
+   * (tracked separately in openhtmltopdf#223). This test is only about
+   * the :nth-child(an+b) selector fix for issue #113, so we avoid the
+   * pagination bug entirely rather than bake it into this golden file.
+   * See review discussion on PR #221.
+   */
+  size: 260px 620px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+}
+
+/*
+ * Regression test for https://github.com/openhtmltopdf/openhtmltopdf/issues/113
+ *
+ * :nth-child(n+3) must only select the 3rd child and all children after it,
+ * not every child.
+ */
+ul.n-plus-3 > li:nth-child(n+3) {
+  background-color: red;
+}
+
+/*
+ * :nth-child(-n+3) is the complement: only the first 3 children.
+ */
+ul.minus-n-plus-3 > li:nth-child(-n+3) {
+  background-color: red;
+}
+
+/*
+ * :nth-child(2n+3): every second child starting from the 3rd (3rd, 5th, 7th...).
+ */
+ul.two-n-plus-3 > li:nth-child(2n+3) {
+  background-color: red;
+}
+
+ul {
+  list-style: none;
+  margin: 0 0 10px 0;
+  padding: 0;
+}
+li {
+  width: 100px;
+  height: 20px;
+  margin-bottom: 4px;
+  background-color: green;
+  border: 1px solid black;
+}
+</style>
+</head>
+<body>
+
+<!-- :nth-child(n+3) - items 1 and 2 should stay green, items 3-6 should turn red -->
+<ul class="n-plus-3">
+  <li>1</li>
+  <li>2</li>
+  <li>3</li>
+  <li>4</li>
+  <li>5</li>
+  <li>6</li>
+</ul>
+
+<!-- :nth-child(-n+3) - items 1-3 should turn red, items 4-6 should stay green -->
+<ul class="minus-n-plus-3">
+  <li>1</li>
+  <li>2</li>
+  <li>3</li>
+  <li>4</li>
+  <li>5</li>
+  <li>6</li>
+</ul>
+
+<!-- :nth-child(2n+3) - items 3 and 5 should turn red, others stay green -->
+<ul class="two-n-plus-3">
+  <li>1</li>
+  <li>2</li>
+  <li>3</li>
+  <li>4</li>
+  <li>5</li>
+  <li>6</li>
+</ul>
+
+</body>
+</html>
