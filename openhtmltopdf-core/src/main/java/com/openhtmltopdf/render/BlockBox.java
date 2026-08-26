@@ -126,7 +126,6 @@ public class BlockBox extends Box {
     private List<Styleable> _inlineContent;
 
     private boolean _topMarginCalculated;
-    private boolean _movedByUnforcedBreak;
     private boolean _bottomMarginCalculated;
     private MarginCollapseResult _pendingCollapseCalculation;
 
@@ -602,18 +601,6 @@ public class BlockBox extends Box {
         return _needPageClear;
     }
 
-    /**
-     * Whether this box was moved to the top of a following page by a break we
-     * introduced ourselves, rather than by a forced <code>page-break-before</code>.
-     */
-    public boolean isMovedByUnforcedBreak() {
-        return _movedByUnforcedBreak;
-    }
-
-    public void setMovedByUnforcedBreak(boolean movedByUnforcedBreak) {
-        _movedByUnforcedBreak = movedByUnforcedBreak;
-    }
-
     public void setNeedPageClear(boolean needPageClear) {
         _needPageClear = needPageClear;
     }
@@ -720,7 +707,6 @@ public class BlockBox extends Box {
     @Override
     public void reset(LayoutContext c) {
         super.reset(c);
-        setMovedByUnforcedBreak(false);
         setTopMarginCalculated(false);
         setBottomMarginCalculated(false);
         setDimensionsCalculated(false);
@@ -1138,12 +1124,7 @@ public class BlockBox extends Box {
         if (c.isPrint()) {
             PageBox firstPage = c.getRootLayer().getFirstPage(c, this);
             if (firstPage != null && firstPage.getTop() == getAbsY() - getPageClearance()) {
-                if (isMovedByUnforcedBreak() && getStyleMargin(c).top() > 0) {
-                    // A positive margin adjoining an unforced break is truncated, so
-                    // the box starts flush with the top of the page we moved it to.
-                    // Margins adjoining a forced break are preserved, and so is a
-                    // negative one - it pulls the box back onto the previous page,
-                    // which is what browsers do with it too.
+                if (isTopMarginTruncatedAtBreak(c, firstPage)) {
                     setMarginTop(c, 0);
                 } else {
                     resetTopMargin(c);
@@ -1395,6 +1376,22 @@ public class BlockBox extends Box {
         }
 
         setState(Box.DONE);
+    }
+
+    /**
+     * Whether this box, which starts at the top of <code>page</code>, has a top
+     * margin that is truncated there.
+     * <br><br>
+     * A positive margin adjoining an unforced break is truncated, so the box starts
+     * flush with the top of its page. Margins adjoining a forced break are preserved,
+     * and so is a negative one, which pulls the box back onto the previous page.
+     * Nothing is truncated on the first page, where no break precedes the box.
+     */
+    private boolean isTopMarginTruncatedAtBreak(LayoutContext c, PageBox page) {
+        return page.getPageNo() > 0 &&
+               getStyleMargin(c).top() > 0 &&
+               !getStyle().isForcePageBreakBefore() &&
+               !c.getRootLayer().isPageStartedByForcedBreak(page.getTop());
     }
 
     protected void layoutInlineChildren(
