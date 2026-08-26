@@ -407,6 +407,7 @@ public class BlockBoxing {
             }
 
             if (pageClear || needNewPageContext) {
+                boolean forced = child.getStyle().isForcePageBreakBefore();
                 int delta = child.forcePageBreakBefore(
                         c,
                         child.getStyle().getIdent(CSSName.PAGE_BREAK_BEFORE),
@@ -414,6 +415,7 @@ public class BlockBoxing {
                 c.translate(0, delta);
                 moved = true;
                 child.setNeedPageClear(false);
+                child.setMovedByUnforcedBreak(!forced && delta != 0);
             }
         }
         if (moved) {

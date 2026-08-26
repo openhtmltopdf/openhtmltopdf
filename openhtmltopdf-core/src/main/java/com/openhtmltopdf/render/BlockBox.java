@@ -126,6 +126,7 @@ public class BlockBox extends Box {
     private List<Styleable> _inlineContent;
 
     private boolean _topMarginCalculated;
+    private boolean _movedByUnforcedBreak;
     private boolean _bottomMarginCalculated;
     private MarginCollapseResult _pendingCollapseCalculation;
 
@@ -601,6 +602,18 @@ public class BlockBox extends Box {
         return _needPageClear;
     }
 
+    /**
+     * Whether this box was moved to the top of a following page by a break we
+     * introduced ourselves, rather than by a forced <code>page-break-before</code>.
+     */
+    public boolean isMovedByUnforcedBreak() {
+        return _movedByUnforcedBreak;
+    }
+
+    public void setMovedByUnforcedBreak(boolean movedByUnforcedBreak) {
+        _movedByUnforcedBreak = movedByUnforcedBreak;
+    }
+
     public void setNeedPageClear(boolean needPageClear) {
         _needPageClear = needPageClear;
     }
@@ -707,6 +720,7 @@ public class BlockBox extends Box {
     @Override
     public void reset(LayoutContext c) {
         super.reset(c);
+        setMovedByUnforcedBreak(false);
         setTopMarginCalculated(false);
         setBottomMarginCalculated(false);
         setDimensionsCalculated(false);
@@ -1124,7 +1138,16 @@ public class BlockBox extends Box {
         if (c.isPrint()) {
             PageBox firstPage = c.getRootLayer().getFirstPage(c, this);
             if (firstPage != null && firstPage.getTop() == getAbsY() - getPageClearance()) {
-                resetTopMargin(c);
+                if (isMovedByUnforcedBreak() && getStyleMargin(c).top() > 0) {
+                    // A positive margin adjoining an unforced break is truncated, so
+                    // the box starts flush with the top of the page we moved it to.
+                    // Margins adjoining a forced break are preserved, and so is a
+                    // negative one - it pulls the box back onto the previous page,
+                    // which is what browsers do with it too.
+                    setMarginTop(c, 0);
+                } else {
+                    resetTopMargin(c);
+                }
             }
         }
 
