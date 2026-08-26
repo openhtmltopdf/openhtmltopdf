@@ -1844,6 +1844,17 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("nth-child-n-plus-i"));
     }
 
+    /**
+     * Tests that a block whose border box starts on a page but whose first line box
+     * does not fit in what is left of it moves to the next page as a whole, rather
+     * than leaving an empty border/background fragment stranded at the page foot and
+     * (for a fixed height block) painting the pushed line below its own bottom border.
+     */
+    @Test
+    public void testBlockStraddlePushedFirstLine() throws IOException {
+        assertTrue(vt.runTest("block-straddle-pushed-first-line", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));

@@ -1,0 +1,37 @@
+<html>
+<head>
+<style>
+    @page { size: 200px 150px; margin: 0; }
+    body { font-family: 'TestFont'; font-size: 12px; line-height: 16px; margin: 0; }
+
+    /* An explicit line-height keeps the pagination geometry independent of the
+       font metrics: every line box is exactly 16px tall. */
+    .spacer { height: 122px; }
+    .auto   { border: 1px solid black; background-color: #99dd99; }
+    .fixed  { border: 1px solid black; background-color: #dd9999; height: 20px; }
+</style>
+</head>
+<body>
+
+<!--
+A block whose border box starts on this page but whose FIRST line box does not fit
+in what is left of it must move to the next page as a whole. Painting the border and
+background across the break leaves an empty fragment stranded at the foot of the page,
+and, when the block has a fixed height, its pushed line lands below its own bottom
+border. Browsers break before such a block instead.
+
+Each spacer leaves 9px of the page below the box top - less than the 16px line box -
+so boxes 2 and 3 have to move. Box 1 is the control: it sits well inside page 1 and
+must not move.
+-->
+
+<div class="auto">control, stays on page 1</div>
+
+<div class="spacer"></div>
+<div class="auto">auto height, moves to page 2</div>
+
+<div class="spacer"></div>
+<div class="fixed">fixed height, moves to page 3</div>
+
+</body>
+</html>

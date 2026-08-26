@@ -1378,7 +1378,7 @@ public class BlockBox extends Box {
             LayoutContext c, int contentStart, int breakAtLine, boolean tryAgain) {
         InlineBoxing.layoutContent(c, this, contentStart, breakAtLine);
 
-        if (c.isPrint() && c.isPageBreaksAllowed() && getChildCount() > 1) {
+        if (c.isPrint() && c.isPageBreaksAllowed() && getChildCount() > 0) {
             satisfyWidowsAndOrphans(c, contentStart, tryAgain);
         }
 
@@ -1422,8 +1422,12 @@ public class BlockBox extends Box {
             return;
         }
 
-        LineBox firstLineBox = (LineBox)getChild(0);
-        PageBox firstPage = c.getRootLayer().getFirstPage(c, firstLineBox);
+        // NOTE: The page is taken from where THIS BOX starts, not from where its
+        // first line ended up. If every line was pushed to the following page the
+        // box would otherwise appear to have all its lines on one page and we would
+        // leave the border/background straddling the break with no content in the
+        // fragment on this page.
+        PageBox firstPage = c.getRootLayer().getFirstPage(c, this);
 
         if (firstPage == null) {
             return;
