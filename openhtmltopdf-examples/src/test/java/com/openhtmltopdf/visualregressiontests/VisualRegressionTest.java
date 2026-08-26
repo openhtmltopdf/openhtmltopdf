@@ -1831,6 +1831,19 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("current-color", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that :nth-child(an+b) selectors with a non-zero, non-unary step
+     * (such as :nth-child(n+3), :nth-child(-n+3) and :nth-child(2n+3)) only
+     * select the elements reachable via a non-negative repeat count, rather
+     * than selecting every child.
+     * <p>
+     * See https://github.com/openhtmltopdf/openhtmltopdf/issues/113
+     */
+    @Test
+    public void testIssue113NthChildWithOffset() throws IOException {
+        assertTrue(vt.runTest("nth-child-n-plus-i"));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));

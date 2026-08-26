@@ -555,11 +555,21 @@ abstract class Condition {
 
             if (a == 0) {
                 return position == 0;
-            } else if ((a < 0) && (position > 0)) {
-                return false; // n is negative
-            } else {
-                return position % a == 0;
             }
+
+            // An element at 1-based position p matches :nth-child(an+b) if there
+            // is a non-negative integer n such that p == a*n + b, i.e.
+            // n == (p - b) / a. So position (== p - b) must be evenly divisible
+            // by a AND the resulting n must not be negative.
+            //
+            // Previously only the divisibility check was performed, which meant
+            // that for a == 1 (e.g. ":nth-child(n+3)") *every* position matched,
+            // since anything is divisible by 1. See GitHub issue #113.
+            if (position % a != 0) {
+                return false;
+            }
+
+            return position / a >= 0;
         }
 
         @Override
