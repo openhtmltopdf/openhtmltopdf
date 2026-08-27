@@ -65,6 +65,12 @@ public class Layer {
     private List<PageBox> _pages;
     private PageBox _lastRequestedPage = null;
 
+    /**
+     * The tops of the pages that a forced page break started, so that a box landing
+     * on one of them can tell a forced break from one we introduced ourselves.
+     */
+    private Set<Integer> _forcedBreakPageTops;
+
     private Set<BlockBox> _pageSequences;
     private List<BlockBox> _sortedPageSequences;
 
@@ -947,6 +953,18 @@ public class Layer {
         for (PageBox pageBox : _pages) {
             pageBox.layout(c);
         }
+    }
+
+    public void addPageStartedByForcedBreak(int top) {
+        if (_forcedBreakPageTops == null) {
+            _forcedBreakPageTops = new HashSet<>();
+        }
+
+        _forcedBreakPageTops.add(top);
+    }
+
+    public boolean isPageStartedByForcedBreak(int top) {
+        return _forcedBreakPageTops != null && _forcedBreakPageTops.contains(top);
     }
 
     public void addPageSequence(BlockBox start) {

@@ -1124,7 +1124,11 @@ public class BlockBox extends Box {
         if (c.isPrint()) {
             PageBox firstPage = c.getRootLayer().getFirstPage(c, this);
             if (firstPage != null && firstPage.getTop() == getAbsY() - getPageClearance()) {
-                resetTopMargin(c);
+                if (isTopMarginTruncatedAtBreak(c, firstPage)) {
+                    setMarginTop(c, 0);
+                } else {
+                    resetTopMargin(c);
+                }
             }
         }
 
@@ -1374,11 +1378,27 @@ public class BlockBox extends Box {
         setState(Box.DONE);
     }
 
+    /**
+     * Whether this box, which starts at the top of <code>page</code>, has a top
+     * margin that is truncated there.
+     * <br><br>
+     * A positive margin adjoining an unforced break is truncated, so the box starts
+     * flush with the top of its page. Margins adjoining a forced break are preserved,
+     * and so is a negative one, which pulls the box back onto the previous page.
+     * Nothing is truncated on the first page, where no break precedes the box.
+     */
+    private boolean isTopMarginTruncatedAtBreak(LayoutContext c, PageBox page) {
+        return page.getPageNo() > 0 &&
+               getStyleMargin(c).top() > 0 &&
+               !getStyle().isForcePageBreakBefore() &&
+               !c.getRootLayer().isPageStartedByForcedBreak(page.getTop());
+    }
+
     protected void layoutInlineChildren(
             LayoutContext c, int contentStart, int breakAtLine, boolean tryAgain) {
         InlineBoxing.layoutContent(c, this, contentStart, breakAtLine);
 
-        if (c.isPrint() && c.isPageBreaksAllowed() && getChildCount() > 1) {
+        if (c.isPrint() && c.isPageBreaksAllowed() && getChildCount() > 0) {
             satisfyWidowsAndOrphans(c, contentStart, tryAgain);
         }
 
@@ -1422,8 +1442,12 @@ public class BlockBox extends Box {
             return;
         }
 
-        LineBox firstLineBox = (LineBox)getChild(0);
-        PageBox firstPage = c.getRootLayer().getFirstPage(c, firstLineBox);
+        // NOTE: The page is taken from where THIS BOX starts, not from where its
+        // first line ended up. If every line was pushed to the following page the
+        // box would otherwise appear to have all its lines on one page and we would
+        // leave the border/background straddling the break with no content in the
+        // fragment on this page.
+        PageBox firstPage = c.getRootLayer().getFirstPage(c, this);
 
         if (firstPage == null) {
             return;

@@ -677,7 +677,8 @@ public class LineBox extends Box implements InlinePaintable {
            if (needsPageBreak) {
                beforeChangePage(c);
 
-               forcePageBreakBefore(c, IdentValue.ALWAYS, false, leastAbsY);
+               // Not a break from the style - we are moving this line ourselves.
+               forcePageBreakBefore(c, IdentValue.ALWAYS, false, leastAbsY, false);
                calcCanvasLocation();
 
                checkFootnoteReservedPage(c, c.getRootLayer().getFirstPage(c, this), false);
