@@ -671,7 +671,7 @@ public class LineBox extends Box implements InlinePaintable {
                 overflowsPage = greatestAbsY >= pageBox.getBottom(c) - c.getExtraSpaceBottom();
             }
 
-            boolean tooBig = (greatestAbsY - leastAbsY) > pageBox.getContentHeight(c);
+            boolean tooBig = isTallerThanPage(c, pageBox, greatestAbsY - leastAbsY, 0, 0);
             boolean needsPageBreak = alwaysBreak || (overflowsPage && !tooBig); 
 
            if (needsPageBreak) {

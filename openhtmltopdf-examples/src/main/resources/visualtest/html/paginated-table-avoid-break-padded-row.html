@@ -1,0 +1,29 @@
+<html>
+<head>
+<style>
+/*
+ * Issue #162, the fitting side: the first body row fits on a page of its own -- 143px
+ * against 152px of usable page -- but only if its cell border and padding, which sit
+ * both inside the row's height and in the layout context, are counted once.
+ */
+@page { size: 200px 200px; margin: 10px; }
+body { margin: 0; }
+table { -fs-table-paginate: paginate; }
+th { background-color: red; }
+td { background-color: blue; color: white; padding-top: 18px; padding-bottom: 18px; }
+th, td { border: 1px solid black; font-size: 16px; }
+thead, tr { page-break-inside: avoid; }
+.big { font-size: 70px; line-height: 70px; }
+</style>
+</head>
+<body>
+<div style="height: 20px;">S</div>
+<table>
+<thead><tr><th>H0A</th><th>H0B</th></tr></thead>
+<tbody>
+<tr><td><div class="big">BIG</div>T1<br/>T2</td><td>b</td></tr>
+<tr><td>c</td><td>d</td></tr>
+</tbody>
+</table>
+</body>
+</html>
