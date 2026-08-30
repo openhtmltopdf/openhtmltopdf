@@ -43,6 +43,7 @@ public class TableRowBox extends BlockBox {
     private ContentLimitContainer _contentLimitContainer;
 
     private boolean _fitsOnAPage = true;
+    private boolean _startsOnHeadPage = false;
     
     private int _extraSpaceTop;
     private int _extraSpaceBottom;
@@ -107,6 +108,14 @@ public class TableRowBox extends BlockBox {
             // clear before it lays the row out again. Measured for any table, not just a
             // paginated one, since the escalations this gates are not restricted either.
             _fitsOnAPage = !measureTallerThanPage(c);
+
+            if (!isHeaderStrandedAbove(c)) {
+                // The row is on the head's page here, which is its natural position: the
+                // stranded-head rescue below also runs from BlockBoxing's page-clear retry,
+                // where the row has been moved already and nothing of it could start there
+                // by construction. Kept for the same reason as the fit.
+                _startsOnHeadPage = !isShouldMoveToNextPage(c);
+            }
         }
 
         if (running) {
@@ -124,13 +133,18 @@ public class TableRowBox extends BlockBox {
         }
 
         if (c.isPrint() && c.isPageBreaksAllowed() && firstBodyRow
-                && _fitsOnAPage && isHeaderStrandedAbove(c)) {
+                && (_fitsOnAPage || !_startsOnHeadPage) && isHeaderStrandedAbove(c)) {
             // A head that ends in the last sliver of a page while the first body row
             // begins on the next one strands the head without any page-clear event
             // the escalations above could react to: the row was laid on its natural
             // page and never "moved". Only a header that ends above this row's page
             // needs the rescue -- one that reaches the row's page is split, not
             // stranded (possible with thead { page-break-inside: auto }).
+            //
+            // A row that cannot fit a page is rescued only when the head's page held no
+            // content of it either: then the move costs that page nothing and buys the
+            // head its rows. When the row did start there, moving is the skipped page
+            // this change is about.
             escalatePageClearToTable();
         }
     }
@@ -193,6 +207,11 @@ public class TableRowBox extends BlockBox {
 
     private boolean isShouldMoveToNextPage(LayoutContext c) {
         PageBox page = c.getRootLayer().getFirstPage(c, this);
+
+        if (page == null) {
+            return false;
+        }
+
         int pageBottomUsable = page.getBottom(c);
 
         if (getAbsY() + getHeight() < pageBottomUsable) {

@@ -870,11 +870,6 @@ public abstract class Box implements Styleable, DisplayListItem {
     }
 
     /**
-     * Whether this box would cross a page break.
-     * <br><br>
-     * See {@link Layer#crossesPageBreak(LayoutContext, int, int)} for extra info.
-     */
-    /**
      * Whether a run of content this tall could never sit on a page of its own, so that
      * moving it to the next page cannot save it from being split. A constraint that asks
      * for the move -- page-break-inside: avoid, keeping a table head with its first row --
@@ -891,6 +886,11 @@ public abstract class Box implements Styleable, DisplayListItem {
         return height > page.getBottom(c) - page.getTop() - reservedTop - reservedBottom;
     }
 
+    /**
+     * Whether this box would cross a page break.
+     * <br><br>
+     * See {@link Layer#crossesPageBreak(LayoutContext, int, int)} for extra info.
+     */
     public boolean crossesPageBreak(LayoutContext c) {
         if (! c.isPageBreaksAllowed()) {
             return false;

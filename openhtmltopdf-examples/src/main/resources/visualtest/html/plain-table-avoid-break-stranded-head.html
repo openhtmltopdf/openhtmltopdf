@@ -1,0 +1,83 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 200px;
+  margin: 10px;
+}
+body {
+  border: 1px solid orange;
+  margin: 0;
+  font-size: 10px;
+  line-height: 12px;
+}
+th {
+  background-color: red;
+}
+td {
+  background-color: blue;
+  color: white;
+}
+th, td {
+    border: 1px solid black;
+    width: 50%;
+}
+table {
+  width: 100%;
+}
+/*
+ * Issue #162, the other side of the unsatisfiable avoid: the first body row is again
+ * taller than a page, but the head ends so close to the page foot that not one line of
+ * the row can start under it. Moving the table costs that page nothing -- only the row's
+ * top border sliver would stay -- and it is the only way the head gets rows beneath it,
+ * as a plain table does not repeat its head. So the table must move, where
+ * plain-table-avoid-break-multi-page-row must not.
+ */
+thead, tr {
+  page-break-inside: avoid;
+}
+</style>
+</head>
+<body>
+<div style="height: 150px;">spacer</div>
+
+<table>
+    <thead>
+        <tr><th>HA</th><th>HB</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          a0
+          <br/>x1
+          <br/>x2
+          <br/>x3
+          <br/>x4
+          <br/>x5
+          <br/>x6
+          <br/>x7
+          <br/>x8
+          <br/>x9
+          <br/>x10
+          <br/>x11
+          <br/>x12
+          <br/>x13
+          <br/>x14
+          <br/>x15
+          <br/>x16
+          <br/>x17
+          <br/>x18
+          <br/>x19
+          <br/>x20
+        </td>
+        <td>b</td>
+      </tr>
+      <tr>
+        <td>c</td>
+        <td>d</td>
+      </tr>
+    </tbody>
+</table>
+
+</body>
+</html>

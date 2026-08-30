@@ -1214,6 +1214,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a first body row taller than a page still moves the table when the head
+     * ends so close to the page foot that no line of the row can start under it: there the
+     * move costs the page nothing and is the only way a plain table's head keeps its rows.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testPlainTableAvoidBreakStrandedHead() throws IOException {
+        assertTrue(vt.runTest("plain-table-avoid-break-stranded-head"));
+    }
+
+    /**
      * Tests that a paginated table escalated to the next page because its thead
      * straddles the page boundary lays out with natural heights: the running-header
      * trial layout must not react to the page geometry at the table's stale pre-move
