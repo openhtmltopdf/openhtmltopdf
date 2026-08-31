@@ -246,6 +246,39 @@ public class PdfBoxAccessibilityHelper {
                         // inline-block div, producing Span containing P which
                         // PAC flags as inappropriate use of Span.
                         return StandardStructureTypes.DIV;
+                    case "dt": // Fall-thru
+                    case "dd":
+                        // dd takes HTML flow content, so it can directly contain
+                        // block-level children (<dd><p>, <dd><ul>, <dd><table>, ...).
+                        // For that case Div is correct and already legal - Div is a
+                        // Grouping element and BLSEs like P/L/Table nest inside a
+                        // Grouping element just fine (Div>P, Div>L, Div>Table).
+                        //
+                        // It's only when dt/dd directly wraps inline/text content
+                        // that Div becomes a problem: falling through to Div (a
+                        // Grouping element that must not directly contain marked
+                        // content) forces the single-child collapse in finish() to
+                        // either violate that rule (raw content directly in the Div,
+                        // PAC: "Marked content is present in a possibly inadmissible
+                        // location") or wrap the content in a Span purely to satisfy
+                        // nesting, which PAC then flags right back as "possibly
+                        // inappropriate use of a Span structure element" since the
+                        // Span itself distinguishes nothing. So only map to P (a
+                        // content-permitting block-level element) in that inline
+                        // case; for block content, keep falling through to Div.
+                        //
+                        // There's no dedicated standard structure type for
+                        // definition-list terms/descriptions in PDF 1.7; PDF 2.0
+                        // supports L/LI/Lbl/LBody with ListNumbering=Description
+                        // for this (see PDF Association's "Deriving HTML from
+                        // PDF" spec, 4.3.5.5.2), which would be a more faithful
+                        // mapping but requires pairing sibling dt/dd elements
+                        // into synthetic LI groups - a larger, separate change.
+                        if (box instanceof BlockBox &&
+                            ((BlockBox) box).getChildrenContentType() == BlockBox.ContentType.INLINE) {
+                            return StandardStructureTypes.P;
+                        }
+                        break; // block content (or empty/unknown): fall through to Div below.
                     }
                 }
 
@@ -255,7 +288,29 @@ public class PdfBoxAccessibilityHelper {
             return StandardStructureTypes.SPAN;
         }
 
-        @Override
+    /**
+     * Counts children that are not themselves purely br-generated content.
+     * A br-generated child (see isBrGeneratedContent) always ends up contributing
+     * zero real content once its own finish() runs - it is either fully empty
+     * (the invisible line-break text is now an Artifact, see startStructure/TEXT)
+     * or gets flattened away. Without this, such a child would still count
+     * towards child.children.size(), so a wrapper box like "Bar<br>" would be
+     * seen as having 2 children instead of 1 and miss the single-child collapse
+     * below, needlessly getting its own Span. See GH issue #100.
+     */
+    private static int countNonBrChildren(List<AbstractTreeItem> children) {
+        int count = 0;
+        for (AbstractTreeItem item : children) {
+            if (item instanceof GenericStructualElement &&
+                isBrGeneratedContent(((GenericStructualElement) item).box)) {
+                continue;
+            }
+            count++;
+        }
+        return count;
+    }
+
+    @Override
         void finish(AbstractStructualElement parent) {
             // A structual element such as Div, Sect, p, etc
             // which contains other structual elements or content items (text).
@@ -271,11 +326,17 @@ public class PdfBoxAccessibilityHelper {
 
             if (child.box instanceof LineBox ||
                 (child.box instanceof InlineLayoutBox &&
-                 child.children.size() == 1 &&
-                 child.box.getParent() instanceof LineBox)) {
+                 countNonBrChildren(child.children) == 1 &&
+                 child.box.getParent() instanceof LineBox) ||
+                isBrGeneratedContent(child.box)) {
                 // We skip (don't create structure element) line boxes in the tree.
                 // We also skip the common case of a intermediary InlineLayoutBox between the 
                 // LineBox and a single InlineText.
+                // We also skip <br> elements and the anonymous inline box generated for
+                // their :before content (the forced line break itself). A <br> has no
+                // text-level semantic of its own, so tagging it (or its generated content)
+                // as a Span causes "possibly inappropriate use of a Span structure element"
+                // warnings in PDF/UA checkers such as PAC. See GH issue #100.
                 finishTreeItems(child.children, parent);
             } else {
                 createPdfStrucureElement(parent, child);
@@ -910,6 +971,24 @@ public class PdfBoxAccessibilityHelper {
         _od.getWriter().getDocumentCatalog().getStructureTreeRoot().setParentTree(numberTreeNode);
     }
 
+    /**
+     * True if this box is a &lt;br&gt; element's layout box, or the anonymous inline box
+     * generated for its <code>:before</code> content (which is how forced line breaks are
+     * implemented, see <code>br:before</code> in the default stylesheet). Such boxes carry
+     * no visible text-level semantic of their own and should not become Span structure
+     * elements. Fixes https://github.com/openhtmltopdf/openhtmltopdf/issues/100
+     */
+    private static boolean isBrGeneratedContent(Box box) {
+        if (box.getElement() != null) {
+            return "br".equals(box.getElement().getTagName());
+        }
+
+        Box parent = box.getParent();
+        return parent != null &&
+               parent.getElement() != null &&
+               "br".equals(parent.getElement().getTagName());
+    }
+
     private static String guessBoxTag(Box box) {
         if (box instanceof BlockBox) {
             BlockBox block = (BlockBox) box;
@@ -1339,6 +1418,15 @@ public class PdfBoxAccessibilityHelper {
         return dict;
     }
 
+    private COSDictionary createLineBreakArtifact() {
+        // "Layout" is one of the standard Artifact Type values (PDF32000-1, 14.8.2.2.2)
+        // for content that is part of the page layout but not real, taggable content -
+        // which is exactly what a <br>'s generated line-break content is.
+        COSDictionary dict = new COSDictionary();
+        dict.setItem(COSName.TYPE, COSName.getPDFName("Layout"));
+        return dict;
+    }
+
     private static class Token {
     }
 
@@ -1431,6 +1519,18 @@ public class PdfBoxAccessibilityHelper {
                 return TRUE_TOKEN;
             }
             case TEXT: {
+                if (isBrGeneratedContent(box)) {
+                    // A <br>'s own box, and the invisible box generated for its :before
+                    // content implementing the forced line break, have no real text-level
+                    // content. Marking them as Span content (as we did before) produced a
+                    // /Span <</MCID n>> BDC immediately followed by EMC with nothing drawn
+                    // in between, which PDF/UA checkers flag as an inappropriate/empty
+                    // Span. Mark it as a Layout artifact instead - no MCID, no structure
+                    // element, entirely excluded from the tag tree. See GH issue #100.
+                    COSDictionary artifact = createLineBreakArtifact();
+                    _cs.beginMarkedContent(COSName.ARTIFACT, artifact);
+                    return TRUE_TOKEN;
+                }
                 GenericContentItem current = createMarkedContentStructureItem(type, box);
                 _cs.beginMarkedContent(COSName.getPDFName(StandardStructureTypes.SPAN), current.dict);
                 return TRUE_TOKEN;

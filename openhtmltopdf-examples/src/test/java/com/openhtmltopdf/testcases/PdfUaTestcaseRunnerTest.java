@@ -118,4 +118,17 @@ public class PdfUaTestcaseRunnerTest {
     public void testLinks() throws Exception {
         run("links");
     }
+
+    /**
+     * A dl/dd list where a dd contains a forced line break (br).
+     * The br (and its generated line-break content) must not be tagged
+     * as a Span structure element, which previously caused
+     * "possibly inappropriate use of a Span structure element" warnings
+     * in PDF/UA checkers such as PAC.
+     * See: https://github.com/openhtmltopdf/openhtmltopdf/issues/100
+     */
+    @Test
+    public void testDdWithBr() throws Exception {
+        run("dd-with-br");
+    }
 }
