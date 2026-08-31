@@ -44,6 +44,7 @@ import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlin
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkedContentReference;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDObjectReference;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
@@ -1245,13 +1246,231 @@ public class NonVisualRegressionTest {
     }
 
     private static void collectLinkStructureElements(PDStructureNode node, List<PDStructureElement> result) {
+        collectStructureElementsByType(node, "Link", result);
+    }
+
+    private static void collectStructureElementsByType(PDStructureNode node, String type, List<PDStructureElement> result) {
         for (Object kid : node.getKids()) {
             if (kid instanceof PDStructureElement) {
                 PDStructureElement elem = (PDStructureElement) kid;
-                if ("Link".equals(elem.getStructureType())) {
+                if (type.equals(elem.getStructureType())) {
                     result.add(elem);
                 }
-                collectLinkStructureElements(elem, result);
+                collectStructureElementsByType(elem, type, result);
+            }
+        }
+    }
+
+    /**
+     * Counts the real (MCID) leaf descendants of a structure node, recursing
+     * into nested structure elements. Used to detect empty structure elements
+     * that carry no actual marked content - e.g. a Span created only for
+     * a &lt;br&gt;'s invisible generated line-break content.
+     *
+     * Counts both plain Integer kids (same-page content) and
+     * PDMarkedContentReference kids (GenericContentItem#finish() emits the
+     * latter whenever the content is on a different page than its parent
+     * structure element, e.g. content split across a page break).
+     */
+    private static int countMcidLeafDescendants(PDStructureNode node) {
+        int count = 0;
+        for (Object kid : node.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                count += countMcidLeafDescendants((PDStructureElement) kid);
+            } else if (kid instanceof Integer || kid instanceof PDMarkedContentReference) {
+                count++;
+            }
+            // Other kid types (PDObjectReference etc.) are not produced for
+            // plain text runs and are not relevant here.
+        }
+        return count;
+    }
+
+    /**
+     * Regression test for https://github.com/openhtmltopdf/openhtmltopdf/issues/100
+     *
+     * A &lt;br&gt; inside a &lt;dd&gt; (or any inline context) must not cause a Span
+     * structure element to be created for the br itself, nor for the anonymous
+     * inline box generated for its :before content (which implements the forced
+     * line break) - it should be exactly as invisible to the tag tree as an
+     * ordinary line break from natural word-wrapping is. Before the fix, the
+     * br (and its generated content) produced empty/spurious Span structure
+     * elements, which PDF/UA checkers such as PAC flag as "possibly
+     * inappropriate use of a Span structure element".
+     *
+     * Separately, real text content must still end up nested inside a
+     * content-permitting structure element rather than directly inside a
+     * "Grouping" element such as Div - per the PDF/UA nesting rules, Div must
+     * not directly contain marked content (PAC: "Marked content is present in
+     * a possibly inadmissible location"). dt/dd now map to P (a content-
+     * permitting block-level element) instead of falling through to Div, so
+     * "Foo", "Bar" and "Baz" attach directly to their own P with no Span
+     * wrapping needed at all - satisfying both PAC checks simultaneously,
+     * rather than trading one for the other.
+     *
+     * Note this is specific to dt/dd, not a general fix: other elements that
+     * fall through to Div (a plain multi-line <div>, for example) can still
+     * end up with marked content directly inside that Div. An earlier version
+     * of this fix addressed that generally, but doing so by tagging each
+     * wrapped *line* as its own P produced multiple sibling Ps mid-sentence -
+     * technically legal nesting, but confusing to screen readers/Reflow and
+     * not something any checker catches. A correct general fix needs one P
+     * for the whole contiguous run of line boxes (grouping how
+     * finishTreeItems() assigns a parent's children), not a per-box tag
+     * override, so it's being left for a follow-up rather than folded in here.
+     *
+     * This is deliberately not a pixel-based visual regression test: the fix only
+     * changes the invisible /Tags structure tree, not the rendered page content, so
+     * a pixel diff would pass identically before and after the fix and would not
+     * catch a regression. Asserting on the structure tree is the meaningful
+     * regression test for this class of bug.
+     */
+    @Test
+    public void testBrInDdDoesNotProduceEmptySpans() throws IOException {
+        String html =
+            "<html lang='en-US'><head>" +
+            "<title>DD test</title>" +
+            "<meta name='description' content='Regression test for issue 100'/>" +
+            "<style>" +
+            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+            "</style></head><body>" +
+            "<dl><dt>Foo</dt><dd>Bar<br/>Baz\n</dd></dl>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+            assertNotNull("Structure tree root should exist", root);
+
+            List<PDStructureElement> spans = new ArrayList<>();
+            collectStructureElementsByType(root, "Span", spans);
+
+            // No Span may be empty (i.e. carry no real text content). Before the fix,
+            // the <br> itself and its generated :before content each produced such an
+            // empty/spurious Span.
+            for (PDStructureElement span : spans) {
+                assertTrue(
+                    "Found a Span structure element with no real (MCID) content - " +
+                    "this is exactly the kind of node PDF/UA checkers flag as " +
+                    "\"possibly inappropriate use of a Span structure element\"",
+                    countMcidLeafDescendants(span) > 0);
+            }
+
+            // With dt/dd mapping to P, no Span wrapping is needed at all: a <br>
+            // should be exactly as invisible to the tag tree as natural
+            // word-wrapping already is.
+            assertEquals("Should find no Span structure elements at all", 0, spans.size());
+
+            // Each of "Foo", "Bar" and "Baz" should have landed inside its own P.
+            List<PDStructureElement> paragraphs = new ArrayList<>();
+            collectStructureElementsByType(root, "P", paragraphs);
+            assertEquals("Should find exactly 2 P structure elements (dt and dd)", 2, paragraphs.size());
+            for (PDStructureElement p : paragraphs) {
+                assertTrue("Each P should contain real (MCID) content",
+                    countMcidLeafDescendants(p) > 0);
+            }
+
+            // No Div (or other "Grouping" element) may directly contain marked
+            // content (a leaf MCID reference) in *this* testcase specifically -
+            // guaranteed here by dt/dd mapping to P rather than falling through
+            // to Div. (Other elements that still fall through to Div can still
+            // end up with content directly inside it - see the class javadoc
+            // above for why that's left as a follow-up rather than fixed here.)
+            for (String groupingType : new String[] { "Div", "Sect", "Art", "Part", "BlockQuote" }) {
+                List<PDStructureElement> groupingElements = new ArrayList<>();
+                collectStructureElementsByType(root, groupingType, groupingElements);
+                for (PDStructureElement el : groupingElements) {
+                    for (Object kid : el.getKids()) {
+                        assertFalse(
+                            "A " + groupingType + " must not directly contain marked content " +
+                            "(an Integer or PDMarkedContentReference kid) - PDF/UA checkers flag " +
+                            "this as \"Marked content is present in a possibly inadmissible " +
+                            "location\". Wrap it in a P (or other content-permitting element) instead.",
+                            kid instanceof Integer || kid instanceof PDMarkedContentReference);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Companion to testBrInDdDoesNotProduceEmptySpans(): dd/dt only map to P when
+     * they wrap inline/text content directly. dd takes HTML flow content, so it
+     * can also directly contain block-level children (e.g. <dd><p>, <dd><ul>,
+     * <dd><table>) - for that case dd must stay Div, since Div (a Grouping
+     * element) legally contains other structure elements like P/L/Table, while
+     * P containing another P/L/Table would not be a sensible nesting. See
+     * review discussion on https://github.com/openhtmltopdf/openhtmltopdf/issues/100
+     */
+    @Test
+    public void testDdWithBlockContentStaysDiv() throws IOException {
+        String html =
+            "<html lang='en-US'><head>" +
+            "<title>DD block content test</title>" +
+            "<meta name='description' content='Regression test for issue 100 review comment'/>" +
+            "<style>" +
+            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+            "</style></head><body>" +
+            "<dl><dt>Foo</dt><dd><p>Bar</p><p>Baz</p></dd></dl>" +
+            "</body></html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.testMode(true);
+        builder.usePdfUaAccessibility(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+
+            // The dd wrapping block content must still be Div (not P), and it
+            // must directly contain the two <p>s as legal Div>P nesting - not
+            // have any marked content of its own. Other Divs may legitimately
+            // exist in the tree (the <dl> itself also falls through to Div),
+            // so look for the specific one with exactly two direct, non-empty
+            // P children rather than asserting a total Div count.
+            List<PDStructureElement> divs = new ArrayList<>();
+            collectStructureElementsByType(root, "Div", divs);
+            assertFalse("Expected at least one Div in the tree (the dd's, at minimum)", divs.isEmpty());
+
+            PDStructureElement ddDiv = null;
+            for (PDStructureElement div : divs) {
+                List<PDStructureElement> directParagraphs = new ArrayList<>();
+                for (Object kid : div.getKids()) {
+                    if (kid instanceof PDStructureElement &&
+                        "P".equals(((PDStructureElement) kid).getStructureType())) {
+                        directParagraphs.add((PDStructureElement) kid);
+                    }
+                }
+                if (directParagraphs.size() == 2) {
+                    ddDiv = div;
+                    break;
+                }
+            }
+            assertNotNull(
+                "Should find a Div directly containing exactly two P elements " +
+                "(the block-content dd wrapping its two <p>s)", ddDiv);
+
+            List<PDStructureElement> paragraphs = new ArrayList<>();
+            collectStructureElementsByType(ddDiv, "P", paragraphs);
+            assertEquals("The dd's Div should directly contain both <p>s", 2, paragraphs.size());
+
+            for (Object kid : ddDiv.getKids()) {
+                assertFalse("The block-content dd's Div must not directly contain marked content",
+                    kid instanceof Integer || kid instanceof PDMarkedContentReference);
             }
         }
     }
