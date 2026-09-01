@@ -41,6 +41,9 @@ public class TableRowBox extends BlockBox {
     private boolean _haveBaseline = false;
     private int _heightOverride;
     private ContentLimitContainer _contentLimitContainer;
+
+    private boolean _fitsOnAPage = true;
+    private boolean _startsOnHeadPage = false;
     
     private int _extraSpaceTop;
     private int _extraSpaceBottom;
@@ -94,27 +97,87 @@ public class TableRowBox extends BlockBox {
         
         super.layout(c, contentStart);
 
+        boolean firstBodyRow = getTable().getFirstBodyRow() == this;
+
+        // Position-agnostic layouts (the running header/footer trials, repeated section
+        // repositioning) set noPageBreak; reacting to the page geometry there would bake a
+        // phantom straddle gap into the section's height.
+        if (c.isPrint() && c.isPageBreaksAllowed() && firstBodyRow) {
+            // Measured before the running extra space is restored below, and kept across the
+            // relayout -- so not cleared in reset() -- because BlockBoxing asks for the page
+            // clear before it lays the row out again. Measured for any table, not just a
+            // paginated one, since the escalations this gates are not restricted either.
+            _fitsOnAPage = !measureTallerThanPage(c);
+
+            if (!isHeaderStrandedAbove(c)) {
+                // The row is on the head's page here, which is its natural position: the
+                // stranded-head rescue below also runs from BlockBoxing's page-clear retry,
+                // where the row has been moved already and nothing of it could start there
+                // by construction. Kept for the same reason as the fit.
+                _startsOnHeadPage = !isShouldMoveToNextPage(c);
+            }
+        }
+
         if (running) {
-            // Position-agnostic layouts (the running header/footer trials, repeated
-            // section repositioning) set noPageBreak; reacting to the page geometry
-            // there would bake a phantom straddle gap into the section's height.
             if (c.isPageBreaksAllowed() && isShouldMoveToNextPage(c)) {
-                setNeedPageClear(true);
+                // Nothing of this row can start on this page: move regardless of fit,
+                // which setNeedPageClear declines.
+                if (firstBodyRow) {
+                    escalatePageClearToTable();
+                } else {
+                    super.setNeedPageClear(true);
+                }
             }
             c.setExtraSpaceTop(prevExtraTop);
             c.setExtraSpaceBottom(prevExtraBottom);
         }
 
-        if (c.isPrint() && c.isPageBreaksAllowed() && getTable().getFirstBodyRow() == this
-                && isHeaderStrandedAbove(c)) {
+        if (c.isPrint() && c.isPageBreaksAllowed() && firstBodyRow
+                && (_fitsOnAPage || !_startsOnHeadPage) && isHeaderStrandedAbove(c)) {
             // A head that ends in the last sliver of a page while the first body row
             // begins on the next one strands the head without any page-clear event
             // the escalations above could react to: the row was laid on its natural
             // page and never "moved". Only a header that ends above this row's page
             // needs the rescue -- one that reaches the row's page is split, not
             // stranded (possible with thead { page-break-inside: auto }).
-            getTable().setNeedPageClear(true);
+            //
+            // A row that cannot fit a page is rescued only when the head's page held no
+            // content of it either: then the move costs that page nothing and buys the
+            // head its rows. When the row did start there, moving is the skipped page
+            // this change is about.
+            escalatePageClearToTable();
         }
+    }
+
+    /**
+     * Whether this row is too tall to sit on a page of its own, under the repeated header
+     * and above the repeated footer.
+     * <br><br>
+     * Call while the context still carries this row's extra space: the reserve passed on is
+     * only the furniture a continuation page repeats -- running header and footer, table
+     * border and padding -- and not this row's own cell border and padding, which
+     * {@link #getHeight()} already includes.
+     */
+    private boolean measureTallerThanPage(LayoutContext c) {
+        PageBox page = c.getRootLayer().getFirstPage(c, this);
+
+        if (page == null) {
+            return false;
+        }
+
+        return isTallerThanPage(c, page, getHeight(),
+                c.getExtraSpaceTop() - getExtraSpaceTop(),
+                c.getExtraSpaceBottom() - getExtraSpaceBottom());
+    }
+
+    /**
+     * Whatever moves the first body row to the next page must move the table with it,
+     * or the repeated header stays behind on a page that has no rows. Issue #162.
+     */
+    private void escalatePageClearToTable() {
+        // XXX Performance problem here.  This forces the table to move to the next page
+        // (which we want), but the initial table layout run still completes (which we don't)
+        getTable().setNeedPageClear(true);
     }
 
     private boolean isHeaderStrandedAbove(LayoutContext c) {
@@ -132,13 +195,11 @@ public class TableRowBox extends BlockBox {
 
     @Override
     public void setNeedPageClear(boolean needPageClear) {
-        if (needPageClear && getTable().getFirstBodyRow() == this) {
-            // Whatever moves the first body row to the next page must move the table with it,
-            // or the repeated header stays behind on a page that has no rows. Issue #162.
-            //
-            // XXX Performance problem here.  This forces the table to move to the next page
-            // (which we want), but the initial table layout run still completes (which we don't)
-            getTable().setNeedPageClear(true);
+        if (needPageClear && getTable().getFirstBodyRow() == this && _fitsOnAPage) {
+            // A row that cannot fit a page is excluded: it is split wherever it starts, so
+            // moving the table only strands the space this page still had. A head left with
+            // nothing under it is instead rescued by isHeaderStrandedAbove.
+            escalatePageClearToTable();
         } else {
             super.setNeedPageClear(needPageClear);
         }
@@ -146,6 +207,11 @@ public class TableRowBox extends BlockBox {
 
     private boolean isShouldMoveToNextPage(LayoutContext c) {
         PageBox page = c.getRootLayer().getFirstPage(c, this);
+
+        if (page == null) {
+            return false;
+        }
+
         int pageBottomUsable = page.getBottom(c);
 
         if (getAbsY() + getHeight() < pageBottomUsable) {

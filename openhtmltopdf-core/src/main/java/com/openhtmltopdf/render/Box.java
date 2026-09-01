@@ -870,6 +870,23 @@ public abstract class Box implements Styleable, DisplayListItem {
     }
 
     /**
+     * Whether a run of content this tall could never sit on a page of its own, so that
+     * moving it to the next page cannot save it from being split. A constraint that asks
+     * for the move -- page-break-inside: avoid, keeping a table head with its first row --
+     * cannot be satisfied by one, and honouring it only strands the space this page had.
+     * <br><br>
+     * The budget is the usable page, which excludes any area reserved for footnotes, less
+     * whatever a continuation page repeats above and below the content.
+     *
+     * @param reservedTop space repeated above the content, such as a running table header
+     * @param reservedBottom the same below it
+     */
+    protected static boolean isTallerThanPage(
+            CssContext c, PageBox page, int height, int reservedTop, int reservedBottom) {
+        return height > page.getBottom(c) - page.getTop() - reservedTop - reservedBottom;
+    }
+
+    /**
      * Whether this box would cross a page break.
      * <br><br>
      * See {@link Layer#crossesPageBreak(LayoutContext, int, int)} for extra info.

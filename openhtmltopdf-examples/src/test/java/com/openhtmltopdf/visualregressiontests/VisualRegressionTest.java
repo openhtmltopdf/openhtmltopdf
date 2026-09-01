@@ -1181,6 +1181,50 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a paginated table whose first body row is taller than a page starts on
+     * the page it reaches rather than skipping it, even under page-break-inside: avoid
+     * on that row -- a constraint no move can satisfy.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testPaginatedTableAvoidBreakMultiPageRow() throws IOException {
+        assertTrue(vt.runTest("paginated-table-avoid-break-multi-page-row"));
+    }
+
+    /**
+     * Tests the same unsatisfiable constraint on a table without -fs-table-paginate: the
+     * escalations that move a table for the sake of its head are not restricted to
+     * paginated tables, so the guard against skipping a page must not be either.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testPlainTableAvoidBreakMultiPageRow() throws IOException {
+        assertTrue(vt.runTest("plain-table-avoid-break-multi-page-row"));
+    }
+
+    /**
+     * Tests that a first body row that fits a page only once its cell border and padding
+     * are charged against the budget a single time still moves the table, keeping the
+     * repeated head with it.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testPaginatedTableAvoidBreakPaddedRow() throws IOException {
+        assertTrue(vt.runTest("paginated-table-avoid-break-padded-row"));
+    }
+
+    /**
+     * Tests that a first body row taller than a page still moves the table when the head
+     * ends so close to the page foot that no line of the row can start under it: there the
+     * move costs the page nothing and is the only way a plain table's head keeps its rows.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/162
+     */
+    @Test
+    public void testPlainTableAvoidBreakStrandedHead() throws IOException {
+        assertTrue(vt.runTest("plain-table-avoid-break-stranded-head"));
+    }
+
+    /**
      * Tests that a paginated table escalated to the next page because its thead
      * straddles the page boundary lays out with natural heights: the running-header
      * trial layout must not react to the page geometry at the table's stale pre-move
