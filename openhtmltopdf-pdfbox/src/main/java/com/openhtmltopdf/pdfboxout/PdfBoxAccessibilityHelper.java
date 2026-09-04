@@ -1060,8 +1060,7 @@ public class PdfBoxAccessibilityHelper {
             struct.page = _page;
             struct.box = box;
             struct.setPdfVersion(_od.getWriter().getVersion());
-            _root.addChild(struct);
-            struct.parent = _root;
+            link(struct, _root);
             _runningLinkCache.put(anchorElem, struct);
             _runningLinkStructure = struct;
         }
@@ -1092,8 +1091,7 @@ public class PdfBoxAccessibilityHelper {
 
     private GenericContentItem createRunningLinkContentItem() {
         GenericContentItem current = new GenericContentItem();
-        _runningLinkStructure.addChild(current);
-        current.parent = _runningLinkStructure;
+        link(current, _runningLinkStructure);
         current.mcid = _nextMcid;
         current.dict = createMarkedContentDictionary();
         current.page = _page;
@@ -1118,16 +1116,13 @@ public class PdfBoxAccessibilityHelper {
                 (float) rect.getWidth(),
                 (float) rect.getHeight());
 
-        _runningLinkStructure.addChild(figure);
-        figure.parent = _runningLinkStructure;
+        link(figure, _runningLinkStructure);
 
         FigureContentItem content = new FigureContentItem();
-        figure.addChild(content);
-        content.parent = figure;
+        link(content, figure);
         content.mcid = _nextMcid;
         content.dict = createMarkedContentDictionary();
         content.page = _page;
-        figure.content = content;
 
         _pageItems._contentItems.add(content);
         return content;
