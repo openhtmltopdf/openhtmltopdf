@@ -500,7 +500,9 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             int have = desc.getWeight();
             if (need > have) {
                 _cp.setRenderingMode(RenderingMode.FILL_STROKE);
-                float lineWidth = fontSize * 0.04f; // 4% of font size
+				//delta=100 → 1.33%，delta=200 → 2.67%，delta>=300 → 4%
+				int delta = Math.min(need - have, 300);
+                float lineWidth = fontSize * (delta / 300f) * 0.04f;
                 _cp.setLineWidth(lineWidth);
                 resetMode = true;
                 ensureStrokeColor();
