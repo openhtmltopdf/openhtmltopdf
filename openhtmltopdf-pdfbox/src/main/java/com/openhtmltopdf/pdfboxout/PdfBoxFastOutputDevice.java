@@ -500,8 +500,9 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             int have = desc.getWeight();
             if (need > have) {
                 _cp.setRenderingMode(RenderingMode.FILL_STROKE);
-				//delta=100 → 1.33%，delta=200 → 2.67%，delta>=300 → 4%
-				int delta = Math.min(need - have, 300);
+                // 4% of the font size for a face three weight steps too light,
+                // pro rata below that: 1.33% for one step, 2.67% for two.
+                int delta = Math.min(need - have, 300);
                 float lineWidth = fontSize * (delta / 300f) * 0.04f;
                 _cp.setLineWidth(lineWidth);
                 resetMode = true;
