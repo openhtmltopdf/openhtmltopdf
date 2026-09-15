@@ -50,6 +50,10 @@ public class PdfBoxPDFReplacedElement implements PdfBoxReplacedElement, IPdfBoxE
     private final float _width;
     private final float _height;
     private final Map<Shape, String> _imageMap;
+    // Additional transform controls for embedded PDF
+    private final double _scale;
+    private final int _offsetX;
+    private final int _offsetY;
     private Point _location = new Point(0, 0);
 
     private PdfBoxPDFReplacedElement(PDFormXObject srcForm, Element e, Box box, CssContext ctx, SharedContext shared, float w, float h) {
@@ -57,6 +61,32 @@ public class PdfBoxPDFReplacedElement implements PdfBoxReplacedElement, IPdfBoxE
         this._width = w;
         this._height = h;
         this._imageMap = ImageMapParser.findAndParseMap(e, shared);
+
+        // Defaults, can be overridden by attributes.
+        double scale = 0.95d;
+        int offX = 0;
+        int offY = 0;
+        try {
+            String s = e.getAttribute("data-pdf-scale");
+            if (s != null && !s.isEmpty()) {
+                scale = Double.parseDouble(s);
+            }
+        } catch (Exception ignore) {}
+        try {
+            String sx = e.getAttribute("data-pdf-offset-x");
+            if (sx != null && !sx.isEmpty()) {
+                offX = (int) Math.round(Double.parseDouble(sx) * shared.getDotsPerPixel());
+            }
+        } catch (Exception ignore) {}
+        try {
+            String sy = e.getAttribute("data-pdf-offset-y");
+            if (sy != null && !sy.isEmpty()) {
+                offY = (int) Math.round(Double.parseDouble(sy) * shared.getDotsPerPixel());
+            }
+        } catch (Exception ignore) {}
+        this._scale = scale;
+        this._offsetX = offX;
+        this._offsetY = offY;
     }
     
     private static int parsePage(Element e) {
@@ -137,7 +167,16 @@ public class PdfBoxPDFReplacedElement implements PdfBoxReplacedElement, IPdfBoxE
     @Override
     public void paint(RenderingContext c, PdfBoxOutputDevice outputDevice, BlockBox box) {
         Rectangle contentBounds = box.getContentAreaEdge(box.getAbsX(), box.getAbsY(), c);
-        outputDevice.drawPdfAsImage(_srcFormObject, contentBounds, getIntrinsicWidth(), getIntrinsicHeight());
+        // Apply an additional scale within the element's content box and center it.
+        final double scale = _scale;
+        int newW = (int) Math.round(contentBounds.getWidth() * scale);
+        int newH = (int) Math.round(contentBounds.getHeight() * scale);
+        int newX = (int) Math.round(contentBounds.getX() + (contentBounds.getWidth() - newW) / 2.0d);
+        int newY = (int) Math.round(contentBounds.getY() + (contentBounds.getHeight() - newH) / 2.0d);
+        Rectangle targetBounds = new Rectangle(newX, newY, newW, newH);
+        // Apply optional offsets to move the inserted page within its box
+        targetBounds.translate(_offsetX, _offsetY);
+        outputDevice.drawPdfAsImage(_srcFormObject, targetBounds, getIntrinsicWidth(), getIntrinsicHeight());
     }
 
     @Override
