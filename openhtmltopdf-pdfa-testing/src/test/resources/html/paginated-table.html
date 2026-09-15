@@ -1,0 +1,47 @@
+
+<html>
+<head>
+  <title>Simple PDF/UA Paginated Table Testcase</title>
+  <meta name="description" content="A paginated table example"/>
+  <meta name="subject" content="A paginated table example"/>
+
+  <style>
+  @page {
+    size: 200px 200px;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+    width: 200px;
+    font-family: 'TestFont';
+    font-size: 14px;
+  }
+  </style>
+</head>
+<body>
+  <table style=" -fs-table-paginate: paginate">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Var 1</td><td>Test</td></tr>
+      <tr><td>Var 2</td><td>Hallo</td></tr>
+      <tr><td>Var 3</td><td>Welt</td></tr>
+      <tr><td>Var 4</td><td>This</td></tr>
+      <tr><td>Var 5</td><td>Is</td></tr>
+      <tr><td>Var 6</td><td>Test</td></tr>
+      <tr><td>Var 7</td><td>Data</td></tr>
+      <tr><td>Var 8</td><td>Really</td></tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Summary</th>
+        <th>Demo</th>
+      </tr>
+    </tfoot>
+  </table>
+</body>
+</html>

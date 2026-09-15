@@ -40,6 +40,7 @@ import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
 import com.openhtmltopdf.pdfboxout.PdfBoxUtil.Metadata;
 import com.openhtmltopdf.pdfboxout.fontstore.FontNotFoundException;
 import com.openhtmltopdf.render.*;
+import com.openhtmltopdf.render.displaylist.DisplayListContainer;
 import com.openhtmltopdf.simple.extend.ReplacedElementScaleHelper;
 import com.openhtmltopdf.util.ArrayUtil;
 import com.openhtmltopdf.util.LogMessageId;
@@ -1396,5 +1397,10 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             _pdfUa.endStructure(token);
         }
     }
-    
+
+    void setDisplayListContainer(DisplayListContainer dlc) {
+        if (_pdfUa != null) {
+            _pdfUa.setDisplayListContainer(dlc);
+        }
+    }
 }

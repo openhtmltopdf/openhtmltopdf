@@ -603,6 +603,9 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
                     DisplayListCollector dlCollector = new DisplayListCollector(_root.getLayer().getPages());
                     dlPages = dlCollector.collectRoot(c, _root.getLayer());
+                    if (_outputDevice instanceof PdfBoxFastOutputDevice) {
+                        ((PdfBoxFastOutputDevice) _outputDevice).setDisplayListContainer(dlPages);
+                    }
                 }
 
                 page.setBasePagePdfPageIndex(pdfPageIndex);
@@ -621,7 +624,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
             if (!pageOperations.shadowPages().isEmpty()) {
                 paintShadowPages(
-                   c, doc, pdfPageIndex, page, pageOperations.shadowPages());
+                   c, doc, pdfPageIndex, page, pageOperations.shadowPages(), dlPages);
 
                 pdfPageIndex += pageOperations.shadowPages().size();
             }
@@ -642,7 +645,9 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             PDDocument doc,
             int mainPageIndex,
             PageBox currentPage,
-            List<DisplayListPageContainer> shadows) throws IOException {
+            List<DisplayListPageContainer> shadows,
+            DisplayListContainer dlPages
+            ) throws IOException {
 
         int count = shadows.size();
 

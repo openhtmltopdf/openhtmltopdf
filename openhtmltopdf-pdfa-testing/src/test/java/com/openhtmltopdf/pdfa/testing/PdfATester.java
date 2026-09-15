@@ -1,6 +1,7 @@
 package com.openhtmltopdf.pdfa.testing;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -10,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -18,6 +20,11 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import org.apache.pdfbox.io.IOUtils;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.text.PDFMarkedContentExtractor;
+import org.apache.pdfbox.text.TextPosition;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.verapdf.gf.foundry.VeraGreenfieldFoundryProvider;
@@ -158,4 +165,46 @@ public class PdfATester {
     public void testFileEmbedA3b() throws Exception {
         assertTrue(run("file-embed", PDFAFlavour.PDFA_3_B, PdfAConformance.PDFA_3_B));
     }
+
+    @Test
+    public void testPaginatedTable() throws Exception {
+        // Ensure the paginated table document is PDF-A compliant
+        assertTrue(run("paginated-table", PDFAFlavour.PDFA_3_A, PdfAConformance.PDFA_3_A));
+
+        // Check the generated document and ensure, that the pagined header is
+        // only represented once in the marked content. All other instances of
+        // the visible headers are marked as artifacts.
+        try(PDDocument doc = Loader.loadPDF(new File("target/test/pdf/paginated-table--" + PDFAFlavour.PDFA_3_A + ".pdf"))) {
+            PDFMarkedContentExtractor extractor = new PDFMarkedContentExtractor();
+            extractor.setSuppressDuplicateOverlappingText(false);
+            for(PDPage page: doc.getPages()) {
+                extractor.processPage(page);
+            }
+            List<String> textsFromMarkedContent = extractor.getMarkedContents()
+                    .stream()
+                    .filter(pdmc -> !"Artifact".equals(pdmc.getTag()))
+                    .map(pdmc -> {
+                        String textContent = pdmc
+                                .getContents()
+                                .stream()
+                                .filter(o -> o instanceof TextPosition)
+                                .map(o -> ((TextPosition) o).toString())
+                                .collect(Collectors.joining(""));
+                        return textContent;
+                    })
+                    .collect(Collectors.toList());
+            Map<String, Long> textStats = textsFromMarkedContent
+                    .stream()
+                    .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+            // Try to find the column headers/footers in the text statistics.
+            // This assumes that the header/footer are unique enough to be found
+            // like this.
+            assertEquals("Column header found multiple times", 1L, (long) textStats.getOrDefault("Name", -1L));
+            assertEquals("Column header found multiple times", 1L, (long) textStats.getOrDefault("Value", -1L));
+            assertEquals("Column footer found multiple times", 1L, (long) textStats.getOrDefault("Summary", -1L));
+            assertEquals("Column footer found multiple times", 1L, (long) textStats.getOrDefault("Data", -1L));
+        }
+    }
+
 }
