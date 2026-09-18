@@ -29,6 +29,7 @@ import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.style.BackgroundPosition;
 import com.openhtmltopdf.css.style.BackgroundSize;
+import com.openhtmltopdf.css.style.BoxShadow;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CalculatedStyle.BackgroundContainer;
 import com.openhtmltopdf.css.style.CalculatedStyle.BackgroundImageType;
@@ -243,6 +244,44 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         Rectangle backgroundBounds = box.getPaintingBorderEdge(c);
         BorderPropertySet border = box.getStyle().getBorder(c);
         paintBackground0(c, box.getStyle(), backgroundBounds, backgroundBounds, border);
+    }
+
+    @Override
+    public void paintBoxShadow(RenderingContext c, Box box) {
+        if (! box.getStyle().isVisible(c, box)) {
+            return;
+        }
+
+        List<BoxShadow> shadows = box.getStyle().getBoxShadows(c);
+
+        if (shadows.isEmpty()) {
+            return;
+        }
+
+        Rectangle borderEdge = box.getPaintingBorderEdge(c);
+        BorderPropertySet border = box.getStyle().getBorder(c);
+
+        // Shadows are painted first-on-top, so paint them back to front.
+        for (int i = shadows.size() - 1; i >= 0; i--) {
+            BoxShadow shadow = shadows.get(i);
+
+            if (shadow.isInset()) {
+                // Inset shadows are painted inside the box, above the background. Not yet supported.
+                continue;
+            }
+
+            int spread = Math.round(shadow.getSpreadRadius());
+            Rectangle shadowBounds = new Rectangle(
+                    borderEdge.x + Math.round(shadow.getOffsetX()) - spread,
+                    borderEdge.y + Math.round(shadow.getOffsetY()) - spread,
+                    borderEdge.width + 2 * spread,
+                    borderEdge.height + 2 * spread);
+
+            Shape shadowShape = BorderPainter.generateBorderBounds(shadowBounds, border, true);
+
+            setColor(shadow.getColor());
+            fill(shadowShape);
+        }
     }
 
     private void paintBackground0(
