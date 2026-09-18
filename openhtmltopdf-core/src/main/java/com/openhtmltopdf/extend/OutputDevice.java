@@ -51,9 +51,11 @@ public interface OutputDevice {
     
     public void paintBackground(RenderingContext c, Box box);
     public void paintBackground(
-            RenderingContext c, CalculatedStyle style, 
+            RenderingContext c, CalculatedStyle style,
             Rectangle bounds, Rectangle bgImageContainer,
             BorderPropertySet border);
+
+    public void paintBoxShadow(RenderingContext c, Box box);
     
     public void paintReplacedElement(RenderingContext c, BlockBox box);
     

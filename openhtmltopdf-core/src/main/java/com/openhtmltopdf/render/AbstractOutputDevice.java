@@ -1,4 +1,4 @@
-/*
+    /*
  * {{{ header & license
  * Copyright (c) 2006 Wisconsin Court System
  *
@@ -29,6 +29,7 @@ import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.style.BackgroundPosition;
 import com.openhtmltopdf.css.style.BackgroundSize;
+import com.openhtmltopdf.css.style.BoxShadow;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CalculatedStyle.BackgroundContainer;
 import com.openhtmltopdf.css.style.CalculatedStyle.BackgroundImageType;
@@ -45,6 +46,7 @@ import com.openhtmltopdf.util.XRLog;
 
 import java.awt.*;
 import java.awt.geom.Area;
+import java.awt.geom.Path2D;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
@@ -58,7 +60,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
     private FontSpecification _fontSpec;
 
     protected abstract void drawLine(int x1, int y1, int x2, int y2);
-    
+
     @Override
     public void drawText(RenderingContext c, InlineText inlineText) {
         InlineLayoutBox iB = inlineText.getParent();
@@ -69,7 +71,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         	BidiReorderer bidi = c.getBidiReorderer();
         	text = bidi.reorderRTLTextToLTR(text);
         }
-       
+
         if (text != null && text.length() > 0) {
             setColor(iB.getStyle().getColor());
             setFontSpecification(iB.getStyle().getFontSpecification());
@@ -245,6 +247,59 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         paintBackground0(c, box.getStyle(), backgroundBounds, backgroundBounds, border);
     }
 
+    // TODO: box-shadow support - this is currently not supported to keep the scope small.
+    @Override
+    public void paintBoxShadow(RenderingContext c, Box box) {
+        if (! box.getStyle().isVisible(c, box)) {
+            return;
+        }
+
+        List<BoxShadow> shadows = box.getStyle().getBoxShadows(c);
+
+        if (shadows.isEmpty()) {
+            return;
+        }
+
+        Rectangle borderEdge = box.getPaintingBorderEdge(c);
+        BorderPropertySet border = box.getStyle().getBorder(c);
+        Shape borderBox = BorderPainter.generateBorderBounds(borderEdge, border, false);
+
+        // Shadows are painted first-on-top, so paint them back to front.
+        for (int i = shadows.size() - 1; i >= 0; i--) {
+            BoxShadow shadow = shadows.get(i);
+
+            if (shadow.isInset()) {
+                // Inset shadows are painted inside the box, above the background. Not yet supported.
+                continue;
+            }
+
+            if (shadow.getBlurRadius() > 0) {
+                // Blur is not supported; painting a hard-edged shadow instead would look wrong.
+                continue;
+            }
+
+            int spread = Math.round(shadow.getSpreadRadius());
+            Rectangle shadowBounds = new Rectangle(
+                    borderEdge.x + Math.round(shadow.getOffsetX()) - spread,
+                    borderEdge.y + Math.round(shadow.getOffsetY()) - spread,
+                    borderEdge.width + 2 * spread,
+                    borderEdge.height + 2 * spread);
+
+            Shape shadowShape = BorderPainter.generateBorderBounds(shadowBounds, border, false);
+
+            // An outer shadow is only visible outside the border box. With the even-odd rule,
+            // a rectangle enclosing both shapes plus the border box clips to everything outside it.
+            Path2D outsideBorderBox = new Path2D.Float(Path2D.WIND_EVEN_ODD);
+            outsideBorderBox.append(shadowBounds.union(borderEdge), false);
+            outsideBorderBox.append(borderBox, false);
+
+            pushClip(outsideBorderBox);
+            setColor(shadow.getColor());
+            fill(shadowShape);
+            popClip();
+        }
+    }
+
     private void paintBackground0(
             RenderingContext c, CalculatedStyle style,
             Rectangle backgroundBounds, Rectangle bgImageContainer,
@@ -275,7 +330,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
         for (BackgroundContainer bgImage : bgImages) {
             if (bgImage.type == BackgroundImageType.GRADIENT) {
-                FSLinearGradient backgroundLinearGradient = 
+                FSLinearGradient backgroundLinearGradient =
                         style.getLinearGradient(bgImage.imageGradientOrNone, c, (int) (bgImageContainer.width - border.width()), (int) (bgImageContainer.height - border.height()));
 
                 if (backgroundLinearGradient != null) {

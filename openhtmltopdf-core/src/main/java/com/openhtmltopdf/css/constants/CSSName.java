@@ -31,6 +31,7 @@ import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.parser.property.BackgroundPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.PrimitiveBackgroundPropertyBuilders;
 import com.openhtmltopdf.css.parser.property.BorderPropertyBuilders;
+import com.openhtmltopdf.css.parser.property.BoxShadowPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.BorderSpacingPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.ContentPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.CounterPropertyBuilder;
@@ -1596,7 +1597,20 @@ public final class CSSName implements Comparable<CSSName> {
                     NOT_INHERITED,
                     new PrimitivePropertyBuilders.BoxSizing()
             );
-    
+
+    /**
+     * Unique CSSName instance for CSS3 property.
+     */
+    public final static CSSName BOX_SHADOW =
+            addProperty(
+                    "box-shadow",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    true,
+                    new BoxShadowPropertyBuilder()
+            );
+
     /**
      * The maximum number of inserted shadow pages to insert for cut-off content.
      */

@@ -1085,6 +1085,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests outer box-shadows: offsets, spread, border-radius, multiple shadows,
+     * alpha color, and a positioned box painted in its own layer. Inset shadows
+     * are not painted.
+     */
+    @Test
+    public void testBoxShadow() throws IOException {
+        assertTrue(vt.runTest("box-shadow"));
+    }
+
+    /**
      * Tests that border-radius clips replaced element (image) content, the same way
      * it clips background boxes. Issue 173.
      */
