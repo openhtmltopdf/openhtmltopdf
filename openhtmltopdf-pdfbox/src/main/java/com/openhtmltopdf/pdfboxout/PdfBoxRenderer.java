@@ -624,7 +624,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
             if (!pageOperations.shadowPages().isEmpty()) {
                 paintShadowPages(
-                   c, doc, pdfPageIndex, page, pageOperations.shadowPages(), dlPages);
+                   c, doc, pdfPageIndex, page, pageOperations.shadowPages());
 
                 pdfPageIndex += pageOperations.shadowPages().size();
             }
@@ -645,9 +645,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             PDDocument doc,
             int mainPageIndex,
             PageBox currentPage,
-            List<DisplayListPageContainer> shadows,
-            DisplayListContainer dlPages
-            ) throws IOException {
+            List<DisplayListPageContainer> shadows) throws IOException {
 
         int count = shadows.size();
 

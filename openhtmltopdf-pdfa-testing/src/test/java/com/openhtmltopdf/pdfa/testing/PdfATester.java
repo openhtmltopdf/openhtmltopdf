@@ -203,7 +203,7 @@ public class PdfATester {
             assertEquals("Column header found multiple times", 1L, (long) textStats.getOrDefault("Name", -1L));
             assertEquals("Column header found multiple times", 1L, (long) textStats.getOrDefault("Value", -1L));
             assertEquals("Column footer found multiple times", 1L, (long) textStats.getOrDefault("Summary", -1L));
-            assertEquals("Column footer found multiple times", 1L, (long) textStats.getOrDefault("Data", -1L));
+            assertEquals("Column footer found multiple times", 1L, (long) textStats.getOrDefault("Demo", -1L));
         }
     }
 
