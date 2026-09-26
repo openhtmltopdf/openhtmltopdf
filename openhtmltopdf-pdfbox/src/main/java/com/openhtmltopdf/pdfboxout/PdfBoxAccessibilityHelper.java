@@ -33,6 +33,7 @@ import org.w3c.dom.Node;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.extend.StructureType;
+import com.openhtmltopdf.newtable.TableBox;
 import com.openhtmltopdf.newtable.TableCellBox;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.render.Box;
@@ -40,7 +41,10 @@ import com.openhtmltopdf.render.InlineLayoutBox;
 import com.openhtmltopdf.render.LineBox;
 import com.openhtmltopdf.render.MarkerData;
 import com.openhtmltopdf.render.RenderingContext;
+import com.openhtmltopdf.render.displaylist.DisplayListContainer;
+import com.openhtmltopdf.render.displaylist.PaintInlineContent;
 import com.openhtmltopdf.util.XRLog;
+import java.util.IdentityHashMap;
 
 public class PdfBoxAccessibilityHelper {
     // This maps from page to a list of content items, we need to process in page order, so a linked map.
@@ -64,6 +68,9 @@ public class PdfBoxAccessibilityHelper {
     private AffineTransform _transform;
 
     private int _runningLevel;
+
+    // see #isTableLayoutArtifact
+    private IdentityHashMap<Box, List<Integer>> _boxToPageMapping;
 
     /**
      * When non-null, we are inside a running element that contains a link.
@@ -1530,12 +1537,25 @@ public class PdfBoxAccessibilityHelper {
                     COSDictionary artifact = createLineBreakArtifact();
                     _cs.beginMarkedContent(COSName.ARTIFACT, artifact);
                     return TRUE_TOKEN;
+                } else if (isTableLayoutArtifact(box)) {
+                    COSDictionary artifact = createPaginationArtifact();
+                    _cs.beginMarkedContent(COSName.ARTIFACT, artifact);
+                    return TRUE_TOKEN;
                 }
                 GenericContentItem current = createMarkedContentStructureItem(type, box);
                 _cs.beginMarkedContent(COSName.getPDFName(StandardStructureTypes.SPAN), current.dict);
                 return TRUE_TOKEN;
             }
             case REPLACED: {
+                // For tables pagination might be active and for footer images
+                // the last image should be considered as the "real" image, not
+                // the previous repeated entries.
+                if (isTableLayoutArtifact(box)) {
+                    COSDictionary artifact = createPaginationArtifact();
+                    _cs.beginMarkedContent(COSName.ARTIFACT, artifact);
+                    return TRUE_TOKEN;
+                }
+
                 AbstractStructualElement struct = (AbstractStructualElement) box.getAccessibilityObject();
                 if (struct == null) {
                     struct = createStructureItem(type, box);
@@ -1638,4 +1658,90 @@ public class PdfBoxAccessibilityHelper {
             _pageItems._pageAnnotations.add(annotStructParentPair);
         }
     }
+
+    public void setDisplayListContainer(DisplayListContainer displayListContainer) {
+        // see #isTableLayoutArtifact
+        IdentityHashMap<Box, List<Integer>> boxToPageMappingBuilder = new IdentityHashMap<>();
+        for(int i = displayListContainer.getMinPage(); i <= displayListContainer.getMaxPage(); i++) {
+            final int currentIdx = i;
+            displayListContainer
+                    .getPageInstructions(i)
+                    .getOperations()
+                    .stream()
+                    .filter(dlo -> dlo instanceof PaintInlineContent)
+                    .map(dlo -> (PaintInlineContent) dlo)
+                    .flatMap(pic -> pic.getInlines().stream())
+                    .filter(dli -> dli instanceof Box)
+                    .map(dli -> (Box) dli)
+                    .forEach(b -> boxToPageMappingBuilder.computeIfAbsent(b, b2 -> new ArrayList<>()).add(currentIdx));
+        }
+        _boxToPageMapping = boxToPageMappingBuilder;
+    }
+
+    private boolean isInTableHeader(Box currentBox) {
+        return isInTableHeaderOrFooter(currentBox, "thead");
+    }
+
+    private boolean isInTableFooter(Box currentBox) {
+        return isInTableHeaderOrFooter(currentBox, "tfoot");
+    }
+
+    private boolean isInTableHeaderOrFooter(Box currentBox, String targetElement) {
+        if (currentBox == null) {
+            return false;
+        } else if (currentBox.getElement() != null
+                && targetElement.equals(currentBox.getElement().getTagName())) {
+            return true;
+        } else {
+            return isInTableHeaderOrFooter(currentBox.getParent(), targetElement);
+        }
+    }
+
+    private boolean isInPaginatedTable(Box box) {
+        if(box == null) {
+            return false;
+        } else if(box instanceof TableBox) {
+            return box.getStyle().isPaginateTable();
+        } else {
+            return isInPaginatedTable(box.getParent());
+        }
+    }
+
+    private boolean isTableLayoutArtifact(Box box) {
+        // If a table is styled with the CSS property "-fs-table-paginate" set to
+        // "paginate", this causes the table headers and footers to be repeated on
+        // each page the table covers.
+        //
+        // For the page structure tree the entries must only be represented once.
+        // If each copy is included in the structure tree, the headers and footers
+        // are represented multiple times. This is especially a problem for table
+        // header as the headers are read for each cell.
+        //
+        // The contents that is only generated as part of the paging must be marked
+        // as a paging artifact, so that it is not represented in the page structure
+        //
+        // When creating the page structure items we need to check if this box
+        // is part of a paginated header or footer and if this the first or last
+        // page where this content is drawn.
+        List<Integer> pageUsages = _boxToPageMapping.get(box);
+        if (pageUsages == null) {
+            return false;
+        }
+        if (!isInPaginatedTable(box)) {
+            return false;
+        }
+        boolean isInTableHeader = isInTableHeader(box);
+        boolean isInTableFooter = isInTableFooter(box);
+        if(! (isInTableFooter || isInTableHeader)) {
+            return false;
+        }
+        if(isInTableHeader) {
+            // Header content is only drawn on the first usage page
+            return pageUsages.get(0) != _ctx.getPageNo();
+        } else { // isFooter
+            // Footer content is only drawn on the last usage page
+            return pageUsages.get(pageUsages.size() - 1) != _ctx.getPageNo();
+        }
+    }
+
 }
