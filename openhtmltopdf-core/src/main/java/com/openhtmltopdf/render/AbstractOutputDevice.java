@@ -56,6 +56,12 @@ import java.util.logging.Level;
  */
 public abstract class AbstractOutputDevice implements OutputDevice {
 
+    /** Upper bound on the number of shapes painted to approximate one blurred shadow. */
+    private static final int MAX_BLUR_STEPS = 64;
+
+    /** Shapes painted per CSS pixel of the blurred edge, which is twice the blur radius wide. */
+    private static final int BLUR_STEPS_PER_PIXEL = 4;
+
     private FontSpecification _fontSpec;
 
     protected abstract void drawLine(int x1, int y1, int x2, int y2);
@@ -279,9 +285,85 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
             Shape shadowShape = BorderPainter.generateBorderBounds(shadowBounds, border, true);
 
-            setColor(shadow.getColor());
-            fill(shadowShape);
+            // A blur is built from translucent copies, so it needs a color that can carry alpha.
+            if (shadow.getBlurRadius() > 0 && shadow.getColor() instanceof FSRGBColor) {
+                paintBlurredShadow(c, shadowShape, shadow.getBlurRadius(), (FSRGBColor) shadow.getColor());
+            } else {
+                setColor(shadow.getColor());
+                fill(shadowShape);
+            }
         }
+    }
+
+    /**
+     * Approximates the Gaussian blur of a shadow (standard deviation half the blur radius)
+     * with nested copies of the shadow shape, grown by the blur radius for the outermost copy
+     * down to shrunk by it for the innermost one. Each copy is painted over the larger ones
+     * with the alpha that brings the combined opacity inside it up to that of the blurred edge.
+     * Nesting the copies, rather than painting separate rings, leaves no seams between them.
+     */
+    private void paintBlurredShadow(RenderingContext c, Shape shape, float blur, FSRGBColor color) {
+        int steps = Math.max(2, Math.min(MAX_BLUR_STEPS, Math.round(BLUR_STEPS_PER_PIXEL * 2 * blur / c.getDotsPerPixel())));
+        float stepSize = 2 * blur / steps;
+        Area base = new Area(shape);
+        float painted = 0f;
+
+        for (int i = 0; i <= steps; i++) {
+            // How far this copy's edge lies outside the shadow edge.
+            float distance = blur - i * stepSize;
+            float target = color.getAlpha() *
+                    (i == steps ? 1f : blurredOpacity(distance - stepSize / 2, blur));
+
+            if (target <= painted) {
+                continue;
+            }
+
+            Area copy = offset(base, distance);
+            if (copy.isEmpty()) {
+                break;
+            }
+
+            setColor(color.withAlpha((target - painted) / (1 - painted)));
+            fill(copy);
+            painted = target;
+        }
+    }
+
+    /** The shape grown (positive distance) or shrunk (negative) by distance, with rounded corners. */
+    private static Area offset(Area base, float distance) {
+        Area result = new Area(base);
+
+        if (distance != 0) {
+            Stroke stroke = new BasicStroke(2 * Math.abs(distance), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+            Area band = new Area(stroke.createStrokedShape(base));
+
+            if (distance > 0) {
+                result.add(band);
+            } else {
+                result.subtract(band);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Opacity of a blurred shadow at a distance outside its edge: the Gaussian with standard
+     * deviation half the blur radius, scaled so that it runs from exactly fully opaque at the
+     * blur radius inside the edge to fully transparent at the blur radius outside it, as the
+     * spec asks, instead of ending on a faint hard edge.
+     */
+    private static float blurredOpacity(float distance, float blur) {
+        double x = distance * Math.sqrt(2) / blur;
+        return (float) (0.5 * (1 - erf(x) / erf(Math.sqrt(2))));
+    }
+
+    /** Error function, Abramowitz and Stegun formula 7.1.26 (error below 1.5e-7). */
+    private static double erf(double x) {
+        double t = 1 / (1 + 0.3275911 * Math.abs(x));
+        double poly = t * (0.254829592 + t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))));
+        double result = 1 - poly * Math.exp(-x * x);
+        return x >= 0 ? result : -result;
     }
 
     private void paintBackground0(

@@ -1,0 +1,91 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 380px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+}
+div {
+  float: left;
+  width: 60px;
+  height: 40px;
+  margin: 15px;
+  background-color: #6fa8dc;
+}
+.offset {
+  box-shadow: 5px 5px black;
+}
+.negative-offset {
+  box-shadow: -5px -5px black;
+}
+.spread {
+  box-shadow: 0 0 0 5px red;
+}
+.negative-spread {
+  /* Shrinks the shadow, so only its bottom edge shows below the box. */
+  box-shadow: 0 8px 0 -4px red;
+}
+.radius {
+  border-radius: 10px;
+  box-shadow: 5px 5px green;
+}
+.radius-border {
+  border: 3px solid navy;
+  border-radius: 10px;
+  box-shadow: 5px 5px green;
+}
+.multiple {
+  /* First shadow paints on top. */
+  box-shadow: 4px 4px red, 8px 8px blue;
+}
+.rgba {
+  box-shadow: 6px 6px rgba(0, 0, 0, 0.3);
+}
+.inset {
+  /* Inset shadows are not painted. */
+  box-shadow: inset 5px 5px black;
+}
+.none {
+  box-shadow: none;
+}
+.blur {
+  box-shadow: 5px 5px 10px black;
+}
+.blur-radius {
+  border-radius: 10px;
+  box-shadow: 0 4px 8px navy;
+}
+.blur-spread-rgba {
+  box-shadow: 0 0 6px 4px rgba(255, 0, 0, 0.5);
+}
+.blur-large {
+  box-shadow: 0 0 20px black;
+}
+.positioned {
+  position: relative;
+  z-index: 1;
+  box-shadow: 5px 5px purple;
+}
+</style>
+</head>
+<body>
+<div class="offset"></div>
+<div class="negative-offset"></div>
+<div class="spread"></div>
+<div class="negative-spread"></div>
+<div class="radius"></div>
+<div class="radius-border"></div>
+<div class="multiple"></div>
+<div class="rgba"></div>
+<div class="inset"></div>
+<div class="none"></div>
+<div class="blur"></div>
+<div class="positioned"></div>
+<div class="blur-radius"></div>
+<div class="blur-spread-rgba"></div>
+<div class="blur-large"></div>
+</body>
+</html>
