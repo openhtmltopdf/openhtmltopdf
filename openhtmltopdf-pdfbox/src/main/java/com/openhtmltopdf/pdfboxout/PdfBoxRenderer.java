@@ -603,6 +603,9 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
                     DisplayListCollector dlCollector = new DisplayListCollector(_root.getLayer().getPages());
                     dlPages = dlCollector.collectRoot(c, _root.getLayer());
+                    if (_outputDevice instanceof PdfBoxFastOutputDevice) {
+                        ((PdfBoxFastOutputDevice) _outputDevice).setDisplayListContainer(dlPages);
+                    }
                 }
 
                 page.setBasePagePdfPageIndex(pdfPageIndex);
