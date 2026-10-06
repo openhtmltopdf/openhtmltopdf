@@ -1,25 +1,18 @@
 package com.openhtmltopdf.nonvisualregressiontests;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.*;
-
-import java.awt.Color;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
+import com.openhtmltopdf.layout.Layer;
+import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
+import com.openhtmltopdf.pdfboxout.PagePosition;
+import com.openhtmltopdf.pdfboxout.PdfBoxRenderer;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.testcases.TestcaseRunner;
+import com.openhtmltopdf.testlistener.PrintingRunner;
+import com.openhtmltopdf.util.Diagnostic;
+import com.openhtmltopdf.util.LogMessageId;
+import com.openhtmltopdf.util.OpenUtil;
+import com.openhtmltopdf.visualregressiontests.VisualRegressionTest;
+import com.openhtmltopdf.visualtest.TestSupport;
+import com.openhtmltopdf.visualtest.VisualTester.BuilderConfig;
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSDocument;
@@ -30,6 +23,7 @@ import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.PDPageContentStream.AppendMode;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.*;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.interactive.action.PDActionURI;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
@@ -44,11 +38,6 @@ import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlin
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.pdmodel.interactive.form.PDRadioButton;
 import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
-import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkedContentReference;
-import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDObjectReference;
-import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
-import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
-import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.junit.Assert;
@@ -56,19 +45,21 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import com.openhtmltopdf.layout.Layer;
-import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
-import com.openhtmltopdf.pdfboxout.PagePosition;
-import com.openhtmltopdf.pdfboxout.PdfBoxRenderer;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.openhtmltopdf.testcases.TestcaseRunner;
-import com.openhtmltopdf.testlistener.PrintingRunner;
-import com.openhtmltopdf.util.Diagnostic;
-import com.openhtmltopdf.util.LogMessageId;
-import com.openhtmltopdf.util.OpenUtil;
-import com.openhtmltopdf.visualregressiontests.VisualRegressionTest;
-import com.openhtmltopdf.visualtest.TestSupport;
-import com.openhtmltopdf.visualtest.VisualTester.BuilderConfig;
+import java.awt.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.*;
 
 @RunWith(PrintingRunner.class)
 public class NonVisualRegressionTest {
@@ -1139,16 +1130,16 @@ public class NonVisualRegressionTest {
     @Test
     public void testStructureTreeFollowsDomOrder() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Structure Tree Ordering Test</title>" +
-            "<meta name='description' content='Test structure tree DOM ordering'/>" +
-            "<style>" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "</style></head><body>" +
-            "<h1>First</h1>" +
-            "<h2>Second</h2>" +
-            "<h3>Third</h3>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Structure Tree Ordering Test</title>" +
+                        "<meta name='description' content='Test structure tree DOM ordering'/>" +
+                        "<style>" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "</style></head><body>" +
+                        "<h1>First</h1>" +
+                        "<h2>Second</h2>" +
+                        "<h3>Third</h3>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1157,7 +1148,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1198,17 +1189,17 @@ public class NonVisualRegressionTest {
     @Test
     public void testRunningFooterLinksGetLinkStructureElements() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Running Footer Link Test</title>" +
-            "<meta name='description' content='Test running footer links'/>" +
-            "<style>" +
-            "@page { @bottom-center { content: element(footer); } margin-bottom: 50px; }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "#footer { position: running(footer); }" +
-            "</style></head><body>" +
-            "<div id='footer'><p>Contact: <a href='tel:+1234567890' title='Call us'>+1 234 567 890</a></p></div>" +
-            "<p>Page content</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Running Footer Link Test</title>" +
+                        "<meta name='description' content='Test running footer links'/>" +
+                        "<style>" +
+                        "@page { @bottom-center { content: element(footer); } margin-bottom: 50px; }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "#footer { position: running(footer); }" +
+                        "</style></head><body>" +
+                        "<div id='footer'><p>Contact: <a href='tel:+1234567890' title='Call us'>+1 234 567 890</a></p></div>" +
+                        "<p>Page content</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1217,7 +1208,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1328,14 +1319,14 @@ public class NonVisualRegressionTest {
     @Test
     public void testBrInDdDoesNotProduceEmptySpans() throws IOException {
         String html =
-            "<html lang='en-US'><head>" +
-            "<title>DD test</title>" +
-            "<meta name='description' content='Regression test for issue 100'/>" +
-            "<style>" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "</style></head><body>" +
-            "<dl><dt>Foo</dt><dd>Bar<br/>Baz\n</dd></dl>" +
-            "</body></html>";
+                "<html lang='en-US'><head>" +
+                        "<title>DD test</title>" +
+                        "<meta name='description' content='Regression test for issue 100'/>" +
+                        "<style>" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "</style></head><body>" +
+                        "<dl><dt>Foo</dt><dd>Bar<br/>Baz\n</dd></dl>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1344,7 +1335,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1359,24 +1350,40 @@ public class NonVisualRegressionTest {
             // empty/spurious Span.
             for (PDStructureElement span : spans) {
                 assertTrue(
-                    "Found a Span structure element with no real (MCID) content - " +
-                    "this is exactly the kind of node PDF/UA checkers flag as " +
-                    "\"possibly inappropriate use of a Span structure element\"",
-                    countMcidLeafDescendants(span) > 0);
+                        "Found a Span structure element with no real (MCID) content - " +
+                                "this is exactly the kind of node PDF/UA checkers flag as " +
+                                "\"possibly inappropriate use of a Span structure element\"",
+                        countMcidLeafDescendants(span) > 0);
             }
 
-            // With dt/dd mapping to P, no Span wrapping is needed at all: a <br>
-            // should be exactly as invisible to the tag tree as natural
-            // word-wrapping already is.
             assertEquals("Should find no Span structure elements at all", 0, spans.size());
 
-            // Each of "Foo", "Bar" and "Baz" should have landed inside its own P.
-            List<PDStructureElement> paragraphs = new ArrayList<>();
-            collectStructureElementsByType(root, "P", paragraphs);
-            assertEquals("Should find exactly 2 P structure elements (dt and dd)", 2, paragraphs.size());
-            for (PDStructureElement p : paragraphs) {
-                assertTrue("Each P should contain real (MCID) content",
-                    countMcidLeafDescendants(p) > 0);
+            // dt/dd are represented semantically as Lbl/LBody inside a
+            // synthetic LI. The br itself and its generated content must
+            // not produce empty Span structure elements.
+            List<PDStructureElement> lists = new ArrayList<>();
+            collectStructureElementsByType(root, "L", lists);
+
+            assertEquals("Should find exactly one Description List", 1, lists.size());
+
+            List<PDStructureElement> listItems = new ArrayList<>();
+            collectStructureElementsByType(root, "LI", listItems);
+            assertEquals("Should find exactly one Description List item", 1, listItems.size());
+
+            List<PDStructureElement> labels = new ArrayList<>();
+            collectStructureElementsByType(root, "Lbl", labels);
+            assertEquals("Should find exactly one description term label", 1, labels.size());
+
+            List<PDStructureElement> bodies = new ArrayList<>();
+            collectStructureElementsByType(root, "LBody", bodies);
+            assertEquals("Should find exactly one description details body", 1, bodies.size());
+
+            for (PDStructureElement label : labels) {
+                assertTrue("Lbl should contain real (MCID) content", countMcidLeafDescendants(label) > 0);
+            }
+
+            for (PDStructureElement body : bodies) {
+                assertTrue("LBody should contain real (MCID) content", countMcidLeafDescendants(body) > 0);
             }
 
             // No Div (or other "Grouping" element) may directly contain marked
@@ -1385,21 +1392,144 @@ public class NonVisualRegressionTest {
             // to Div. (Other elements that still fall through to Div can still
             // end up with content directly inside it - see the class javadoc
             // above for why that's left as a follow-up rather than fixed here.)
-            for (String groupingType : new String[] { "Div", "Sect", "Art", "Part", "BlockQuote" }) {
+            for (String groupingType : new String[]{"Div", "Sect", "Art", "Part", "BlockQuote"}) {
                 List<PDStructureElement> groupingElements = new ArrayList<>();
                 collectStructureElementsByType(root, groupingType, groupingElements);
                 for (PDStructureElement el : groupingElements) {
                     for (Object kid : el.getKids()) {
                         assertFalse(
-                            "A " + groupingType + " must not directly contain marked content " +
-                            "(an Integer or PDMarkedContentReference kid) - PDF/UA checkers flag " +
-                            "this as \"Marked content is present in a possibly inadmissible " +
-                            "location\". Wrap it in a P (or other content-permitting element) instead.",
-                            kid instanceof Integer || kid instanceof PDMarkedContentReference);
+                                "A " + groupingType + " must not directly contain marked content " +
+                                        "(an Integer or PDMarkedContentReference kid) - PDF/UA checkers flag " +
+                                        "this as \"Marked content is present in a possibly inadmissible " +
+                                        "location\". Wrap it in a P (or other content-permitting element) instead.",
+                                kid instanceof Integer || kid instanceof PDMarkedContentReference);
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Verifies the PDF structure generated for a description list.
+     * Expected HTML structure:
+     *
+     * <dl>
+     *   <dt>Title</dt>
+     *   <dd>Beschreibung</dd>
+     *   <dt>Titel 2</dt>
+     *   <dd>Beschreibung</dd>
+     *   <dd>Beschreibung 2</dd>
+     * </dl>
+     *
+     * Expected PDF structure:
+     *
+     * /L
+     * ├── /LI
+     * │   ├── /Lbl
+     * │   └── /LBody
+     * └── /LI
+     *     ├── /Lbl
+     *     └── /LBody
+     */
+    @Test
+    public void testDescriptionListStructure() throws IOException {
+        String html =
+                "<!DOCTYPE html>" +
+                        "<html lang='de'>" +
+                        "<head>" +
+                        "  <meta charset='UTF-8'/>" +
+                        "  <style>" +
+                        "    body {" +
+                        "      margin: 0;" +
+                        "      font-family: 'TestFont';" +
+                        "      font-size: 12px;" +
+                        "    }" +
+                        "  </style>" +
+                        "</head>" +
+                        "<body>" +
+                        "  <dl>" +
+                        "    <dt>Term</dt>" +
+                        "    <dd>Details</dd>" +
+                        "    <dt>Term 2</dt>" +
+                        "    <dd>Details</dd>" +
+                        "    <dd>Details 2</dd>" +
+                        "  </dl>" +
+                        "</body>" +
+                        "</html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.usePdfUaAccessibility(true);
+        builder.testMode(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+                "org/apache/pdfbox/resources/ttf/" + "LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+            assertNotNull("Structure tree root should exist", root);
+
+            List<PDStructureElement> lists = new ArrayList<>();
+            collectStructureElementsByType(root, "L", lists);
+            assertEquals("Expected exactly one /L for the <dl>", 1, lists.size());
+
+            List<PDStructureElement> listItems = new ArrayList<>();
+            collectStructureElementsByType(root, "LI", listItems);
+            assertEquals("Expected exactly two /LI elements", 2, listItems.size());
+
+            List<PDStructureElement> labels = new ArrayList<>();
+            collectStructureElementsByType(root, "Lbl", labels);
+            assertEquals("Expected exactly two /Lbl elements", 2, labels.size());
+
+            List<PDStructureElement> bodies = new ArrayList<>();
+            collectStructureElementsByType(root, "LBody", bodies);
+            assertEquals("Expected exactly two /LBody elements", 2, bodies.size());
+
+            for (PDStructureElement label : labels) {
+                assertTrue("/Lbl must contain marked content", countMcidLeafDescendants(label) > 0);
+            }
+
+            for (PDStructureElement body : bodies) {
+                assertTrue("/LBody must contain marked content", countMcidLeafDescendants(body) > 0);
+            }
+
+            PDStructureElement descriptionList = lists.get(0);
+            List<PDStructureElement> directListItems = directChildrenOfType(descriptionList, "LI");
+            assertEquals("The /L must directly contain exactly two /LI elements", 2, directListItems.size());
+
+            for (PDStructureElement listItem : directListItems) {
+                List<PDStructureElement> directLabels = directChildrenOfType(listItem, "Lbl");
+                List<PDStructureElement> directBodies = directChildrenOfType(listItem, "LBody");
+                assertEquals("Each /LI must directly contain exactly one /Lbl", 1, directLabels.size());
+                assertEquals("Each /LI must directly contain exactly one /LBody", 1, directBodies.size());
+            }
+
+            PDStructureElement secondBody = directChildrenOfType(directListItems.get(1), "LBody").get(0);
+            assertTrue("The second /LBody must contain both dd descriptions", countMcidLeafDescendants(secondBody) >= 2);
+        }
+    }
+
+    /**
+     * Returns only direct structural children of the requested type.
+     */
+    private static List<PDStructureElement> directChildrenOfType(PDStructureElement parent, String type) {
+
+        List<PDStructureElement> result = new ArrayList<>();
+
+        for (Object kid : parent.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if (type.equals(element.getStructureType())) {
+                    result.add(element);
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -1414,14 +1544,14 @@ public class NonVisualRegressionTest {
     @Test
     public void testDdWithBlockContentStaysDiv() throws IOException {
         String html =
-            "<html lang='en-US'><head>" +
-            "<title>DD block content test</title>" +
-            "<meta name='description' content='Regression test for issue 100 review comment'/>" +
-            "<style>" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "</style></head><body>" +
-            "<dl><dt>Foo</dt><dd><p>Bar</p><p>Baz</p></dd></dl>" +
-            "</body></html>";
+                "<html lang='en-US'><head>" +
+                        "<title>DD block content test</title>" +
+                        "<meta name='description' content='Regression test for issue 100 review comment'/>" +
+                        "<style>" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "</style></head><body>" +
+                        "<dl><dt>Foo</dt><dd><p>Bar</p><p>Baz</p></dd></dl>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1430,47 +1560,35 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
             PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
 
-            // The dd wrapping block content must still be Div (not P), and it
-            // must directly contain the two <p>s as legal Div>P nesting - not
-            // have any marked content of its own. Other Divs may legitimately
-            // exist in the tree (the <dl> itself also falls through to Div),
-            // so look for the specific one with exactly two direct, non-empty
-            // P children rather than asserting a total Div count.
-            List<PDStructureElement> divs = new ArrayList<>();
-            collectStructureElementsByType(root, "Div", divs);
-            assertFalse("Expected at least one Div in the tree (the dd's, at minimum)", divs.isEmpty());
+            List<PDStructureElement> bodies = new ArrayList<>();
+            collectStructureElementsByType(root, "LBody", bodies);
+            assertEquals("Should find exactly one LBody for the dd", 1, bodies.size());
 
-            PDStructureElement ddDiv = null;
-            for (PDStructureElement div : divs) {
-                List<PDStructureElement> directParagraphs = new ArrayList<>();
-                for (Object kid : div.getKids()) {
-                    if (kid instanceof PDStructureElement &&
+            PDStructureElement ddBody = bodies.get(0);
+            List<PDStructureElement> directParagraphs = new ArrayList<>();
+            for (Object kid : ddBody.getKids()) {
+                if (kid instanceof PDStructureElement &&
                         "P".equals(((PDStructureElement) kid).getStructureType())) {
-                        directParagraphs.add((PDStructureElement) kid);
-                    }
-                }
-                if (directParagraphs.size() == 2) {
-                    ddDiv = div;
-                    break;
+                    directParagraphs.add((PDStructureElement) kid);
                 }
             }
-            assertNotNull(
-                "Should find a Div directly containing exactly two P elements " +
-                "(the block-content dd wrapping its two <p>s)", ddDiv);
+            assertEquals("The dd's LBody should directly contain both <p>s", 2, directParagraphs.size());
+            for (PDStructureElement paragraph : directParagraphs) {
+                assertTrue("Each paragraph should contain real MCID content", countMcidLeafDescendants(paragraph) > 0);
+            }
 
-            List<PDStructureElement> paragraphs = new ArrayList<>();
-            collectStructureElementsByType(ddDiv, "P", paragraphs);
-            assertEquals("The dd's Div should directly contain both <p>s", 2, paragraphs.size());
-
-            for (Object kid : ddDiv.getKids()) {
-                assertFalse("The block-content dd's Div must not directly contain marked content",
-                    kid instanceof Integer || kid instanceof PDMarkedContentReference);
+            /*
+             * LBody itself must not directly contain raw marked-content references.
+             * The two paragraphs are the structural wrappers for the text.
+             */
+            for (Object kid : ddBody.getKids()) {
+                assertFalse("The block-content dd's LBody must not directly contain marked content", kid instanceof Integer || kid instanceof PDMarkedContentReference);
             }
         }
     }
@@ -1482,18 +1600,18 @@ public class NonVisualRegressionTest {
     @Test
     public void testRunningFooterLinkAnnotationPosition() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Link Position Test</title>" +
-            "<meta name='description' content='Test link position'/>" +
-            "<style>" +
-            "@page { size: 200px 400px; margin: 20px 10px 60px 10px; " +
-            "  @bottom-center { content: element(footer); } }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "#footer { position: running(footer); }" +
-            "</style></head><body>" +
-            "<div id='footer'><a href='https://example.com' title='Example'>Click here</a></div>" +
-            "<p>Body text</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Link Position Test</title>" +
+                        "<meta name='description' content='Test link position'/>" +
+                        "<style>" +
+                        "@page { size: 200px 400px; margin: 20px 10px 60px 10px; " +
+                        "  @bottom-center { content: element(footer); } }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "#footer { position: running(footer); }" +
+                        "</style></head><body>" +
+                        "<div id='footer'><a href='https://example.com' title='Example'>Click here</a></div>" +
+                        "<p>Body text</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1502,7 +1620,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1524,11 +1642,11 @@ public class NonVisualRegressionTest {
             // The entire link rect should fit inside the bottom margin band (y=0 to ~45pt).
             float bottomMarginPt = 45f;
             assertTrue("Link bottom y=" + rect.getLowerLeftY() + " should be > 0",
-                rect.getLowerLeftY() > 0);
+                    rect.getLowerLeftY() > 0);
             assertTrue("Link top y=" + rect.getUpperRightY() + " should be in bottom margin (< " + bottomMarginPt + ")",
-                rect.getUpperRightY() < bottomMarginPt);
+                    rect.getUpperRightY() < bottomMarginPt);
             assertTrue("Link should have positive dimensions",
-                rect.getHeight() > 0 && rect.getWidth() > 0);
+                    rect.getHeight() > 0 && rect.getWidth() > 0);
         }
     }
 
@@ -1540,20 +1658,20 @@ public class NonVisualRegressionTest {
     @Test
     public void testRunningFooterLinkAcrossMultiplePages() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Multi-page Footer Link Test</title>" +
-            "<meta name='description' content='Test multi-page footer links'/>" +
-            "<style>" +
-            "@page { size: 200px 200px; margin: 10px 10px 40px 10px; " +
-            "  @bottom-center { content: element(footer); } }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "#footer { position: running(footer); }" +
-            ".break { page-break-before: always; }" +
-            "</style></head><body>" +
-            "<div id='footer'><a href='tel:+1234567890' title='Call us'>+1 234 567 890</a></div>" +
-            "<p>Page 1</p>" +
-            "<p class='break'>Page 2</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Multi-page Footer Link Test</title>" +
+                        "<meta name='description' content='Test multi-page footer links'/>" +
+                        "<style>" +
+                        "@page { size: 200px 200px; margin: 10px 10px 40px 10px; " +
+                        "  @bottom-center { content: element(footer); } }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "#footer { position: running(footer); }" +
+                        ".break { page-break-before: always; }" +
+                        "</style></head><body>" +
+                        "<div id='footer'><a href='tel:+1234567890' title='Call us'>+1 234 567 890</a></div>" +
+                        "<p>Page 1</p>" +
+                        "<p class='break'>Page 2</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1562,7 +1680,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1609,21 +1727,21 @@ public class NonVisualRegressionTest {
     @Test
     public void testRunningFooterMultipleLinks() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Multiple Footer Links Test</title>" +
-            "<meta name='description' content='Test multiple footer links'/>" +
-            "<style>" +
-            "@page { size: 200px 200px; margin: 10px 10px 50px 10px; " +
-            "  @bottom-center { content: element(footer); } }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 10px; }" +
-            "#footer { position: running(footer); }" +
-            "</style></head><body>" +
-            "<div id='footer'>" +
-            "  <a href='tel:+123' title='Phone'>Phone</a>" +
-            "  <a href='mailto:a@b.c' title='Email'>Email</a>" +
-            "</div>" +
-            "<p>Content</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Multiple Footer Links Test</title>" +
+                        "<meta name='description' content='Test multiple footer links'/>" +
+                        "<style>" +
+                        "@page { size: 200px 200px; margin: 10px 10px 50px 10px; " +
+                        "  @bottom-center { content: element(footer); } }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 10px; }" +
+                        "#footer { position: running(footer); }" +
+                        "</style></head><body>" +
+                        "<div id='footer'>" +
+                        "  <a href='tel:+123' title='Phone'>Phone</a>" +
+                        "  <a href='mailto:a@b.c' title='Email'>Email</a>" +
+                        "</div>" +
+                        "<p>Content</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1632,7 +1750,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1668,20 +1786,20 @@ public class NonVisualRegressionTest {
     @Test
     public void testRunningFooterImageLinkGetsFigureStructure() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Image Link Footer Test</title>" +
-            "<meta name='description' content='Test image link in footer'/>" +
-            "<style>" +
-            "@page { size: 200px 200px; margin: 10px 10px 50px 10px; " +
-            "  @bottom-center { content: element(footer); } }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 10px; }" +
-            "#footer { position: running(footer); }" +
-            "</style></head><body>" +
-            "<div id='footer'><a href='https://example.com' title='Logo link'>" +
-            "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
-            "alt='Logo' style='width:10px;height:10px;'/> Home</a></div>" +
-            "<p>Content</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Image Link Footer Test</title>" +
+                        "<meta name='description' content='Test image link in footer'/>" +
+                        "<style>" +
+                        "@page { size: 200px 200px; margin: 10px 10px 50px 10px; " +
+                        "  @bottom-center { content: element(footer); } }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 10px; }" +
+                        "#footer { position: running(footer); }" +
+                        "</style></head><body>" +
+                        "<div id='footer'><a href='https://example.com' title='Logo link'>" +
+                        "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+                        "alt='Logo' style='width:10px;height:10px;'/> Home</a></div>" +
+                        "<p>Content</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1690,7 +1808,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1716,9 +1834,9 @@ public class NonVisualRegressionTest {
                         hasFigureChild = true;
                         // Figure should have alt text.
                         assertNotNull("Figure should have alt text",
-                            childElem.getAlternateDescription());
+                                childElem.getAlternateDescription());
                         assertFalse("Figure alt text should not be empty",
-                            childElem.getAlternateDescription().isEmpty());
+                                childElem.getAlternateDescription().isEmpty());
                     }
                 }
             }
@@ -1734,19 +1852,19 @@ public class NonVisualRegressionTest {
     @Test
     public void testRunningFooterLinkMultipleSpansReusesStructure() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Multi-span Link Footer Test</title>" +
-            "<meta name='description' content='Test multi-span link'/>" +
-            "<style>" +
-            "@page { size: 200px 200px; margin: 10px 10px 50px 10px; " +
-            "  @bottom-center { content: element(footer); } }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 10px; }" +
-            "#footer { position: running(footer); }" +
-            "</style></head><body>" +
-            "<div id='footer'><a href='tel:+123' title='Call'>" +
-            "<span>Icon</span> <span>Call us</span></a></div>" +
-            "<p>Content</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Multi-span Link Footer Test</title>" +
+                        "<meta name='description' content='Test multi-span link'/>" +
+                        "<style>" +
+                        "@page { size: 200px 200px; margin: 10px 10px 50px 10px; " +
+                        "  @bottom-center { content: element(footer); } }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 10px; }" +
+                        "#footer { position: running(footer); }" +
+                        "</style></head><body>" +
+                        "<div id='footer'><a href='tel:+123' title='Call'>" +
+                        "<span>Icon</span> <span>Call us</span></a></div>" +
+                        "<p>Content</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1755,7 +1873,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1791,20 +1909,20 @@ public class NonVisualRegressionTest {
     @Test
     public void testHeadingsAcrossPageBreaksPreserveOrder() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Headings Across Pages Test</title>" +
-            "<meta name='description' content='Test heading order across page breaks'/>" +
-            "<style>" +
-            "@page { size: 200px 200px; margin: 10px; }" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "</style></head><body>" +
-            "<h1>First heading</h1>" +
-            "<p>Some content on page one.</p>" +
-            "<h2 style='page-break-before: always;'>Second heading on page two</h2>" +
-            "<p>Content on page two.</p>" +
-            "<h3 style='page-break-before: always;'>Third heading on page three</h3>" +
-            "<p>Content on page three.</p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Headings Across Pages Test</title>" +
+                        "<meta name='description' content='Test heading order across page breaks'/>" +
+                        "<style>" +
+                        "@page { size: 200px 200px; margin: 10px; }" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "</style></head><body>" +
+                        "<h1>First heading</h1>" +
+                        "<p>Some content on page one.</p>" +
+                        "<h2 style='page-break-before: always;'>Second heading on page two</h2>" +
+                        "<p>Content on page two.</p>" +
+                        "<h3 style='page-break-before: always;'>Third heading on page three</h3>" +
+                        "<p>Content on page three.</p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1813,7 +1931,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1856,7 +1974,7 @@ public class NonVisualRegressionTest {
                 for (COSName fontKey : page.getResources().getFontNames()) {
                     PDFont font = page.getResources().getFont(fontKey);
                     if (font != null && font.getName() != null &&
-                        font.getName().toLowerCase(Locale.ROOT).contains("karla")) {
+                            font.getName().toLowerCase(Locale.ROOT).contains("karla")) {
                         karlaEmbedded = true;
                         break;
                     }
@@ -1877,21 +1995,21 @@ public class NonVisualRegressionTest {
     @Test
     public void testBlockImageLinkAnnotationHasContents() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Block Image Link Test</title>" +
-            "<meta name='description' content='Test block image link contents'/>" +
-            "<style>" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            ".linkblock a { display: block; }" +
-            ".linkblock img { display: block; }" +
-            "</style></head><body>" +
-            "<div class='linkblock'>\n" +
-            "  <a href='https://www.example.com/target'>\n" +
-            "    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
-            "alt='Banner: apply for an assessment' style='width:50px;height:20px;'/>\n" +
-            "  </a>\n" +
-            "</div>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Block Image Link Test</title>" +
+                        "<meta name='description' content='Test block image link contents'/>" +
+                        "<style>" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        ".linkblock a { display: block; }" +
+                        ".linkblock img { display: block; }" +
+                        "</style></head><body>" +
+                        "<div class='linkblock'>\n" +
+                        "  <a href='https://www.example.com/target'>\n" +
+                        "    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+                        "alt='Banner: apply for an assessment' style='width:50px;height:20px;'/>\n" +
+                        "  </a>\n" +
+                        "</div>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1900,7 +2018,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1919,20 +2037,20 @@ public class NonVisualRegressionTest {
     @Test
     public void testImageLinkWithoutAltFallsBackToUri() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Image Link Uri Fallback Test</title>" +
-            "<meta name='description' content='Test image link uri fallback'/>" +
-            "<style>" +
-            "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
-            "a, img { display: block; }" +
-            "</style></head><body>" +
-            "<div>\n" +
-            "  <a href='https://www.example.com/fallback'>\n" +
-            "    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
-            "alt='' style='width:50px;height:20px;'/>\n" +
-            "  </a>\n" +
-            "</div>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Image Link Uri Fallback Test</title>" +
+                        "<meta name='description' content='Test image link uri fallback'/>" +
+                        "<style>" +
+                        "body { margin: 0; font-family: 'TestFont'; font-size: 12px; }" +
+                        "a, img { display: block; }" +
+                        "</style></head><body>" +
+                        "<div>\n" +
+                        "  <a href='https://www.example.com/fallback'>\n" +
+                        "    <img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+                        "alt='' style='width:50px;height:20px;'/>\n" +
+                        "  </a>\n" +
+                        "</div>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1941,7 +2059,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1960,15 +2078,15 @@ public class NonVisualRegressionTest {
     @Test
     public void testImageLinkWithNbspTextUsesAlt() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Nbsp Image Link Test</title>" +
-            "<meta name='description' content='Test nbsp image link contents'/>" +
-            "<style>body { margin: 0; font-family: 'TestFont'; font-size: 12px; }</style>" +
-            "</head><body>" +
-            "<div><a href='https://www.example.com/nbsp'>&#160;" +
-            "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
-            "alt='Banner: apply for an assessment' style='width:50px;height:20px;'/></a></div>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Nbsp Image Link Test</title>" +
+                        "<meta name='description' content='Test nbsp image link contents'/>" +
+                        "<style>body { margin: 0; font-family: 'TestFont'; font-size: 12px; }</style>" +
+                        "</head><body>" +
+                        "<div><a href='https://www.example.com/nbsp'>&#160;" +
+                        "<img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' " +
+                        "alt='Banner: apply for an assessment' style='width:50px;height:20px;'/></a></div>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -1977,7 +2095,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
@@ -1994,14 +2112,14 @@ public class NonVisualRegressionTest {
     @Test
     public void testInlineTextLinkContentsPreserved() throws IOException {
         String html =
-            "<html lang='en'><head>" +
-            "<title>Inline Text Link Test</title>" +
-            "<meta name='description' content='Test inline text link contents'/>" +
-            "<style>body { margin: 0; font-family: 'TestFont'; font-size: 12px; }</style>" +
-            "</head><body>" +
-            "<p><a href='https://www.example.com/text'>Visible link text</a></p>" +
-            "<p><a href='https://www.example.com/titled' title='Title wins'>Some text</a></p>" +
-            "</body></html>";
+                "<html lang='en'><head>" +
+                        "<title>Inline Text Link Test</title>" +
+                        "<meta name='description' content='Test inline text link contents'/>" +
+                        "<style>body { margin: 0; font-family: 'TestFont'; font-size: 12px; }</style>" +
+                        "</head><body>" +
+                        "<p><a href='https://www.example.com/text'>Visible link text</a></p>" +
+                        "<p><a href='https://www.example.com/titled' title='Title wins'>Some text</a></p>" +
+                        "</body></html>";
 
         ByteArrayOutputStream actual = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -2010,7 +2128,7 @@ public class NonVisualRegressionTest {
         builder.testMode(true);
         builder.usePdfUaAccessibility(true);
         builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
-            "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
+                "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf"), "TestFont");
         builder.run();
 
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {

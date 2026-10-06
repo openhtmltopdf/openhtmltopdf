@@ -98,6 +98,11 @@ public class PdfUaTestcaseRunnerTest {
     public void testLists() throws Exception {
         run("lists");
     }
+
+    @Test
+    public void testDescriptionLists() throws Exception {
+        run("description-lists");
+    }
     
     @Test
     public void testBookmarks() throws Exception {
