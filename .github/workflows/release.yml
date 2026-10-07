@@ -33,9 +33,9 @@ jobs:
           java-version: ${{matrix.java}}
           cache: maven
       - name: Maven -v
-        run: mvn -v
+        run: ./mvnw -v
       - name: Build with Maven
-        run: mvn -B package --file pom.xml -Drevision=${{ github.sha }}
+        run: ./mvnw -B package --file pom.xml -Drevision=${{ github.sha }}
 
   release:
     name: Create release
@@ -64,14 +64,14 @@ jobs:
           scheme: semver
           increment: patch
       - name: Step 5 - Prepare and perform release
-        run: mvn -B deploy --no-transfer-progress -e -Prelease -Drevision=${{ steps.version.outputs.version }} -s settings.xml
+        run: ./mvnw -B deploy --no-transfer-progress -e -Prelease -Drevision=${{ steps.version.outputs.version }} -s settings.xml
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       - name: Step 6 - Upload artifact to GitHub Package Registry
-        run: mvn -B deploy -Dgithub-release -Drevision=${{ steps.version.outputs.version }}
+        run: ./mvnw -B deploy -Dgithub-release -Drevision=${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Step 7 - Push Git tag for the new release
