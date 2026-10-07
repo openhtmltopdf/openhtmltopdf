@@ -1241,6 +1241,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
                 };
             }
             pdfBoxGraphics2D.setFontTextDrawer(_fontTextDrawer);
+            pdfBoxGraphics2D.setDrawControl(NonUniformStrokeDrawControl.INSTANCE);
 
             /*
              * Do rendering

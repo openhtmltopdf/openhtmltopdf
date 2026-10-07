@@ -1,0 +1,42 @@
+<html>
+<head>
+<style>
+@page {
+  size: 400px 300px;
+  margin: 0;
+}
+body {
+  margin: 0;
+}
+svg {
+  display: block;
+}
+</style>
+</head>
+<body>
+<!-- Strokes under a non-uniform scale or a skew must be scaled per direction,
+     not by the horizontal factor alone. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <!-- scale(1, 10): horizontal line, 2 wide becomes 20 tall -->
+  <g transform="translate(20 30) scale(1 10)">
+    <path d="M 0 0 L 160 0" style="stroke: black; stroke-width: 2; fill: none;"/>
+  </g>
+  <!-- scale(10, 1): vertical line, 2 wide becomes 20 wide -->
+  <g transform="translate(240 10) scale(10 1)">
+    <path d="M 0 0 L 0 120" style="stroke: blue; stroke-width: 2; fill: none;"/>
+  </g>
+  <!-- dashes and the stroke follow the scale -->
+  <g transform="translate(20 90) scale(1 6)">
+    <path d="M 0 0 L 160 0" style="stroke: green; stroke-width: 2; stroke-dasharray: 20 10; fill: none;"/>
+  </g>
+  <!-- skewX: rectangle outline -->
+  <g transform="translate(40 160) skewX(40)">
+    <rect width="80" height="60" style="stroke: red; stroke-width: 8; fill: none;"/>
+  </g>
+  <!-- control: uniform scale keeps the regular stroke path -->
+  <g transform="translate(240 170) scale(4)">
+    <rect width="30" height="20" style="stroke: purple; stroke-width: 2; fill: none;"/>
+  </g>
+</svg>
+</body>
+</html>
