@@ -119,6 +119,7 @@ public class CalculatedStyle {
     private BorderPropertySet _border;
     private RectPropertySet _margin;
     private RectPropertySet _padding;
+    private List<BoxShadow> _boxShadows;
 
     private float _lineHeight;
     private boolean _lineHeightResolved;
@@ -428,6 +429,13 @@ public class CalculatedStyle {
      */
     public BorderPropertySet getDeclaredBorder(CssContext ctx) {
         return getBorderProperty(this, ctx);
+    }
+
+    public List<BoxShadow> getBoxShadows(CssContext ctx) {
+        if (_boxShadows == null) {
+            _boxShadows = BoxShadow.fromStyle(this, ctx);
+        }
+        return _boxShadows;
     }
 
     public FontSpecification getFont(CssContext ctx) {

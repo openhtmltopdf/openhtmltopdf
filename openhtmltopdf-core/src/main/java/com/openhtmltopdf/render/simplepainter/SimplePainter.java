@@ -92,6 +92,7 @@ public class SimplePainter {
     }
     
     private void paintLayerBackgroundAndBorder(RenderingContext c, Box master) {
+        master.paintBoxShadow(c);
         master.paintBackground(c);
         master.paintBorder(c);
     }
@@ -118,6 +119,9 @@ public class SimplePainter {
                 BlockBox box = (BlockBox) dli;
                 
                 debugOnly("painting bg", box);
+                if (box.getLayer() == null) {
+                    box.paintBoxShadow(c);
+                }
                 box.paintBackground(c);
                 box.paintBorder(c);
 

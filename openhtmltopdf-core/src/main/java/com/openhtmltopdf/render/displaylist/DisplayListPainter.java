@@ -73,6 +73,9 @@ public class DisplayListPainter {
 				
 				updateTableHeaderFooterPosition(c, box);
 				debugOnly("painting bg", box);
+				if (box.getLayer() == null) {
+					box.paintBoxShadow(c);
+				}
 				box.paintBackground(c);
 				box.paintBorder(c);
 
@@ -237,6 +240,7 @@ public class DisplayListPainter {
 				Object outerToken = c.getOutputDevice().startStructure(StructureType.LAYER, dlo.getMaster());
 		        Object innerToken = c.getOutputDevice().startStructure(StructureType.BACKGROUND, dlo.getMaster());
 				
+				dlo.getMaster().paintBoxShadow(c);
 				dlo.getMaster().paintBackground(c);
 				dlo.getMaster().paintBorder(c);
 				
