@@ -1,12 +1,18 @@
 package com.openhtmltopdf.pdfboxout;
 
-import com.openhtmltopdf.css.constants.CSSName;
-import com.openhtmltopdf.css.constants.IdentValue;
-import com.openhtmltopdf.extend.StructureType;
-import com.openhtmltopdf.newtable.TableCellBox;
-import com.openhtmltopdf.render.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.logging.Level;
+
 import com.openhtmltopdf.util.LogMessageId;
-import com.openhtmltopdf.util.XRLog;
 import org.apache.pdfbox.cos.COSArray;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSInteger;
@@ -24,11 +30,21 @@ import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Rectangle2D;
-import java.util.*;
-import java.util.function.Supplier;
-import java.util.logging.Level;
+import com.openhtmltopdf.css.constants.CSSName;
+import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.extend.StructureType;
+import com.openhtmltopdf.newtable.TableBox;
+import com.openhtmltopdf.newtable.TableCellBox;
+import com.openhtmltopdf.render.BlockBox;
+import com.openhtmltopdf.render.Box;
+import com.openhtmltopdf.render.InlineLayoutBox;
+import com.openhtmltopdf.render.LineBox;
+import com.openhtmltopdf.render.MarkerData;
+import com.openhtmltopdf.render.RenderingContext;
+import com.openhtmltopdf.render.displaylist.DisplayListContainer;
+import com.openhtmltopdf.render.displaylist.PaintInlineContent;
+import com.openhtmltopdf.util.XRLog;
+import java.util.IdentityHashMap;
 
 public class PdfBoxAccessibilityHelper {
     // This maps from page to a list of content items, we need to process in page order, so a linked map.
@@ -208,78 +224,55 @@ public class PdfBoxAccessibilityHelper {
                     String htmlTag = box.getElement().getTagName();
 
                     switch (htmlTag) {
-                        case "p":
+                    case "p":
+                        return StandardStructureTypes.P;
+                    case "h1":
+                        return StandardStructureTypes.H1;
+                    case "h2":
+                        return StandardStructureTypes.H2;
+                    case "h3":
+                        return StandardStructureTypes.H3;
+                    case "h4":
+                        return StandardStructureTypes.H4;
+                    case "h5":
+                        return StandardStructureTypes.H5;
+                    case "h6":
+                        return StandardStructureTypes.H6;
+                    case "article": // Fall-thru
+                    case "art":
+                        return StandardStructureTypes.ART;
+                    case "part":
+                        return StandardStructureTypes.PART;
+                    case "section": // Fall-thru
+                    case "sect":
+                        return StandardStructureTypes.SECT;
+                    case "caption":
+                        return StandardStructureTypes.CAPTION;
+                    case "blockquote":
+                        return StandardStructureTypes.BLOCK_QUOTE;
+                    case "div":
+                        // HTML div is always a block-level container in the PDF
+                        // structure tree, regardless of CSS display:inline-block.
+                        // Falling through to guessBoxTag would emit Span for an
+                        // inline-block div, producing Span containing P which
+                        // PAC flags as inappropriate use of Span.
+                        return StandardStructureTypes.DIV;
+                    case "dt": // Fall-thru
+                    case "dd":
+                        // A dt/dd inside a dl never gets here: DescriptionListStructualElement
+                        // regroups its content into the Lbl/LBody of a synthetic LI. This only
+                        // applies to a dt/dd outside a dl.
+                        //
+                        // dd takes flow content, so block children (<dd><p>, <dd><ul>, ...)
+                        // nest legally in a Div. Inline content must not sit directly in a
+                        // Div (a Grouping element), and wrapping it in a Span only to satisfy
+                        // nesting is flagged by PAC as inappropriate use of Span. So map to P
+                        // (content-permitting) in the inline case; otherwise fall through to Div.
+                        if (box instanceof BlockBox &&
+                            ((BlockBox) box).getChildrenContentType() == BlockBox.ContentType.INLINE) {
                             return StandardStructureTypes.P;
-                        case "h1":
-                            return StandardStructureTypes.H1;
-                        case "h2":
-                            return StandardStructureTypes.H2;
-                        case "h3":
-                            return StandardStructureTypes.H3;
-                        case "h4":
-                            return StandardStructureTypes.H4;
-                        case "h5":
-                            return StandardStructureTypes.H5;
-                        case "h6":
-                            return StandardStructureTypes.H6;
-                        case "article": // Fall-thru
-                        case "art":
-                            return StandardStructureTypes.ART;
-                        case "part":
-                            return StandardStructureTypes.PART;
-                        case "section": // Fall-thru
-                        case "sect":
-                            return StandardStructureTypes.SECT;
-                        case "caption":
-                            return StandardStructureTypes.CAPTION;
-                        case "blockquote":
-                            return StandardStructureTypes.BLOCK_QUOTE;
-                        case "div":
-                            // HTML div is always a block-level container in the PDF
-                            // structure tree, regardless of CSS display:inline-block.
-                            // Falling through to guessBoxTag would emit Span for an
-                            // inline-block div, producing Span containing P which
-                            // PAC flags as inappropriate use of Span.
-                            return StandardStructureTypes.DIV;
-                        case "dt":
-                        case "dd":
-                            // dd takes HTML flow content, so it can directly contain
-                            // block-level children (<dd><p>, <dd><ul>, <dd><table>, ...).
-                            // For that case Div is correct and already legal - Div is a
-                            // Grouping element and BLSEs like P/L/Table nest inside a
-                            // Grouping element just fine (Div>P, Div>L, Div>Table).
-                            //
-                            // It's only when dt/dd directly wraps inline/text content
-                            // that Div becomes a problem: falling through to Div (a
-                            // Grouping element that must not directly contain marked
-                            // content) forces the single-child collapse in finish() to
-                            // either violate that rule (raw content directly in the Div,
-                            // PAC: "Marked content is present in a possibly inadmissible
-                            // location") or wrap the content in a Span purely to satisfy
-                            // nesting, which PAC then flags right back as "possibly
-                            // inappropriate use of a Span structure element" since the
-                            // Span itself distinguishes nothing. So only map to P (a
-                            // content-permitting block-level element) in that inline
-                            // case; for block content, keep falling through to Div.
-                            //
-                            // Description-list terms and descriptions are grouped later by
-                            // DescriptionListStructualElement into synthetic PDF list items:
-                            //     /LI
-                            //       /Lbl    <- content of one or more <dt> elements
-                            //       /LBody  <- content of one or more <dd> elements
-                            //
-                            // HTML provides the <dt> and <dd> elements directly.
-                            // In the PDF structure tree, their semantics are represented
-                            // by /Lbl and /LBody inside a synthetic /LI element.
-                            //
-                            // The direct <div> wrapper form of a <dl> is handled by the
-                            // description-list grouping logic. It is not treated as the
-                            // PDF representation of the <dd> content itself.
-                            if (box instanceof BlockBox &&
-                                    ((BlockBox) box).getChildrenContentType() == BlockBox.ContentType.INLINE) {
-                                return StandardStructureTypes.P;
-                            }
-                            break; // block content (or empty/unknown): fall through to Div below.
+                        }
+                        break; // block content (or empty/unknown): fall through to Div below.
                     }
                 }
 
@@ -289,36 +282,36 @@ public class PdfBoxAccessibilityHelper {
             return StandardStructureTypes.SPAN;
         }
 
-        /**
-         * Counts children that are not themselves purely br-generated content.
-         * A br-generated child (see isBrGeneratedContent) always ends up contributing
-         * zero real content once its own finish() runs - it is either fully empty
-         * (the invisible line-break text is now an Artifact, see startStructure/TEXT)
-         * or gets flattened away. Without this, such a child would still count
-         * towards child.children.size(), so a wrapper box like "Bar<br>" would be
-         * seen as having 2 children instead of 1 and miss the single-child collapse
-         * below, needlessly getting its own Span. See GH issue #100.
-         */
-        private static int countNonBrChildren(List<AbstractTreeItem> children) {
-            int count = 0;
-            for (AbstractTreeItem item : children) {
-                if (item instanceof GenericStructualElement &&
-                        isBrGeneratedContent(((GenericStructualElement) item).box)) {
-                    continue;
-                }
-                count++;
+    /**
+     * Counts children that are not themselves purely br-generated content.
+     * A br-generated child (see isBrGeneratedContent) always ends up contributing
+     * zero real content once its own finish() runs - it is either fully empty
+     * (the invisible line-break text is now an Artifact, see startStructure/TEXT)
+     * or gets flattened away. Without this, such a child would still count
+     * towards child.children.size(), so a wrapper box like "Bar<br>" would be
+     * seen as having 2 children instead of 1 and miss the single-child collapse
+     * below, needlessly getting its own Span. See GH issue #100.
+     */
+    private static int countNonBrChildren(List<AbstractTreeItem> children) {
+        int count = 0;
+        for (AbstractTreeItem item : children) {
+            if (item instanceof GenericStructualElement &&
+                isBrGeneratedContent(((GenericStructualElement) item).box)) {
+                continue;
             }
-            return count;
+            count++;
         }
+        return count;
+    }
 
-        @Override
+    @Override
         void finish(AbstractStructualElement parent) {
             // A structual element such as Div, Sect, p, etc
             // which contains other structual elements or content items (text).
             GenericStructualElement child = this;
 
             if (child.children.isEmpty() &&
-                    (child.box.getElement() == null || !child.box.getElement().hasAttribute("id"))) {
+                (child.box.getElement() == null || !child.box.getElement().hasAttribute("id"))) {
                 // There is no point in outputting empty structual elements.
                 // Exception is elements with an id which may be there to
                 // use as a link or bookmark destination.
@@ -326,10 +319,10 @@ public class PdfBoxAccessibilityHelper {
             }
 
             if (child.box instanceof LineBox ||
-                    (child.box instanceof InlineLayoutBox &&
-                            countNonBrChildren(child.children) == 1 &&
-                            child.box.getParent() instanceof LineBox) ||
-                    isBrGeneratedContent(child.box)) {
+                (child.box instanceof InlineLayoutBox &&
+                 countNonBrChildren(child.children) == 1 &&
+                 child.box.getParent() instanceof LineBox) ||
+                isBrGeneratedContent(child.box)) {
                 // We skip (don't create structure element) line boxes in the tree.
                 // We also skip the common case of a intermediary InlineLayoutBox between the 
                 // LineBox and a single InlineText.
@@ -448,7 +441,7 @@ public class PdfBoxAccessibilityHelper {
             } else if (listStyleType == IdentValue.CIRCLE) {
                 listType = "Circle";
             } else if (listStyleType == IdentValue.DECIMAL ||
-                    listStyleType == IdentValue.DECIMAL_LEADING_ZERO) {
+                       listStyleType == IdentValue.DECIMAL_LEADING_ZERO) {
                 listType = "Decimal";
             } else if (listStyleType == IdentValue.UPPER_ROMAN) {
                 listType = "UpperRoman";
@@ -559,8 +552,12 @@ public class PdfBoxAccessibilityHelper {
         }
     }
 
+    /**
+     * A dt or dd. Inside a dl, DescriptionListStructualElement moves its children
+     * into the Lbl/LBody of a synthetic LI and the element itself is never finished.
+     * A dt/dd outside a dl is finished like any other element (see chooseTag).
+     */
     private abstract static class DescriptionPartStructualElement extends GenericStructualElement {
-
         void moveChildrenTo(AbstractStructualElement target) {
             for (AbstractTreeItem child : this.children) {
                 target.addChild(child);
@@ -569,16 +566,10 @@ public class PdfBoxAccessibilityHelper {
             this.children.clear();
         }
 
-        @Override
-        void finish(AbstractStructualElement parent) {
-            finishTreeItems(this.children, parent);
-        }
-
         abstract boolean isTerm();
     }
 
     private static class DescriptionTermStructualElement extends DescriptionPartStructualElement {
-
         @Override
         boolean isTerm() {
             return true;
@@ -596,7 +587,9 @@ public class PdfBoxAccessibilityHelper {
         final ListLabelStructualElement label = new ListLabelStructualElement();
         final ListBodyStructualElement body = new ListBodyStructualElement();
 
-        DescriptionListItemStructualElement() {
+        DescriptionListItemStructualElement(AbstractStructualElement first) {
+            this.page = first.page;
+            this.box = first.box;
             label.parent = this;
             body.parent = this;
         }
@@ -630,6 +623,12 @@ public class PdfBoxAccessibilityHelper {
         }
     }
 
+    /**
+     * Maps a dl to an L. HTML has no element for a term/description group, so each
+     * run of dt elements followed by dd elements becomes a synthetic LI, with the dt
+     * content in its Lbl and the dd content in its LBody (PDF 2.0, "Deriving HTML
+     * from PDF" 4.3.5.5.2). div wrappers around groups are flattened.
+     */
     private static class DescriptionListStructualElement extends AbstractStructualElement {
         final List<AbstractTreeItem> children = new ArrayList<>();
 
@@ -648,76 +647,65 @@ public class PdfBoxAccessibilityHelper {
             DescriptionListStructualElement child = this;
             createPdfStrucureElement(parent, child);
             handleGlobalAttributes();
-            List<DescriptionListItemStructualElement> items = groupDescriptionParts(child.children);
-            finishTreeItems(items, child);
+            finishTreeItems(groupDescriptionParts(child.children), child);
         }
 
         private List<DescriptionListItemStructualElement> groupDescriptionParts(List<AbstractTreeItem> sourceChildren) {
-            List<DescriptionListItemStructualElement> result = new ArrayList<>();
-            List<DescriptionPartStructualElement> parts = new ArrayList<>();
-
+            List<AbstractTreeItem> parts = new ArrayList<>();
             for (AbstractTreeItem child : sourceChildren) {
                 collectDescriptionParts(child, parts);
             }
+
+            List<DescriptionListItemStructualElement> result = new ArrayList<>();
             DescriptionListItemStructualElement currentItem = null;
             boolean seenDetails = false;
 
-            for (DescriptionPartStructualElement part : parts) {
-                if (part.isTerm()) {
-                    if (currentItem == null || seenDetails) {
-                        currentItem = new DescriptionListItemStructualElement();
-                        currentItem.page = part.page;
-                        currentItem.box = part.box;
-                        result.add(currentItem);
-                        seenDetails = false;
-                    }
+            for (AbstractTreeItem part : parts) {
+                boolean isTerm = part instanceof DescriptionPartStructualElement &&
+                        ((DescriptionPartStructualElement) part).isTerm();
+
+                if (currentItem == null || (isTerm && seenDetails)) {
+                    currentItem = new DescriptionListItemStructualElement(
+                            part instanceof AbstractStructualElement ? (AbstractStructualElement) part : this);
+                    result.add(currentItem);
+                    seenDetails = false;
+                }
+
+                if (isTerm) {
                     currentItem.addTerm((DescriptionTermStructualElement) part);
-                } else {
-                    if (currentItem == null) {
-                        currentItem = new DescriptionListItemStructualElement();
-                        currentItem.page = part.page;
-                        currentItem.box = part.box;
-                        result.add(currentItem);
-                    }
+                } else if (part instanceof DescriptionDetailsStructualElement) {
                     currentItem.addDetails((DescriptionDetailsStructualElement) part);
+                    seenDetails = true;
+                } else {
+                    // Not allowed in a dl, but its content must still be tagged
+                    // for PDF/UA, so keep it with the current description.
+                    XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.GENERAL_PDF_ACCESSIBILITY_UNEXPECTED_DESCRIPTION_LIST_CHILD);
+                    currentItem.addChild(part);
                     seenDetails = true;
                 }
             }
             return result;
         }
 
-        private void collectDescriptionParts(AbstractTreeItem child, List<DescriptionPartStructualElement> result) {
-
-            if (child instanceof DescriptionPartStructualElement) {
-                result.add((DescriptionPartStructualElement) child);
-                return;
-            }
-
+        private void collectDescriptionParts(AbstractTreeItem child, List<AbstractTreeItem> result) {
             if (isDescriptionDivWrapper(child)) {
-                GenericStructualElement wrapper = (GenericStructualElement) child;
-                for (AbstractTreeItem nestedChild : wrapper.children) {
+                for (AbstractTreeItem nestedChild : ((GenericStructualElement) child).children) {
                     collectDescriptionParts(nestedChild, result);
                 }
-                return;
+            } else {
+                result.add(child);
             }
-            XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.GENERAL_UNEXPECTED_CHILD);
         }
 
         private boolean isDescriptionDivWrapper(AbstractTreeItem child) {
-
-            if (!(child instanceof GenericStructualElement)) {
+            if (!(child instanceof GenericStructualElement) ||
+                child instanceof DescriptionPartStructualElement) {
                 return false;
             }
-
-            GenericStructualElement element = (GenericStructualElement) child;
-
-            return element.box != null
-                    && element.box.getElement() != null
-                    && "div".equalsIgnoreCase(
-                    element.box
-                            .getElement()
-                            .getTagName()
-            );
+            Box box = ((GenericStructualElement) child).box;
+            return box != null &&
+                   box.getElement() != null &&
+                   "div".equals(box.getElement().getTagName());
         }
     }
 
@@ -1051,8 +1039,8 @@ public class PdfBoxAccessibilityHelper {
      */
     public static PDStructureElement getStructualElementForBox(Box targetBox) {
         if (targetBox != null &&
-                targetBox.getAccessibilityObject() != null &&
-                targetBox.getAccessibilityObject() instanceof AbstractStructualElement) {
+            targetBox.getAccessibilityObject() != null &&
+            targetBox.getAccessibilityObject() instanceof AbstractStructualElement) {
 
             return ((AbstractStructualElement) targetBox.getAccessibilityObject()).elem;
         }
@@ -1148,8 +1136,8 @@ public class PdfBoxAccessibilityHelper {
 
         Box parent = box.getParent();
         return parent != null &&
-                parent.getElement() != null &&
-                "br".equals(parent.getElement().getTagName());
+               parent.getElement() != null &&
+               "br".equals(parent.getElement().getTagName());
     }
 
     private static String guessBoxTag(Box box) {
@@ -1428,62 +1416,62 @@ public class PdfBoxAccessibilityHelper {
     }
 
     private AbstractStructualElement createStructureItem(StructureType type, Box box) {
-        AbstractStructualElement child = null;
+            AbstractStructualElement child = null;
 
-        if (box instanceof BlockBox) {
-            BlockBox bb = (BlockBox) box;
+            if (box instanceof BlockBox) {
+                BlockBox bb = (BlockBox) box;
 
-            if (bb.isReplaced()) {
-                // For replaced elements we will need to create a BBox.
-                // This is done here so we don'thave to hang onto the page height, transform, etc.
-                Rectangle2D rect = PdfBoxFastLinkManager.createTargetArea(
-                        _ctx, box, _pageHeight, _transform, _ctx.getPage(), _od);
+                if (bb.isReplaced()) {
+                    // For replaced elements we will need to create a BBox.
+                    // This is done here so we don'thave to hang onto the page height, transform, etc.
+                    Rectangle2D rect = PdfBoxFastLinkManager.createTargetArea(
+                            _ctx, box, _pageHeight, _transform, _ctx.getPage(), _od);
 
-                child = new FigureStructualElement();
-                ((FigureStructualElement) child).boundingBox = new PDRectangle(
-                        (float) rect.getMinX(),
-                        (float) rect.getMinY(),
-                        (float) rect.getWidth(),
-                        (float) rect.getHeight());
+                    child = new FigureStructualElement();
+                    ((FigureStructualElement) child).boundingBox = new PDRectangle(
+                            (float) rect.getMinX(),
+                            (float) rect.getMinY(),
+                            (float) rect.getWidth(),
+                            (float) rect.getHeight());
+                }
             }
-        }
 
-        if (child == null && box.getElement() != null && !box.isAnonymous()) {
-            String htmlTag = box.getElement().getTagName();
-            Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
+            if (child == null && box.getElement() != null && !box.isAnonymous()) {
+                String htmlTag = box.getElement().getTagName();
+                Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
 
-            if (supplier != null) {
-                child = supplier.get();
+                if (supplier != null) {
+                    child = supplier.get();
+                }
             }
-        }
 
-        if (child == null &&
+            if (child == null &&
                 box.getParent() != null &&
                 box.getParent().getAccessibilityObject() instanceof TableStructualElement) {
 
-            TableStructualElement table = (TableStructualElement) box.getParent().getAccessibilityObject();
+                TableStructualElement table = (TableStructualElement) box.getParent().getAccessibilityObject();
 
-            table.setPdfVersion(_od.getWriter().getVersion());
+                table.setPdfVersion(_od.getWriter().getVersion());
 
-            if (box.getStyle().isIdent(CSSName.DISPLAY, IdentValue.TABLE_HEADER_GROUP)) {
-                child = table.thead;
-            } else if (box.getStyle().isIdent(CSSName.DISPLAY, IdentValue.TABLE_ROW_GROUP)) {
-                child = new TableBodyStructualElement();
-            } else if (box.getStyle().isIdent(CSSName.DISPLAY, IdentValue.TABLE_FOOTER_GROUP)) {
-                child = table.tfoot;
+                if (box.getStyle().isIdent(CSSName.DISPLAY, IdentValue.TABLE_HEADER_GROUP)) {
+                    child = table.thead;
+                } else if (box.getStyle().isIdent(CSSName.DISPLAY, IdentValue.TABLE_ROW_GROUP)) {
+                    child = new TableBodyStructualElement();
+                } else if (box.getStyle().isIdent(CSSName.DISPLAY, IdentValue.TABLE_FOOTER_GROUP)) {
+                    child = table.tfoot;
+                }
             }
-        }
 
 
-        if (child == null) {
-            child = new GenericStructualElement();
-        }
+            if (child == null) {
+                child = new GenericStructualElement();
+            }
 
-        child.page = _page;
-        child.box = box;
-        child.setPdfVersion(_od.getWriter().getVersion());
+            child.page = _page;
+            child.box = box;
+            child.setPdfVersion(_od.getWriter().getVersion());
 
-        return child;
+            return child;
     }
 
     private void setupStructureElement(AbstractStructualElement child, Box box) {
@@ -1496,7 +1484,7 @@ public class PdfBoxAccessibilityHelper {
     private void ensureParent(Box box, AbstractTreeItem child) {
         if (child.parent == null) {
             if (child instanceof TableHeadStructualElement ||
-                    child instanceof TableFootStructualElement) {
+                child instanceof TableFootStructualElement) {
                 child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
             } else if (child instanceof TableBodyStructualElement) {
                 child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
@@ -1550,7 +1538,7 @@ public class PdfBoxAccessibilityHelper {
         FigureStructualElement parent = (FigureStructualElement) box.getAccessibilityObject();
 
         if (parent == null ||
-                parent.content != null) {
+            parent.content != null) {
             // This figure structual element already has an image associatted with it.
             // Images continued on subsequent pages will be treated as artifacts.
             return null;
@@ -1609,50 +1597,50 @@ public class PdfBoxAccessibilityHelper {
     private static final Token RUNNING_LINK_TEXT = new Token();
 
     public Token startStructure(StructureType type, Box box) {
-        // Check for items that appear on every page (fixed, running, page margins).
-        if (type == StructureType.RUNNING) {
-            // Only mark artifact for first level of running element (we might have
-            // nested fixed elements).
-            if (_runningLevel == 0) {
-                _runningLevel++;
-                COSDictionary run = createPaginationArtifact();
-                _cs.beginMarkedContent(COSName.ARTIFACT, run);
-                return STARTING_RUNNING;
-            }
-
-            _runningLevel++;
-            return NESTED_RUNNING;
-        } else if (_runningLevel > 0) {
-            // We are in a running artifact.
-            // Detect content inside anchor elements to create /Link structure (PDF/UA-1 §7.18).
-            // Note: SimplePainter (used for running content) doesn't emit INLINE structure
-            // calls, so we detect anchors at the TEXT/REPLACED level via DOM ancestry.
-            if (type == StructureType.TEXT || type == StructureType.REPLACED) {
-                org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
-                if (anchorElem != null) {
-                    ensureRunningLinkStructure(box, anchorElem);
-                    // Temporarily close the artifact BMC.
-                    _cs.endMarkedContent();
-                    // Create content item attached to the /Link structure element.
-                    GenericContentItem current;
-                    String tag;
-                    if (type == StructureType.REPLACED) {
-                        // Use FigureStructualElement to preserve alt text and BBox.
-                        current = createRunningLinkFigureItem(box);
-                        tag = StandardStructureTypes.Figure;
-                    } else {
-                        current = createRunningLinkContentItem();
-                        tag = StandardStructureTypes.SPAN;
-                    }
-                    _cs.beginMarkedContent(COSName.getPDFName(tag), current.dict);
-                    return RUNNING_LINK_TEXT;
+            // Check for items that appear on every page (fixed, running, page margins).
+            if (type == StructureType.RUNNING) {
+                // Only mark artifact for first level of running element (we might have
+                // nested fixed elements).
+                if (_runningLevel == 0) {
+                    _runningLevel++;
+                    COSDictionary run = createPaginationArtifact();
+                    _cs.beginMarkedContent(COSName.ARTIFACT, run);
+                    return STARTING_RUNNING;
                 }
+
+                _runningLevel++;
+                return NESTED_RUNNING;
+            } else if (_runningLevel > 0) {
+                // We are in a running artifact.
+                // Detect content inside anchor elements to create /Link structure (PDF/UA-1 §7.18).
+                // Note: SimplePainter (used for running content) doesn't emit INLINE structure
+                // calls, so we detect anchors at the TEXT/REPLACED level via DOM ancestry.
+                if (type == StructureType.TEXT || type == StructureType.REPLACED) {
+                    org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
+                    if (anchorElem != null) {
+                        ensureRunningLinkStructure(box, anchorElem);
+                        // Temporarily close the artifact BMC.
+                        _cs.endMarkedContent();
+                        // Create content item attached to the /Link structure element.
+                        GenericContentItem current;
+                        String tag;
+                        if (type == StructureType.REPLACED) {
+                            // Use FigureStructualElement to preserve alt text and BBox.
+                            current = createRunningLinkFigureItem(box);
+                            tag = StandardStructureTypes.Figure;
+                        } else {
+                            current = createRunningLinkContentItem();
+                            tag = StandardStructureTypes.SPAN;
+                        }
+                        _cs.beginMarkedContent(COSName.getPDFName(tag), current.dict);
+                        return RUNNING_LINK_TEXT;
+                    }
+                }
+
+                return INSIDE_RUNNING;
             }
 
-            return INSIDE_RUNNING;
-        }
-
-        switch (type) {
+            switch (type) {
             case LAYER:
             case FLOAT:
             case BLOCK:
@@ -1678,9 +1666,9 @@ public class PdfBoxAccessibilityHelper {
                     MarkerData markers = ((BlockBox) box).getMarkerData();
 
                     if (markers == null ||
-                            (markers.getGlyphMarker() == null &&
-                                    markers.getTextMarker() == null &&
-                                    markers.getImageMarker() == null)) {
+                        (markers.getGlyphMarker() == null &&
+                         markers.getTextMarker() == null &&
+                         markers.getImageMarker() == null)) {
                         return FALSE_TOKEN;
                     }
                 }
@@ -1743,7 +1731,7 @@ public class PdfBoxAccessibilityHelper {
             default: {
                 return FALSE_TOKEN;
             }
-        }
+            }
     }
 
     public void endStructure(Object token) {
@@ -1752,7 +1740,7 @@ public class PdfBoxAccessibilityHelper {
         if (value == TRUE_TOKEN) {
             _cs.endMarkedContent();
         } else if (value == FALSE_TOKEN ||
-                value == INSIDE_RUNNING) {
+                   value == INSIDE_RUNNING) {
             // do nothing...
         } else if (value == NESTED_RUNNING) {
             _runningLevel--;

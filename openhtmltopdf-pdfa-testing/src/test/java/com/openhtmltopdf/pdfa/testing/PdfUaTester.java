@@ -120,6 +120,11 @@ public class PdfUaTester {
         assertTrue(run("pdfua-structure"));
     }
 
+    @Test
+    public void testDescriptionListsPdfUa1() throws Exception {
+        assertTrue(run("pdfua-description-lists"));
+    }
+
     /**
      * Verifies that empty img elements (no src or broken src) do not cause
      * NPE in FigureStructualElement.finish() when building the PDF/UA

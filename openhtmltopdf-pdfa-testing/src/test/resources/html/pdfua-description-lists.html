@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>PDF/UA Description List Test</title>
+  <meta name="subject" content="PDF/UA description list validation"/>
+  <meta name="author" content="openhtmltopdf.com team"/>
+  <meta name="description" content="Tests dl/dt/dd mapping to L/LI/Lbl/LBody for PDF/UA-1"/>
+  <style>
+  body {
+    margin: 0;
+    font-family: 'TestFont';
+    font-size: 15px;
+  }
+  </style>
+</head>
+<body>
+  <h1>Description lists</h1>
+  <dl>
+    <dt>HTML</dt>
+    <dd>Hypertext Markup Language</dd>
+    <dt>Color</dt>
+    <dt>Colour</dt>
+    <dd>A visual attribute.</dd>
+    <dt>Authors</dt>
+    <dd>Anna</dd>
+    <dd>Bernd</dd>
+  </dl>
+  <dl>
+    <div>
+      <dt>Wrapped term</dt>
+      <dd>Wrapped description</dd>
+    </div>
+    <div>
+      <dt>Block content</dt>
+      <dd><p>First paragraph.</p><p>Second paragraph.</p></dd>
+    </div>
+  </dl>
+  <dl>
+    <dt>Line<br/>break</dt>
+    <dd>Inline <b>bold</b> and <a href="https://example.com">a link</a>.</dd>
+    <dd><ul><li>Nested list item</li></ul></dd>
+  </dl>
+  <dl>
+    <dt>Term</dt>
+    <dd>Description</dd>
+    <p>Invalid paragraph directly inside a dl, must still be tagged</p>
+  </dl>
+  <dd>Invalid dd outside any dl</dd>
+</body>
+</html>
