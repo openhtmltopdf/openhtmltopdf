@@ -36,5 +36,35 @@ Each spacer leaves exactly enough room for the content below it.
 <li><p>C1 a<br/>C1 b<br/>C1 c<br/>C1 d</p></li>
 <li><p>C2 a<br/>C2 b<br/>C2 c<br/>C2 d</p></li>
 </ul></div>
+
+<!--
+KNOWN DIFFERENCES FROM CHROME. Cases D and E record openhtmltopdf's current
+behaviour; they are not exact-fit cases and not fixed here.
+-->
+
+<!--
+D: the lines fit, the box's bottom padding and border do not.
+   98px spacer + 1px border + 3px padding + 6 lines of 16px = 198px, plus 4px
+   of bottom padding and border = 202px.
+   openhtmltopdf: all six lines stay on this page, the bottom padding and
+   border continue on the next page.
+   Chrome: moves "D b1".."D b3" to the next page so they keep the padding and
+   border with them.
+-->
+<div class="case"><div style="height: 98px"></div>
+<div style="border: 1px solid black; padding: 3px">
+<p>D a1<br/>D a2<br/>D a3</p>
+<p>D b1<br/>D b2<br/>D b3</p>
+</div>
+<p>D next</p></div>
+
+<!--
+E: orphans: 2 and widows: 2 cannot both be met. Two of the three lines fit.
+   openhtmltopdf: moves the whole paragraph, leaving this page empty.
+   Chrome: gives up on widows and splits 2 + 1.
+-->
+<div class="case"><div style="height: 168px"></div>
+<p>E a<br/>E b<br/>E c</p>
+<p>E next</p></div>
 </body>
 </html>

@@ -1933,7 +1933,8 @@ public class VisualRegressionTest {
     /**
      * Tests that content ending exactly at the bottom of a page stays on that page,
      * for a plain paragraph, a page-break-inside: avoid block, and a heading kept
-     * with the first line of a list.
+     * with the first line of a list. Two further cases record where pagination
+     * still differs from Chrome (see the comments in the fixture).
      */
     @Test
     public void testExactFitPageBottom() throws IOException {
