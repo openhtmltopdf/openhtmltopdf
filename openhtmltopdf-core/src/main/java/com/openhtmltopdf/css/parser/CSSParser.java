@@ -1326,9 +1326,13 @@ public class CSSParser {
             return null;
         }
 
+        PropertyValue inherit = new PropertyValue(IdentValue.INHERIT);
         List<PropertyDeclaration> inherited = builder.buildDeclarations(
-                cssName, Collections.singletonList(new PropertyValue(IdentValue.INHERIT)),
-                origin, important, inheritAllowed);
+                cssName, Collections.singletonList(inherit), origin, important, inheritAllowed);
+        if (inherited.isEmpty()) {
+            // Builders for content and quotes drop inherit entirely.
+            inherited = Collections.singletonList(new PropertyDeclaration(cssName, inherit, important, origin));
+        }
 
         List<PropertyDeclaration> result = new ArrayList<>(inherited.size());
         for (PropertyDeclaration decl : inherited) {

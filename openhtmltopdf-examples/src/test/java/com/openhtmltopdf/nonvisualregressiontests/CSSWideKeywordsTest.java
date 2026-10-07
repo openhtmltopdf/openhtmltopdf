@@ -6,6 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Element;
@@ -142,6 +145,32 @@ public class CSSWideKeywordsTest {
     public void testUnsetOnInheritedPropertyInherits() throws IOException {
         layout();
         assertColor("color-unset", 1, 2, 3);
+    }
+
+    /**
+     * The content builder ignores inherit, so content needs the single-declaration fallback.
+     */
+    @Test
+    public void testContentInitialAndUnsetRemoveGeneratedContent() throws IOException {
+        String html =
+            "<html><head><style>\n" +
+            "p::before { content: 'X'; }\n" +
+            "p.initial::before { content: initial; }\n" +
+            "p.unset::before { content: unset; }\n" +
+            "</style></head><body>\n" +
+            "<p>a</p><p class=\"initial\">b</p><p class=\"unset\">c</p>\n" +
+            "</body></html>";
+
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        builder.toStream(os);
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(os.toByteArray())) {
+            String text = new PDFTextStripper().getText(doc).replaceAll("\\s+", " ").trim();
+            assertEquals("Xa b c", text);
+        }
     }
 
     @Test
