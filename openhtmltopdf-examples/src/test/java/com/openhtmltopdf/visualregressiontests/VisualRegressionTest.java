@@ -858,6 +858,16 @@ public class VisualRegressionTest {
     public void testReplacedSizingSvg() throws IOException {
         assertTrue(vt.runTest("replaced-sizing-svg", TestSupport.WITH_SVG));
     }
+
+    /**
+     * Tests that SVG strokes under a non-uniform scale or a skew are scaled per
+     * direction, rather than by the horizontal factor alone.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/126
+     */
+    @Test
+    public void testIssue126SvgNonUniformStroke() throws IOException {
+        assertTrue(vt.runTest("issue-126-svg-non-uniform-stroke", TestSupport.WITH_SVG));
+    }
     
     /**
      * Tests that non-css sizing for SVG works. For example width/height
