@@ -1,0 +1,27 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 400px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+}
+img {
+  display: block;
+  margin-bottom: 10px;
+  border: 1px solid red;
+}
+</style>
+</head>
+<body>
+<!-- Intrinsic size exceeds max-width/max-height, but the explicit
+     width/height is below it, so the explicit value must win. -->
+<img src="../../demos/images/landscape-sydney.jpg" style="width: 50px; max-width: 200px;"/>
+<img src="../../demos/images/portrait-shuttle.jpg" style="height: 60px; max-height: 200px;"/>
+<img src="../../demos/images/landscape-sydney.jpg" style="width: 50px; height: 50px; max-width: 200px; max-height: 200px;"/>
+<!-- Control: no explicit width, so max-width applies. -->
+<img src="../../demos/images/landscape-sydney.jpg" style="max-width: 200px;"/>
+</body>
+</html>

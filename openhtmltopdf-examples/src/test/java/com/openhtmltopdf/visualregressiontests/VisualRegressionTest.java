@@ -747,6 +747,16 @@ public class VisualRegressionTest {
     public void testIssue417ReplacedSizingWidthHeightWithMax() throws IOException {
         assertTrue(vt.runTest("issue-417-replaced-sizing-width-height-with-max"));
     }
+
+    /**
+     * Tests that an explicit width/height below max-width/max-height is kept
+     * when the image's intrinsic size exceeds the max.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/74
+     */
+    @Test
+    public void testIssue74ReplacedWidthBelowMax() throws IOException {
+        assertTrue(vt.runTest("issue-74-replaced-width-below-max"));
+    }
     
     /**
      * Tests that a fixed position element correctly resizes to the sum of its child boxes

@@ -882,11 +882,14 @@ public class BlockBox extends Box {
         int minWidth = getCSSMinWidth(c);
         int minHeight = getCSSMinHeight(c);
         
-        // Clamp w to max-width if required.
-        if (!getStyle().isMaxWidthNone() &&
-            (intrinsicWidth > getCSSMaxWidth(c) || cssWidth > getCSSMaxWidth(c))) {
-            cssWidth = getCSSMaxWidth(c);
-            usedMaxWidth = true;
+        // Clamp w to max-width if required. An explicit width below max-width
+        // is left alone, even when the intrinsic width exceeds max-width.
+        if (!getStyle().isMaxWidthNone()) {
+            int maxWidth = getCSSMaxWidth(c);
+            if (cssWidth > maxWidth || (cssWidth < 0 && intrinsicWidth > maxWidth)) {
+                cssWidth = maxWidth;
+                usedMaxWidth = true;
+            }
         }
 
         // Clamp w to min-width if required.
@@ -898,10 +901,12 @@ public class BlockBox extends Box {
         }
         
         // Clamp h to max-height if required.
-        if (!getStyle().isMaxHeightNone() &&
-            (intrinsicHeight > getCSSMaxHeight(c) || cssHeight > getCSSMaxHeight(c))) {
-            cssHeight = getCSSMaxHeight(c);
-            usedMaxHeight = true;
+        if (!getStyle().isMaxHeightNone()) {
+            int maxHeight = getCSSMaxHeight(c);
+            if (cssHeight > maxHeight || (cssHeight < 0 && intrinsicHeight > maxHeight)) {
+                cssHeight = maxHeight;
+                usedMaxHeight = true;
+            }
         }
 
         // Clamp h to min-height if required.
