@@ -45,6 +45,7 @@ public interface LogMessageId {
         GENERAL_NO_FOOTNOTES_INSIDE_FOOTNOTES(XRLog.GENERAL, "Footnotes inside footnotes or fixed position area are not supported"),
         GENERAL_IMPORT_FONT_FACE_RULES_HAS_NOT_BEEN_CALLED(XRLog.GENERAL, "importFontFaceRules has not been called for this pdf transcoder"),
         GENERAL_PDF_ACCESSIBILITY_NO_ALT_ATTRIBUTE_PROVIDED_FOR_IMAGE(XRLog.GENERAL, "No alt attribute provided for image/replaced in PDF/UA document."),
+        GENERAL_PDF_ACCESSIBILITY_UNEXPECTED_DESCRIPTION_LIST_CHILD(XRLog.GENERAL, "Element other than dt, dd or div inside a dl in PDF/UA document, tagging it as part of the preceding description."),
         GENERAL_PDF_SPECIFIED_FONTS_DONT_CONTAIN_A_SPACE_CHARACTER(XRLog.GENERAL, "Specified fonts don't contain a space character!"),
         GENERAL_PDF_USING_FAST_MODE(XRLog.GENERAL, "Using fast-mode renderer. Prepare to fly."),
         GENERAL_PDF_ACCESSIBILITY_NO_DOCUMENT_TITLE_PROVIDED(XRLog.GENERAL, "No document title provided. Document will not be PDF/UA compliant."),

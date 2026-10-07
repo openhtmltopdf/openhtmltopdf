@@ -1365,18 +1365,34 @@ public class NonVisualRegressionTest {
                     countMcidLeafDescendants(span) > 0);
             }
 
-            // With dt/dd mapping to P, no Span wrapping is needed at all: a <br>
-            // should be exactly as invisible to the tag tree as natural
-            // word-wrapping already is.
             assertEquals("Should find no Span structure elements at all", 0, spans.size());
 
-            // Each of "Foo", "Bar" and "Baz" should have landed inside its own P.
-            List<PDStructureElement> paragraphs = new ArrayList<>();
-            collectStructureElementsByType(root, "P", paragraphs);
-            assertEquals("Should find exactly 2 P structure elements (dt and dd)", 2, paragraphs.size());
-            for (PDStructureElement p : paragraphs) {
-                assertTrue("Each P should contain real (MCID) content",
-                    countMcidLeafDescendants(p) > 0);
+            // dt/dd are represented semantically as Lbl/LBody inside a
+            // synthetic LI. The br itself and its generated content must
+            // not produce empty Span structure elements.
+            List<PDStructureElement> lists = new ArrayList<>();
+            collectStructureElementsByType(root, "L", lists);
+
+            assertEquals("Should find exactly one Description List", 1, lists.size());
+
+            List<PDStructureElement> listItems = new ArrayList<>();
+            collectStructureElementsByType(root, "LI", listItems);
+            assertEquals("Should find exactly one Description List item", 1, listItems.size());
+
+            List<PDStructureElement> labels = new ArrayList<>();
+            collectStructureElementsByType(root, "Lbl", labels);
+            assertEquals("Should find exactly one description term label", 1, labels.size());
+
+            List<PDStructureElement> bodies = new ArrayList<>();
+            collectStructureElementsByType(root, "LBody", bodies);
+            assertEquals("Should find exactly one description details body", 1, bodies.size());
+
+            for (PDStructureElement label : labels) {
+                assertTrue("Lbl should contain real (MCID) content", countMcidLeafDescendants(label) > 0);
+            }
+
+            for (PDStructureElement body : bodies) {
+                assertTrue("LBody should contain real (MCID) content", countMcidLeafDescendants(body) > 0);
             }
 
             // No Div (or other "Grouping" element) may directly contain marked
@@ -1400,6 +1416,129 @@ public class NonVisualRegressionTest {
                 }
             }
         }
+    }
+
+    /**
+     * Verifies the PDF structure generated for a description list.
+     * Expected HTML structure:
+     *
+     * <dl>
+     *   <dt>Title</dt>
+     *   <dd>Beschreibung</dd>
+     *   <dt>Titel 2</dt>
+     *   <dd>Beschreibung</dd>
+     *   <dd>Beschreibung 2</dd>
+     * </dl>
+     *
+     * Expected PDF structure:
+     *
+     * /L
+     * ├── /LI
+     * │   ├── /Lbl
+     * │   └── /LBody
+     * └── /LI
+     *     ├── /Lbl
+     *     └── /LBody
+     */
+    @Test
+    public void testDescriptionListStructure() throws IOException {
+        String html =
+                "<!DOCTYPE html>" +
+                        "<html lang='de'>" +
+                        "<head>" +
+                        "  <meta charset='UTF-8'/>" +
+                        "  <style>" +
+                        "    body {" +
+                        "      margin: 0;" +
+                        "      font-family: 'TestFont';" +
+                        "      font-size: 12px;" +
+                        "    }" +
+                        "  </style>" +
+                        "</head>" +
+                        "<body>" +
+                        "  <dl>" +
+                        "    <dt>Term</dt>" +
+                        "    <dd>Details</dd>" +
+                        "    <dt>Term 2</dt>" +
+                        "    <dd>Details</dd>" +
+                        "    <dd>Details 2</dd>" +
+                        "  </dl>" +
+                        "</body>" +
+                        "</html>";
+
+        ByteArrayOutputStream actual = new ByteArrayOutputStream();
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+
+        builder.withHtmlContent(html, null);
+        builder.toStream(actual);
+        builder.usePdfUaAccessibility(true);
+        builder.testMode(true);
+        builder.useFont(() -> NonVisualRegressionTest.class.getClassLoader().getResourceAsStream(
+                "org/apache/pdfbox/resources/ttf/" + "LiberationSans-Regular.ttf"), "TestFont");
+        builder.run();
+
+        try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
+
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+            assertNotNull("Structure tree root should exist", root);
+
+            List<PDStructureElement> lists = new ArrayList<>();
+            collectStructureElementsByType(root, "L", lists);
+            assertEquals("Expected exactly one /L for the <dl>", 1, lists.size());
+
+            List<PDStructureElement> listItems = new ArrayList<>();
+            collectStructureElementsByType(root, "LI", listItems);
+            assertEquals("Expected exactly two /LI elements", 2, listItems.size());
+
+            List<PDStructureElement> labels = new ArrayList<>();
+            collectStructureElementsByType(root, "Lbl", labels);
+            assertEquals("Expected exactly two /Lbl elements", 2, labels.size());
+
+            List<PDStructureElement> bodies = new ArrayList<>();
+            collectStructureElementsByType(root, "LBody", bodies);
+            assertEquals("Expected exactly two /LBody elements", 2, bodies.size());
+
+            for (PDStructureElement label : labels) {
+                assertTrue("/Lbl must contain marked content", countMcidLeafDescendants(label) > 0);
+            }
+
+            for (PDStructureElement body : bodies) {
+                assertTrue("/LBody must contain marked content", countMcidLeafDescendants(body) > 0);
+            }
+
+            PDStructureElement descriptionList = lists.get(0);
+            List<PDStructureElement> directListItems = directChildrenOfType(descriptionList, "LI");
+            assertEquals("The /L must directly contain exactly two /LI elements", 2, directListItems.size());
+
+            for (PDStructureElement listItem : directListItems) {
+                List<PDStructureElement> directLabels = directChildrenOfType(listItem, "Lbl");
+                List<PDStructureElement> directBodies = directChildrenOfType(listItem, "LBody");
+                assertEquals("Each /LI must directly contain exactly one /Lbl", 1, directLabels.size());
+                assertEquals("Each /LI must directly contain exactly one /LBody", 1, directBodies.size());
+            }
+
+            PDStructureElement secondBody = directChildrenOfType(directListItems.get(1), "LBody").get(0);
+            assertTrue("The second /LBody must contain both dd descriptions", countMcidLeafDescendants(secondBody) >= 2);
+        }
+    }
+
+    /**
+     * Returns only direct structural children of the requested type.
+     */
+    private static List<PDStructureElement> directChildrenOfType(PDStructureElement parent, String type) {
+
+        List<PDStructureElement> result = new ArrayList<>();
+
+        for (Object kid : parent.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if (type.equals(element.getStructureType())) {
+                    result.add(element);
+                }
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -1436,41 +1575,29 @@ public class NonVisualRegressionTest {
         try (PDDocument doc = Loader.loadPDF(actual.toByteArray())) {
             PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
 
-            // The dd wrapping block content must still be Div (not P), and it
-            // must directly contain the two <p>s as legal Div>P nesting - not
-            // have any marked content of its own. Other Divs may legitimately
-            // exist in the tree (the <dl> itself also falls through to Div),
-            // so look for the specific one with exactly two direct, non-empty
-            // P children rather than asserting a total Div count.
-            List<PDStructureElement> divs = new ArrayList<>();
-            collectStructureElementsByType(root, "Div", divs);
-            assertFalse("Expected at least one Div in the tree (the dd's, at minimum)", divs.isEmpty());
+            List<PDStructureElement> bodies = new ArrayList<>();
+            collectStructureElementsByType(root, "LBody", bodies);
+            assertEquals("Should find exactly one LBody for the dd", 1, bodies.size());
 
-            PDStructureElement ddDiv = null;
-            for (PDStructureElement div : divs) {
+            PDStructureElement ddBody = bodies.get(0);
                 List<PDStructureElement> directParagraphs = new ArrayList<>();
-                for (Object kid : div.getKids()) {
+            for (Object kid : ddBody.getKids()) {
                     if (kid instanceof PDStructureElement &&
                         "P".equals(((PDStructureElement) kid).getStructureType())) {
                         directParagraphs.add((PDStructureElement) kid);
                     }
                 }
-                if (directParagraphs.size() == 2) {
-                    ddDiv = div;
-                    break;
-                }
+            assertEquals("The dd's LBody should directly contain both <p>s", 2, directParagraphs.size());
+            for (PDStructureElement paragraph : directParagraphs) {
+                assertTrue("Each paragraph should contain real MCID content", countMcidLeafDescendants(paragraph) > 0);
             }
-            assertNotNull(
-                "Should find a Div directly containing exactly two P elements " +
-                "(the block-content dd wrapping its two <p>s)", ddDiv);
 
-            List<PDStructureElement> paragraphs = new ArrayList<>();
-            collectStructureElementsByType(ddDiv, "P", paragraphs);
-            assertEquals("The dd's Div should directly contain both <p>s", 2, paragraphs.size());
-
-            for (Object kid : ddDiv.getKids()) {
-                assertFalse("The block-content dd's Div must not directly contain marked content",
-                    kid instanceof Integer || kid instanceof PDMarkedContentReference);
+            /*
+             * LBody itself must not directly contain raw marked-content references.
+             * The two paragraphs are the structural wrappers for the text.
+             */
+            for (Object kid : ddBody.getKids()) {
+                assertFalse("The block-content dd's LBody must not directly contain marked content", kid instanceof Integer || kid instanceof PDMarkedContentReference);
             }
         }
     }
