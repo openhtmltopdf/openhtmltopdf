@@ -1,0 +1,40 @@
+<html>
+<head>
+<style>
+    @page { size: 300px 200px; margin: 0; }
+    /* An explicit line-height keeps the pagination geometry independent of the
+       font metrics: every line box is exactly 16px tall. */
+    body { font-family: 'TestFont'; font-size: 12px; line-height: 16px; margin: 0; }
+    .case { page-break-before: always; }
+    .case:first-child { page-break-before: auto; }
+    h2 { font-size: 16px; line-height: 20px; margin: 0; page-break-after: avoid; }
+    ul { list-style: none; margin: 0; padding-left: 20px; }
+    li::before { float: left; content: "*"; }
+    p { margin: 0; }
+</style>
+</head>
+<body>
+<!--
+Content that ends exactly at the bottom of the page fits and must stay on it.
+Each spacer leaves exactly enough room for the content below it.
+-->
+
+<!-- A: 136px spacer + 4 lines of 16px = 200px. -->
+<div class="case"><div style="height: 136px"></div>
+<p>A a<br/>A b<br/>A c<br/>A d</p>
+<p>A next</p></div>
+
+<!-- B: the same with page-break-inside: avoid. -->
+<div class="case"><div style="height: 136px"></div>
+<p style="page-break-inside: avoid">B a<br/>B b<br/>B c<br/>B d</p>
+<p>B next</p></div>
+
+<!-- C: 116px spacer + 20px heading + 4 lines of 16px = 200px. -->
+<div class="case"><div style="height: 116px"></div>
+<h2>Title C</h2>
+<ul>
+<li><p>C1 a<br/>C1 b<br/>C1 c<br/>C1 d</p></li>
+<li><p>C2 a<br/>C2 b<br/>C2 c<br/>C2 d</p></li>
+</ul></div>
+</body>
+</html>
