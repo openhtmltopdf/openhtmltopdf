@@ -1303,6 +1303,49 @@ public class CSSParser {
         return true;
     }
 
+    /**
+     * Handles the CSS-wide keywords {@code initial} and {@code unset}, which the
+     * property builders don't know about. The builder expands {@code inherit}
+     * (so shorthands yield their longhands), then each longhand is set to
+     * {@link IdentValue#FS_INITIAL_VALUE}, which is resolved to the property's
+     * initial value when the style is computed. {@code unset} keeps
+     * {@code inherit} for inherited properties.
+     *
+     * @return the declarations, or null if the value is not one of these keywords
+     */
+    private List<PropertyDeclaration> buildCssWideKeywordDeclarations(
+            PropertyBuilder builder, CSSName cssName, List<PropertyValue> values,
+            int origin, boolean important, boolean inheritAllowed) {
+        if (values.size() != 1 || values.get(0).getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT) {
+            return null;
+        }
+
+        String keyword = values.get(0).getStringValue();
+        boolean unset = "unset".equalsIgnoreCase(keyword);
+        if (!unset && !"initial".equalsIgnoreCase(keyword)) {
+            return null;
+        }
+
+        PropertyValue inherit = new PropertyValue(IdentValue.INHERIT);
+        List<PropertyDeclaration> inherited = builder.buildDeclarations(
+                cssName, Collections.singletonList(inherit), origin, important, inheritAllowed);
+        if (inherited.isEmpty()) {
+            // Builders for content and quotes drop inherit entirely.
+            inherited = Collections.singletonList(new PropertyDeclaration(cssName, inherit, important, origin));
+        }
+
+        List<PropertyDeclaration> result = new ArrayList<>(inherited.size());
+        for (PropertyDeclaration decl : inherited) {
+            if (unset && CSSName.propertyInherits(decl.getCSSName())) {
+                result.add(decl);
+            } else {
+                result.add(new PropertyDeclaration(
+                        decl.getCSSName(), new PropertyValue(IdentValue.FS_INITIAL_VALUE), important, origin));
+            }
+        }
+        return result;
+    }
+
     //  declaration
 //    : property ':' S* expr prio?
 //    ;
@@ -1377,8 +1420,13 @@ public class CSSParser {
 
                         try {
                             PropertyBuilder builder = CSSName.getPropertyBuilder(cssName);
-                            ruleset.addAllProperties(builder.buildDeclarations(
-                                    cssName, values, ruleset.getOrigin(), important, !inFontFace));
+                            List<PropertyDeclaration> decls = buildCssWideKeywordDeclarations(
+                                    builder, cssName, values, ruleset.getOrigin(), important, !inFontFace);
+                            if (decls == null) {
+                                decls = builder.buildDeclarations(
+                                        cssName, values, ruleset.getOrigin(), important, !inFontFace);
+                            }
+                            ruleset.addAllProperties(decls);
                         } catch (CSSParseException e) {
                             e.setLine(getCurrentLine());
                             error(e, "declaration", true);
