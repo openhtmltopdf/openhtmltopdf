@@ -1,0 +1,46 @@
+<html>
+<head>
+<style>
+    @page { size: 300px 200px; margin: 0; }
+    /* An explicit line-height keeps the pagination geometry independent of the
+       font metrics: every line box is exactly 16px tall. */
+    body { font-family: 'TestFont'; font-size: 12px; line-height: 16px; margin: 0; }
+    .case { page-break-before: always; }
+    .case:first-child { page-break-before: auto; }
+    h2 { font-size: 16px; line-height: 20px; margin: 0; page-break-after: avoid; }
+    ul { list-style: none; margin: 0; padding-left: 20px; }
+    li::before { float: left; content: "*"; }
+    p { margin: 0; }
+</style>
+</head>
+<body>
+<!--
+A: page-break-after: avoid on the heading must only keep it with the list's first
+   line. The list splits after A1; the heading and the list must not both move to
+   the next page (issue 103).
+-->
+<div class="case"><div style="height: 100px"></div>
+<h2>Title A</h2>
+<ul>
+<li><p>A1 a<br/>A1 b<br/>A1 c<br/>A1 d</p></li>
+<li><p>A2 a<br/>A2 b<br/>A2 c<br/>A2 d</p></li>
+</ul></div>
+
+<!--
+B: B2's paragraph moves to the next page as a whole (one line would fit), and its
+   floated bullet must move with it rather than stay at the foot of this page.
+-->
+<div class="case"><div style="height: 108px"></div>
+<ul>
+<li><p>B1 a<br/>B1 b<br/>B1 c<br/>B1 d</p></li>
+<li><p>B2 a<br/>B2 b<br/>B2 c<br/>B2 d</p></li>
+</ul></div>
+
+<!--
+C: three of four lines fit. With widows: 2 the paragraph splits 2 + 2 instead of
+   moving whole and leaving the page empty.
+-->
+<div class="case"><div style="height: 140px"></div>
+<p>C a<br/>C b<br/>C c<br/>C d</p></div>
+</body>
+</html>

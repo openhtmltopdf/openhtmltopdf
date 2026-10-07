@@ -1920,6 +1920,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests pagination of a list with floated li::before bullets after a heading with
+     * page-break-after: avoid: the heading only keeps with the list's first line, a
+     * bullet moves with its pushed paragraph, and widows: 2 splits a paragraph 2 + 2.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/103
+     */
+    @Test
+    public void testIssue103ListFloatBulletPagination() throws IOException {
+        assertTrue(vt.runTest("issue-103-list-float-bullet-pagination", TestSupport.WITH_FONT));
+    }
+
+    /**
      * A box at the top of a page keeps its top margin inside a table cell or an
      * overflow: hidden box, as that margin does not adjoin the break before them.
      * Only a margin that collapses through to the break is truncated.

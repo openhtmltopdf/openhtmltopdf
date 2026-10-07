@@ -1540,14 +1540,16 @@ public class BlockBox extends Box {
                 if (lastPageLineCount < widows) {
                     // We don't have enough lines on last page.
 
-                    if (cCount - 1 - widows < orphans) {
+                    if (cCount - widows < orphans) {
                         // If adding a page break to satisfy widows property would
                         // break orphans constraint insert a page break at start.
                         setNeedPageClear(true);
                     } else if (tryAgain) {
                         // Else, if we are allowed, lay out our line boxes with
                         // a page break inserted after breakAtLine.
-                        int breakAtLine = cCount - 1 - widows;
+                        // Index of the first line moved to the next page, so the last
+                        // page gets exactly `widows` lines and this page the rest.
+                        int breakAtLine = cCount - widows;
 
                         resetChildren(c);
                         removeAllChildren();

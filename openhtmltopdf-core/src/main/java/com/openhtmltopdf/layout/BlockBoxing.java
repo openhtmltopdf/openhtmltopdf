@@ -26,6 +26,7 @@ import java.util.TreeSet;
 
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.layout.LayoutContext.BlockBoxingState;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.render.Box;
@@ -141,6 +142,12 @@ public class BlockBoxing {
                             oneChildFailed = true;
                         }
 
+                        if (needPageClear && isBreakBeforeChildBreakBeforeBlock(c, block, localChildren, offset)) {
+                            // Nothing of this block would be left on the page, so move the
+                            // whole block. Otherwise floats placed before the child (such as
+                            // a floated li::before bullet) stay behind on the old page.
+                            block.setNeedPageClear(true);
+                        }
                     }
                 }
 
@@ -269,10 +276,19 @@ public class BlockBoxing {
         return false;
     }
 
+    /**
+     * The first line box in document order. Searches past children without lines,
+     * such as an anonymous block that only holds a float, instead of following
+     * the first child alone.
+     */
     private static LineBox getFirstLine(Box box) {
-        for ( Box child = box; child.getChildCount()>0; child = child.getChild(0) ) {
-            if ( child instanceof LineBox ) {
-                return (LineBox) child;
+        if (box instanceof LineBox) {
+            return (LineBox) box;
+        }
+        for (int i = 0; i < box.getChildCount(); i++) {
+            LineBox line = getFirstLine(box.getChild(i));
+            if (line != null) {
+                return line;
             }
         }
         return null;
@@ -358,6 +374,42 @@ public class BlockBoxing {
         }
 
         return childOffset;
+    }
+
+    /**
+     * Whether a break before the child at {@code offset} is the same break as one
+     * before {@code block}: nothing in normal flow precedes the child (earlier
+     * siblings have no height, e.g. an anonymous block holding only a float) and
+     * there is no top border or padding between the block's edge and the child.
+     * A block already at the top of its page is never moved, as that cannot help.
+     */
+    private static boolean isBreakBeforeChildBreakBeforeBlock(
+            LayoutContext c, BlockBox block, List<Box> children, int offset) {
+        CalculatedStyle style = block.getStyle();
+        if (!isNormalFlowBlock(style) || block.getBorder(c).top() != 0 || block.getPadding(c).top() != 0) {
+            return false;
+        }
+
+        for (int i = 0; i < offset; i++) {
+            if (children.get(i).getHeight() != 0) {
+                return false;
+            }
+        }
+
+        PageBox page = c.getRootLayer().getFirstPage(c, block);
+        return page != null && block.getAbsY() > page.getTop();
+    }
+
+    /**
+     * Only a plain block in normal flow is moved by its parent's layout loop;
+     * tables and their parts, floats, positioned boxes and inline-blocks paginate
+     * by their own rules.
+     */
+    private static boolean isNormalFlowBlock(CalculatedStyle style) {
+        return !(style.isTable() || style.isInlineTable() || style.isTableCell() ||
+                 style.isTableRow() || style.isTableSection() || style.isTableCaption() ||
+                 style.isFloated() || style.isAbsolute() || style.isFixed() ||
+                 style.isInlineBlock());
     }
 
     private static void layoutBlockChild(
