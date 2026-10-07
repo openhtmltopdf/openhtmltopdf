@@ -1,0 +1,41 @@
+<html>
+<head>
+<style>
+    @page { size: 200px 150px; margin: 0; }
+    body { font-family: 'TestFont'; font-size: 12px; line-height: 16px; margin: 0; }
+
+    table   { border-collapse: collapse; width: 100%; }
+    tr      { page-break-inside: avoid; }
+    td      { padding: 0; background-color: #cfe0ff; }
+    .clip   { overflow: hidden; page-break-inside: avoid; background-color: #cfe0ff; }
+    .plain  { page-break-inside: avoid; background-color: #cfe0ff; }
+    .block  { margin-top: 20px; height: 100px; background-color: #999999; color: white; }
+</style>
+</head>
+<body>
+
+<!--
+A break truncates only the margins that adjoin it. A box at the top of a page keeps
+its top margin when it sits inside a box that does not collapse margins with its
+children, because the break comes before that box: a table cell, or a box with
+overflow: hidden. Browsers keep the margin there too.
+
+Every block is 120px with its margin, so only one fits on a 150px page:
+  page 1: table row 1, margin kept as on any first page
+  page 2: table row 2, moved by its avoid, margin kept inside the cell (blue strip)
+  page 3: overflow: hidden box, moved by its avoid, margin kept inside it (blue strip)
+  page 4: plain box, moved by its avoid, the margin collapses through it, adjoins the
+          break and is truncated (no blue strip)
+-->
+
+<table>
+<tr><td><div class="block">row 1</div></td></tr>
+<tr><td><div class="block">row 2, margin kept</div></td></tr>
+</table>
+
+<div class="clip"><div class="block">overflow, margin kept</div></div>
+
+<div class="plain"><div class="block">plain, truncated</div></div>
+
+</body>
+</html>

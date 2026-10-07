@@ -1899,6 +1899,16 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("block-straddle-pushed-first-line", TestSupport.WITH_FONT));
     }
 
+    /**
+     * A box at the top of a page keeps its top margin inside a table cell or an
+     * overflow: hidden box, as that margin does not adjoin the break before them.
+     * Only a margin that collapses through to the break is truncated.
+     */
+    @Test
+    public void testTopMarginInsideBfcAtPageTop() throws IOException {
+        assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
