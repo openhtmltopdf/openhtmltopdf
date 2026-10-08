@@ -1941,6 +1941,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that content ending exactly at the bottom of a page stays on that page,
+     * for a plain paragraph, a page-break-inside: avoid block, and a heading kept
+     * with the first line of a list. Two further cases record where pagination
+     * still differs from Chrome (see the comments in the fixture).
+     */
+    @Test
+    public void testExactFitPageBottom() throws IOException {
+        assertTrue(vt.runTest("exact-fit-page-bottom", TestSupport.WITH_FONT));
+    }
+
+    /**
      * A box at the top of a page keeps its top margin inside a table cell or an
      * overflow: hidden box, as that margin does not adjoin the break before them.
      * Only a margin that collapses through to the break is truncated.

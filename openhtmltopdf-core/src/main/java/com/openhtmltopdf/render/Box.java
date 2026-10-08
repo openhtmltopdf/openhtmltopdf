@@ -905,9 +905,9 @@ public abstract class Box implements Styleable, DisplayListItem {
             return false;
         } else {
             if (c.isInFloatBottom()) {
-                return getAbsY() + getHeight() >= pageBox.getBottom();
+                return getAbsY() + getHeight() > pageBox.getBottom();
             } else {
-                return getAbsY() + getHeight() >= pageBox.getBottom(c) - c.getExtraSpaceBottom();
+                return getAbsY() + getHeight() > pageBox.getBottom(c) - c.getExtraSpaceBottom();
             }
         }
     }
