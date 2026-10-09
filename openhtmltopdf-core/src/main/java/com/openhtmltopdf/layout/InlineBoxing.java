@@ -186,7 +186,8 @@ public class InlineBoxing {
                 } else {
                     lbContext.setMaster(inlineBox.getText());
                     lbContext.setFollowingGlueWidth(
-                            getFollowingGlueWidth(c, inlineBox.getText(), inlineContent, nodeIndex + 1));
+                            getFollowingGlueWidth(c, inlineBox.getText(), inlineContent, nodeIndex + 1,
+                                    hyphenator, space.maxAvailableWidth));
                 }
 
                 boolean inCharBreakingMode = false;
@@ -407,13 +408,16 @@ public class InlineBoxing {
     }
     
     /**
-     * Returns the width of the text at the start of the inline boxes following {@code text}
+     * Returns the width of the content at the start of the inline boxes following {@code text}
      * (from {@code from} on) that has no line break opportunity between it and the end of
      * {@code text}, such as the link text after an opening parenthesis or the closing
-     * parenthesis after a link. Returns 0 if a line may break right after {@code text}.
+     * parenthesis after a link. This includes the margin, border and padding of elements
+     * that start (and end) within that content. Returns 0 if a line may break right
+     * after {@code text}.
      */
     private static int getFollowingGlueWidth(
-            LayoutContext c, String text, List<Styleable> inlineContent, int from) {
+            LayoutContext c, String text, List<Styleable> inlineContent, int from,
+            Hyphenator hyphenator, int cbWidth) {
 
         if (text.isEmpty() || Character.isWhitespace(text.charAt(text.length() - 1))) {
             return 0;
@@ -428,7 +432,10 @@ public class InlineBoxing {
 
         // Collect the following text up to the first whitespace, which always
         // allows a break. Stop at anything that is not plain wrapping text.
+        // Boxes without text are kept for the margin, border and padding of
+        // the elements they start or end.
         List<InlineBox> boxes = new ArrayList<>();
+        List<String> texts = new ArrayList<>();
         StringBuilder following = new StringBuilder();
 
         for (int i = from; i < inlineContent.size(); i++) {
@@ -438,20 +445,25 @@ public class InlineBoxing {
             }
 
             InlineBox next = (InlineBox) node;
-            IdentValue whitespace = next.getStyle().getWhitespace();
+            CalculatedStyle style = next.getStyle();
+            IdentValue whitespace = style.getWhitespace();
             if (next.isDynamicFunction() ||
                 whitespace == IdentValue.NOWRAP ||
                 whitespace == IdentValue.PRE) {
                 break;
-            } else if (next.getText() == null || next.getText().isEmpty()) {
-                // Just the start or end of an element.
-                continue;
+            }
+
+            String nextText = next.getText() == null ? "" : next.getText();
+            if (hyphenator != null && IdentValue.AUTO.equals(style.getIdent(CSSName.HYPHENS))) {
+                // The layout loop hyphenates this box only once it gets there.
+                nextText = hyphenator.hyphenateText(nextText);
             }
 
             boxes.add(next);
-            following.append(next.getText());
+            texts.add(nextText);
+            following.append(nextText);
 
-            if (next.getText().chars().anyMatch(Character::isWhitespace)) {
+            if (nextText.chars().anyMatch(Character::isWhitespace)) {
                 break;
             }
         }
@@ -478,15 +490,37 @@ public class InlineBoxing {
 
         int width = 0;
         int offset = 0;
-        for (InlineBox next : boxes) {
-            int end = Math.min(next.getText().length(), glueEnd - offset);
-            if (end <= 0) {
-                break;
-            }
+        List<Element> started = new ArrayList<>();
+        for (int i = 0; i < boxes.size() && offset <= glueEnd; i++) {
+            InlineBox next = boxes.get(i);
+            String nextText = texts.get(i);
             CalculatedStyle style = next.getStyle();
-            width += Breaker.getTextWidthWithSpacing(
-                    c, style.getFSFont(c), next.getText().substring(0, end), TextSpacing.from(style, c));
-            offset += next.getText().length();
+
+            if (next.isStartsHere()) {
+                if (offset == glueEnd) {
+                    // This element starts after the glued content.
+                    break;
+                }
+                width += style.getMarginBorderPadding(c, cbWidth, CalculatedStyle.LEFT);
+                started.add(next.getElement());
+            }
+
+            int end = Math.min(nextText.length(), glueEnd - offset);
+            if (end > 0) {
+                width += Breaker.getTextWidthWithSpacing(
+                        c, style.getFSFont(c), nextText.substring(0, end), TextSpacing.from(style, c));
+                if (end == glueEnd - offset && nextText.charAt(end - 1) == Breaker.SOFT_HYPHEN) {
+                    // A break at a soft hyphen shows a hyphen.
+                    width += Breaker.getTextWidthWithSpacing(c, style.getFSFont(c), "-", TextSpacing.from(style, c));
+                }
+            }
+            offset += nextText.length();
+
+            // The right side of an element that was open before is already reserved
+            // by the layout, see SpaceVariables.pendingRightMBP.
+            if (next.isEndsHere() && offset <= glueEnd && started.contains(next.getElement())) {
+                width += style.getMarginBorderPadding(c, cbWidth, CalculatedStyle.RIGHT);
+            }
         }
 
         return width;
