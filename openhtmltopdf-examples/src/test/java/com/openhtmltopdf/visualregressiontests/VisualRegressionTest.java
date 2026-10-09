@@ -2124,6 +2124,21 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("issue-122-line-break-across-inlines", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that the margin, border and padding of elements starting after a
+     * position without a break opportunity, and hyphenation points in the
+     * following text, are taken into account when deciding where to break.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/122
+     */
+    @Test
+    public void testIssue122LineBreakGluePaddingHyphens() throws IOException {
+        assertTrue(vt.runTest("issue-122-line-break-glue-padding-hyphens", builder -> {
+            // Not TestSupport.WITH_FONT: its SimpleTextBreaker ignores soft hyphens.
+            builder.useFont(new File("target/test/visual-tests/Karla-Bold.ttf"), "TestFont");
+            builder.useHyphenation(text -> text.replace("hyphenation", "hy\u00ADphen\u00ADation"));
+        }));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

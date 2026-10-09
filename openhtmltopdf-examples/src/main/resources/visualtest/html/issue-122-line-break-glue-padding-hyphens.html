@@ -1,0 +1,41 @@
+<html lang="en">
+<head>
+<style>
+@page {
+  size: 300px 200px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+  font-family: 'TestFont';
+  font-size: 14px;
+  line-height: 18px;
+}
+div {
+  border: 1px solid #999;
+  margin-bottom: 10px;
+}
+a {
+  color: blue;
+}
+.boxed {
+  padding: 0 6px;
+  border: 1px solid red;
+}
+.hyphens {
+  hyphens: auto;
+}
+</style>
+</head>
+<body>
+<!-- The padding and border of the link count towards the content that
+     cannot be separated from the opening parenthesis. -->
+<div style="width: 144px;">Before the link (<a class="boxed" href="#">link</a>) after.</div>
+
+<!-- The same for an element that starts after a closing link. -->
+<div style="width: 146px;">See the <a href="#">linked word</a><span class="boxed">)</span>, and so on.</div>
+
+<!-- A hyphenation point in the following link is a break opportunity. -->
+<div class="hyphens" style="width: 100px;">Some text (<a href="#">hyphenation</a>) here.</div>
+</body>
+</html>
