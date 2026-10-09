@@ -1618,7 +1618,18 @@ public class BoxBuilder {
         SharedContext sharedContext = c.getSharedContext();
         CalculatedStyle parentStyle = sharedContext.getStyle(parent);
 
+        int beforeStart = children.size();
         insertGeneratedContent(c, parent, parentStyle, "before", children, info);
+
+        // ::before content is the first child of an inline element, so the element
+        // (its border, background and padding) has to start before it.
+        InlineBox elementStart = null;
+        if (inline && children.size() > beforeStart) {
+            elementStart = createInlineBox("", parent, parentStyle, null);
+            elementStart.setStartsHere(true);
+            elementStart.setEndsHere(false);
+            children.add(beforeStart, elementStart);
+        }
 
         if (parentStyle.isFootnote()) {
             if (c.isFootnoteAllowed() && isValidFootnote(c, parent, parentStyle)) {
@@ -1634,7 +1645,8 @@ public class BoxBuilder {
         CreateChildrenContext context = null;
 
         if (working != null) {
-            context = new CreateChildrenContext(inline, inline, parentStyle, inline);
+            context = new CreateChildrenContext(inline && elementStart == null, inline, parentStyle, inline);
+            context.previousIB = elementStart;
 
             do {
                 short nodeType = working.getNodeType();
@@ -1656,17 +1668,32 @@ public class BoxBuilder {
             } while ((working = working.getNextSibling()) != null);
         }
 
-        boolean needStartText = context != null ? context.needStartText : inline;
+        boolean needStartText = context != null ? context.needStartText : inline && elementStart == null;
         boolean needEndText = context != null ? context.needEndText : inline;
+
+        // The box the inline element ends in, if any.
+        InlineBox elementEnd = context != null ? context.previousIB : null;
 
         if (needStartText || needEndText) {
             InlineBox iB = createInlineBox("", parent, parentStyle, null);
             iB.setStartsHere(needStartText);
             iB.setEndsHere(needEndText);
             children.add(iB);
+            elementEnd = iB;
         }
 
+        int afterStart = children.size();
         insertGeneratedContent(c, parent, parentStyle, "after", children, info);
+
+        // Likewise ::after content is the last child of an inline element.
+        if (inline && children.size() > afterStart &&
+            elementEnd != null && elementEnd.isEndsHere()) {
+            elementEnd.setEndsHere(false);
+            InlineBox iB = createInlineBox("", parent, parentStyle, null);
+            iB.setStartsHere(false);
+            iB.setEndsHere(true);
+            children.add(iB);
+        }
     }
 
     private static InlineBox setupInlineChild(InlineBox child, InlineBox previousIB) {

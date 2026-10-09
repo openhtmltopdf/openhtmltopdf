@@ -2139,6 +2139,17 @@ public class VisualRegressionTest {
         }));
     }
 
+    /**
+     * Tests that ::before and ::after content of an inline element is laid out
+     * inside the element, so the element's border, background and text decoration
+     * enclose it, also for content resolved at paint time such as counter(page).
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/62
+     */
+    @Test
+    public void testIssue62GeneratedContentInsideInline() throws IOException {
+        assertTrue(vt.runTest("issue-62-generated-content-inside-inline", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

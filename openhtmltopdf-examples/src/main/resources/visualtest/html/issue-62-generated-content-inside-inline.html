@@ -1,0 +1,55 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 230px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+  font-family: 'TestFont';
+  font-size: 14px;
+  line-height: 18px;
+  counter-reset: c 7;
+}
+div {
+  border: 1px solid #999;
+  margin-bottom: 8px;
+}
+.boxed {
+  border: 1px solid blue;
+  background: #cdf;
+}
+.brackets::before {
+  content: "[";
+}
+.brackets::after {
+  content: "]";
+}
+.counter::before {
+  content: counter(c);
+}
+.page::before {
+  content: counter(page);
+}
+a {
+  color: blue;
+}
+</style>
+</head>
+<body>
+<!-- ::before and ::after content is inside the inline element, so its
+     border and background enclose it. -->
+<div>Static <span class="boxed brackets">text</span> after.</div>
+<div>Counter <span class="boxed counter"></span> after.</div>
+<div>Page <span class="boxed page"></span> after.</div>
+
+<!-- The underline of a link covers its generated content. -->
+<div>A <a class="brackets" href="#x">link</a> here.</div>
+
+<!-- The example from the issue: the page number goes inside the span. -->
+<div style="overflow: hidden;">
+  <div style="float: right; border: 1px solid red; margin: 0;"><span class="boxed page"></span>!</div>
+</div>
+</body>
+</html>
