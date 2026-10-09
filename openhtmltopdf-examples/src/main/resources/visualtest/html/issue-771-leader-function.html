@@ -4,6 +4,9 @@
 @page {
   size: 300px 300px;
 }
+a {
+  text-decoration: none;
+}
 #five::after {
   content: target-text(attr(href)) leader(dotted) target-counter(attr(href), page);
 }
