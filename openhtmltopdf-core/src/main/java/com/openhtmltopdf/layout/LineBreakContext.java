@@ -54,6 +54,7 @@ public class LineBreakContext {
     private boolean _finishedInCharBreakingMode;
     private boolean _isFirstChar;
     private boolean _atomic;
+    private int _followingGlueWidth;
 
     // These keep track of our attempts to move to a newline
     // before outputting the same content.
@@ -220,6 +221,20 @@ public class LineBreakContext {
 
     public void setNextWidth(int nextWidth) {
         this._nextWidth = nextWidth;
+    }
+
+    /**
+     * The width of the content after this text (in following inline boxes) that a
+     * line break may not separate from its end, for example the word after an
+     * opening parenthesis or the closing parenthesis after a word. The last word
+     * of this text only fits on a line if this content fits there too.
+     */
+    public int getFollowingGlueWidth() {
+        return _followingGlueWidth;
+    }
+
+    public void setFollowingGlueWidth(int followingGlueWidth) {
+        this._followingGlueWidth = followingGlueWidth;
     }
 
     public boolean isEndsOnWordBreak() {

@@ -20,6 +20,7 @@
  */
 package com.openhtmltopdf.layout;
 
+import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +40,7 @@ import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.FSDerivedValue;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.RectPropertySet;
+import com.openhtmltopdf.extend.FSTextBreaker;
 import com.openhtmltopdf.extend.Hyphenator;
 import com.openhtmltopdf.layout.Breaker.BreakTextResult;
 import com.openhtmltopdf.render.AnonymousBlockBox;
@@ -144,7 +146,10 @@ public class InlineBoxing {
 
         int lineOffset = 0;
 
-        for (Styleable node : box.getInlineContent()) {
+        List<Styleable> inlineContent = box.getInlineContent();
+
+        for (int nodeIndex = 0; nodeIndex < inlineContent.size(); nodeIndex++) {
+            Styleable node = inlineContent.get(nodeIndex);
 
             if (node.getStyle().isInline()) {
                 InlineBox inlineBox = (InlineBox)node;
@@ -180,6 +185,8 @@ public class InlineBoxing {
                     lbContext.setAtomic(!inlineBox.getContentFunction().isCalculableAtLayout());
                 } else {
                     lbContext.setMaster(inlineBox.getText());
+                    lbContext.setFollowingGlueWidth(
+                            getFollowingGlueWidth(c, inlineBox.getText(), inlineContent, nodeIndex + 1));
                 }
 
                 boolean inCharBreakingMode = false;
@@ -399,6 +406,92 @@ public class InlineBoxing {
         LINE_FINISHED
     }
     
+    /**
+     * Returns the width of the text at the start of the inline boxes following {@code text}
+     * (from {@code from} on) that has no line break opportunity between it and the end of
+     * {@code text}, such as the link text after an opening parenthesis or the closing
+     * parenthesis after a link. Returns 0 if a line may break right after {@code text}.
+     */
+    private static int getFollowingGlueWidth(
+            LayoutContext c, String text, List<Styleable> inlineContent, int from) {
+
+        if (text.isEmpty() || Character.isWhitespace(text.charAt(text.length() - 1))) {
+            return 0;
+        }
+
+        // The last word of the text is enough context to decide on a break after it.
+        int tailStart = text.length();
+        while (tailStart > 0 && !Character.isWhitespace(text.charAt(tailStart - 1))) {
+            tailStart--;
+        }
+        String tail = text.substring(tailStart);
+
+        // Collect the following text up to the first whitespace, which always
+        // allows a break. Stop at anything that is not plain wrapping text.
+        List<InlineBox> boxes = new ArrayList<>();
+        StringBuilder following = new StringBuilder();
+
+        for (int i = from; i < inlineContent.size(); i++) {
+            Styleable node = inlineContent.get(i);
+            if (!(node instanceof InlineBox)) {
+                break;
+            }
+
+            InlineBox next = (InlineBox) node;
+            IdentValue whitespace = next.getStyle().getWhitespace();
+            if (next.isDynamicFunction() ||
+                whitespace == IdentValue.NOWRAP ||
+                whitespace == IdentValue.PRE) {
+                break;
+            } else if (next.getText() == null || next.getText().isEmpty()) {
+                // Just the start or end of an element.
+                continue;
+            }
+
+            boxes.add(next);
+            following.append(next.getText());
+
+            if (next.getText().chars().anyMatch(Character::isWhitespace)) {
+                break;
+            }
+        }
+
+        if (following.length() == 0) {
+            return 0;
+        }
+
+        FSTextBreaker breaker = Breaker.getLineBreakStream(tail + following, c.getSharedContext());
+        int glueEnd = following.length();
+        for (int pos = breaker.next(); pos != BreakIterator.DONE; pos = breaker.next()) {
+            if (pos == tail.length()) {
+                return 0;
+            } else if (pos > tail.length()) {
+                glueEnd = pos - tail.length();
+                break;
+            }
+        }
+
+        // Trailing whitespace hangs at the end of a line, so it does not need to fit.
+        while (glueEnd > 0 && Character.isWhitespace(following.charAt(glueEnd - 1))) {
+            glueEnd--;
+        }
+
+        int width = 0;
+        int offset = 0;
+        for (InlineBox next : boxes) {
+            int end = Math.min(next.getText().length(), glueEnd - offset);
+            if (end <= 0) {
+                break;
+            }
+            CalculatedStyle style = next.getStyle();
+            width += Breaker.getTextWidthWithSpacing(
+                    c, style.getFSFont(c), next.getText().substring(0, end), TextSpacing.from(style, c));
+            offset += next.getText().length();
+        }
+
+        return width;
+    }
+
     /**
      * Trys to consume the text in lbContext. If successful it creates an InlineText and adds it to the current inline
      * layout box.

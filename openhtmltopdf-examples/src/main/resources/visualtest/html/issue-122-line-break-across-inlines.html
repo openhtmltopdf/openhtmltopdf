@@ -1,0 +1,43 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 420px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+  font-family: 'TestFont';
+  font-size: 14px;
+  line-height: 18px;
+}
+div {
+  border: 1px solid #999;
+  margin-bottom: 10px;
+}
+a {
+  color: blue;
+}
+</style>
+</head>
+<body>
+<!-- No line break is allowed between an opening parenthesis and the
+     link that follows it, so the parenthesis moves to the next line too. -->
+<div style="width: 130px;">Before the link (<a href="#">link text</a>) after.</div>
+
+<!-- No line break is allowed before a closing parenthesis, so the last
+     word of the link moves to the next line with it. -->
+<div style="width: 136px;">See the <a href="#">linked word</a>), and so on.</div>
+
+<!-- The same with the text inside nested inline elements, and with quotes. -->
+<div style="width: 84px;">Some text (<b><i>nested</i></b>) here.</div>
+<div style="width: 128px;">Some text "<b><i>quoted</i></b>" here.</div>
+
+<!-- A slash or a straight quote between digits does not allow a break. -->
+<div style="width: 100px;">Ruling no. 274/15 in force.</div>
+<div style="width: 110px;">A board of 256"57 in size.</div>
+
+<!-- Control: a space before the link still allows a break there. -->
+<div style="width: 130px;">Before the link <a href="#">link text</a> after.</div>
+</body>
+</html>

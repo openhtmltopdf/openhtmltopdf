@@ -107,6 +107,30 @@ public class UrlAwareLineBreakIteratorTest extends TestCase {
     }
 
 
+    public void testNext_SlashBetweenDigits() throws Exception {
+        assertBreaksCorrectly("no. 274/15 and 1/2/2024",
+                new String[] {"no. ", "274/15 ", "and ", "1/2/2024"});
+    }
+
+
+    public void testNext_SlashBetweenDigitsInUrl() throws Exception {
+        assertBreaksCorrectly("example.org/2024/10/news",
+                new String[] {"example.", "org", "/2024/10", "/news"});
+    }
+
+
+    public void testNext_StraightQuotesInWord() throws Exception {
+        assertBreaksCorrectly("a 256\"57 board, 3'4 long",
+                new String[] {"a ", "256\"57 ", "board, ", "3'4 ", "long"});
+    }
+
+
+    public void testNext_QuotedWords() throws Exception {
+        assertBreaksCorrectly("say \"hello\" now",
+                new String[] {"say ", "\"hello\" ", "now"});
+    }
+
+
     private void assertBreaksCorrectly(String input, String[] segments) {
         FSTextBreaker iterator = new UrlAwareLineBreakIterator(BreakIterator.getLineInstance(Locale.US));
         iterator.setText(input);

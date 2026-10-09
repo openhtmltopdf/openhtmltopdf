@@ -507,4 +507,57 @@ public class WordBreakerTest {
         assertThat(context.getEnd(), equalTo(8));
         assertThat(context.getCalculatedSubstring(), equalTo(" ghi"));
     }
+
+    @Test
+    public void testLastWordMovesWhenFollowingGlueDoesNotFit() {
+        // "abc (" is followed by another inline's "link" with no break opportunity
+        // after the "(", so "(link" has to fit on the line together.
+        String whole = "abc (";
+        int avail = 7;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        context.setFollowingGlueWidth(4);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
+        assertContextIs(context, NEEDS_NEW_LINE);
+
+        assertThat(context.getWidth(), equalTo(4));
+        assertThat(context.getCalculatedSubstring(), equalTo("abc "));
+    }
+
+    @Test
+    public void testFollowingGlueThatFitsDoesNotCountInWidth() {
+        String whole = "abc (";
+        int avail = 9;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        context.setFollowingGlueWidth(4);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
+        assertContextIs(context, FINISHED);
+
+        assertThat(context.getWidth(), equalTo(5));
+        assertThat(context.getEnd(), equalTo(5));
+    }
+
+    @Test
+    public void testSingleWordWithFollowingGlueIsUnbreakable() {
+        String whole = "(";
+        int avail = 3;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        context.setFollowingGlueWidth(4);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_UNBREAKABLE));
+        assertContextIs(context, UNBREAKABLE, FINISHED, NEEDS_NEW_LINE);
+
+        assertThat(context.getWidth(), equalTo(1));
+        assertThat(context.getEnd(), equalTo(1));
+    }
 }
