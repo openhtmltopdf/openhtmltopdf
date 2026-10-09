@@ -22,6 +22,32 @@ public class UrlAwareLineBreakIterator implements FSTextBreaker {
     
     @Override
     public int next() {
+        int next = nextCandidate();
+        while (next != BreakIterator.DONE && isBreakBesideQuote(next)) {
+            next = nextCandidate();
+        }
+        return next;
+    }
+
+    /**
+     * The JDK breaker allows a break after a straight quote that is followed by
+     * more text, as in {@code 256"57}. Unicode line breaking (UAX #14, LB19) does not
+     * allow a break on either side of {@code "} or {@code '}, except after a space.
+     */
+    private boolean isBreakBesideQuote(int pos) {
+        if (pos <= 0 || pos >= text.length()) {
+            return false;
+        }
+        char before = text.charAt(pos - 1);
+        char after = text.charAt(pos);
+        return isQuote(before) || (isQuote(after) && !Character.isWhitespace(before));
+    }
+
+    private static boolean isQuote(char c) {
+        return c == '"' || c == '\'';
+    }
+
+    private int nextCandidate() {
         checkNotAheadOfDelegate();
 
         Range searchRange = currentRange; // the range in which we search for slashes
@@ -64,7 +90,12 @@ public class UrlAwareLineBreakIterator implements FSTextBreaker {
 
     private int findSlashInRange(Range searchRange) {
         int nextSlash = text.indexOf('/', searchRange.getStart());
-        return nextSlash < searchRange.getStop() ? nextSlash : -1;
+        // A slash between digits is part of a number such as a date (274/15), not a path.
+        while (nextSlash > 0 && nextSlash < searchRange.getStop() && nextSlash + 1 < text.length() &&
+               Character.isDigit(text.charAt(nextSlash - 1)) && Character.isDigit(text.charAt(nextSlash + 1))) {
+            nextSlash = text.indexOf('/', nextSlash + 1);
+        }
+        return nextSlash > -1 && nextSlash < searchRange.getStop() ? nextSlash : -1;
     }
 
 

@@ -551,6 +551,10 @@ public class Breaker {
             
             int normalSplitWidth = (int) (measurer.applyAsInt(subString) + extraSpacing);
 
+            if (current.right == currentString.length()) {
+                normalSplitWidth += followingGlueIfOverflowing(context, current.graphicsLength + normalSplitWidth, avail);
+            }
+
             if (currentString.charAt(current.right - 1) == SOFT_HYPHEN) {
                 current.isSoftHyphenBreak = true;
                 int withTrailingHyphenSplitWidth = (int)
@@ -586,6 +590,9 @@ public class Breaker {
             float extraSpacing = spacing.extra(currentString, current.left, current.right);
             int splitWidth = (int) (measurer.applyAsInt(
                     currentString.substring(current.left)) + extraSpacing);
+            if (current.left < currentString.length()) {
+                splitWidth += followingGlueIfOverflowing(context, current.graphicsLength + splitWidth, avail);
+            }
             current.graphicsLength += splitWidth;
             nextUnfittableSplitWidth = splitWidth;
         }
@@ -635,6 +642,18 @@ public class Breaker {
         }
     }
     
+    /**
+     * The last word of a text has to share its line with the content of the following
+     * inline boxes that no line break may separate from it. Returns the width of that
+     * content if the last word, ending at {@code width}, would fit without it but not
+     * with it, so that the caller treats the word as overflowing and moves it to the next
+     * line. Otherwise returns 0, so the measured width stays the width of the text alone.
+     */
+    private static int followingGlueIfOverflowing(LineBreakContext context, int width, int avail) {
+        int glue = context.getFollowingGlueWidth();
+        return width <= avail && width + glue > avail ? glue : 0;
+    }
+
     public interface TextBreakerSupplier {
     	public FSTextBreaker getBreaker(String str, SharedContext sharedContext);
     }

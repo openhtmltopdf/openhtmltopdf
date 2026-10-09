@@ -2112,6 +2112,18 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("invoice-multi-page-flush", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that a line does not break where no break opportunity exists between
+     * the end of one inline element's text and the start of the next, such as
+     * between an opening parenthesis and a link, and that a slash or straight
+     * quote between digits does not allow a break.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/122
+     */
+    @Test
+    public void testIssue122LineBreakAcrossInlines() throws IOException {
+        assertTrue(vt.runTest("issue-122-line-break-across-inlines", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
