@@ -194,6 +194,13 @@ abstract class Condition {
     }
 
     /**
+     * the CSS condition that element matches none of the compound selectors in :not(...)
+     */
+    static Condition createNegationCondition(List<Selector> arguments) {
+        return new NegationCondition(arguments);
+    }
+
+    /**
      * for unsupported or invalid CSS
      *
      * @return Returns
@@ -642,6 +649,37 @@ abstract class Condition {
         @Override
         void toCSS(StringBuilder sb) {
             sb.append(":nth-child(odd)");
+        }
+    }
+
+    private static class NegationCondition extends Condition {
+
+        private final List<Selector> _arguments;
+
+        NegationCondition(List<Selector> arguments) {
+            _arguments = arguments;
+        }
+
+        @Override
+        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            for (Selector argument : _arguments) {
+                if (argument.matchesWithDynamicState(e, attRes, treeRes)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        public void toCSS(StringBuilder sb) {
+            sb.append(":not(");
+            for (int i = 0; i < _arguments.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                _arguments.get(i).toCompoundCSS(sb);
+            }
+            sb.append(')');
         }
     }
 

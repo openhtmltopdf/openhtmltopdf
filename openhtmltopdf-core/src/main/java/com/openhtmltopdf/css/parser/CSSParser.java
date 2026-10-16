@@ -1222,6 +1222,9 @@ public class CSSParser {
                 save(t);
                 throw e;
             }
+        } else if (f.equals("not")) {
+            selector.addNegationCondition(compound_selector_list(selector));
+            t = Token.TK_RPAREN;
         } else {
             save(t);
             throw new CSSParseException(f + " is not a valid function in this context", getCurrentLine());
@@ -1230,6 +1233,33 @@ public class CSSParser {
         if (t != Token.TK_RPAREN) {
             save(t);
             throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
+        }
+    }
+
+    //  compound_selector_list
+    //    : S* simple_selector S* [ ',' S* simple_selector S* ]* ')'
+    //    ;
+    // The argument of :not(): compound selectors only (no combinators, no pseudo-elements).
+    // User-action pseudo-classes such as :hover are valid but never match, as in any
+    // non-interactive user agent.
+    private List<Selector> compound_selector_list(Selector owner) throws IOException {
+        List<Selector> list = new ArrayList<>();
+        while (true) {
+            skip_whitespace();
+            Selector argument = simple_selector(owner.getRuleset());
+            if (argument.isPseudoElementSelector()) {
+                throw new CSSParseException("Pseudo-elements are not allowed in :not()", getCurrentLine());
+            }
+            list.add(argument);
+            skip_whitespace();
+            Token t = next();
+            if (t == Token.TK_RPAREN) {
+                return list;
+            }
+            if (t != Token.TK_COMMA) {
+                save(t);
+                throw new CSSParseException(t, new Token[]{Token.TK_COMMA, Token.TK_RPAREN}, getCurrentLine());
+            }
         }
     }
 

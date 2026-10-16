@@ -280,6 +280,47 @@ public class Selector {
     }
 
     /**
+     * the CSS condition :not(a, b, ...), which counts with the specificity of its most
+     * specific argument. The arguments' ids and classes are deliberately not recorded as
+     * required for the rule index, since they must be absent for a match.
+     */
+    public void addNegationCondition(List<Selector> arguments) {
+        Selector mostSpecific = null;
+        for (Selector argument : arguments) {
+            if (mostSpecific == null || argument.compareSpecificity(mostSpecific) > 0) {
+                mostSpecific = argument;
+            }
+        }
+        _specificityB += mostSpecific.getSpecificityB();
+        _specificityC += mostSpecific.getSpecificityC();
+        _specificityD += mostSpecific.getSpecificityD();
+        addCondition(Condition.createNegationCondition(arguments));
+    }
+
+    private int compareSpecificity(Selector other) {
+        if (getSpecificityB() != other.getSpecificityB()) {
+            return Integer.compare(getSpecificityB(), other.getSpecificityB());
+        }
+        if (getSpecificityC() != other.getSpecificityC()) {
+            return Integer.compare(getSpecificityC(), other.getSpecificityC());
+        }
+        return Integer.compare(getSpecificityD(), other.getSpecificityD());
+    }
+
+    /** Whether this compound selector represents a pseudo-element (::before, ::marker, ...). */
+    public boolean isPseudoElementSelector() {
+        return _pe != null || isPseudoClass(MARKER_PSEUDOCLASS);
+    }
+
+    /**
+     * Whether the element matches this compound selector including its dynamic pseudo-classes
+     * (:hover, :visited, ...), which never match without a user agent that reports them.
+     */
+    boolean matchesWithDynamicState(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+        return matches(e, attRes, treeRes) && (_pc == 0 || matchesDynamic(e, attRes, treeRes));
+    }
+
+    /**
      * the CSS condition .class
      */
     public void addClassCondition(String className) {
@@ -574,6 +615,20 @@ public class Selector {
             sb.append(' ');
 
             next = next.getChainedSelector();
+        }
+    }
+
+    /** Prints this selector's own compound part (element name and conditions), without any chain. */
+    void toCompoundCSS(StringBuilder sb) {
+        if (_name != null) {
+            sb.append(_name);
+        } else if (conditions == null) {
+            sb.append('*');
+        }
+        if (conditions != null) {
+            for (Condition condition : conditions) {
+                condition.toCSS(sb);
+            }
         }
     }
 

@@ -1919,6 +1919,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests the :not() negation pseudo-class with a list of compound selectors: single and
+     * listed arguments, structural pseudo-classes, nesting, the specificity of the most specific
+     * argument, and an invalid (complex) argument dropping its rule. Every box should be green.
+     */
+    @Test
+    public void testNotPseudoClass() throws IOException {
+        assertTrue(vt.runTest("not-pseudo-class"));
+    }
+
+    /**
      * Tests that a block whose border box starts on a page but whose first line box
      * does not fit in what is left of it moves to the next page as a whole, rather
      * than leaving an empty border/background fragment stranded at the page foot and

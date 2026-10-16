@@ -1,0 +1,68 @@
+<html>
+<head>
+<style>
+@page {
+  /* One page, so no box is split across a page break. */
+  size: 280px 260px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+}
+
+/*
+ * :not() with a list of compound selectors (Selectors Level 4).
+ *
+ * Every box should end up green. A box marked .box starts red and only a :not()
+ * rule that should match it turns it green. A box marked .neg starts green and
+ * a :not() rule that must NOT match it would turn it red.
+ */
+.box { background-color: red; }
+.neg { background-color: green; }
+
+/* 1. A single class argument. */
+.c1 .box:not(.x) { background-color: green; }
+.c1 .neg:not(.x) { background-color: red; }
+
+/* 2. A list: matches only elements that match none of the arguments. */
+.c2 .box:not(.a, .b, [data-k]) { background-color: green; }
+.c2 .neg:not(.a, .b, [data-k]) { background-color: red; }
+
+/* 3. A structural pseudo-class argument. */
+.c3 .box:not(:last-child) { background-color: green; }
+.c3 .neg:not(:last-child) { background-color: red; }
+
+/* 4. Nested negation cancels out. */
+.c4 .box:not(:not(.y)) { background-color: green; }
+.c4 .neg:not(:not(.y)) { background-color: red; }
+
+/* 5. Specificity is that of the most specific argument: :not(.z, #nope) counts as an id,
+      so it beats the later rule with three classes. */
+.c5 i:not(.z, #nope) { background-color: green; }
+.c5 .box.box { background-color: red; }
+
+/* 6. An argument with a combinator is invalid, so the whole rule is dropped. */
+.c6 .neg:not(div i) { background-color: red; }
+
+div {
+  height: 20px;
+  margin-bottom: 8px;
+}
+i {
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  margin-right: 4px;
+  border: 1px solid black;
+}
+</style>
+</head>
+<body>
+<div class="c1"><i class="box"></i><i class="box y"></i><i class="neg x"></i></div>
+<div class="c2"><i class="box"></i><i class="box c"></i><i class="neg a"></i><i class="neg b"></i><i class="neg" data-k="1"></i></div>
+<div class="c3"><i class="box"></i><i class="box"></i><i class="neg"></i></div>
+<div class="c4"><i class="box y"></i><i class="neg"></i><i class="neg z"></i></div>
+<div class="c5"><i class="box"></i></div>
+<div class="c6"><i class="neg"></i></div>
+</body>
+</html>
