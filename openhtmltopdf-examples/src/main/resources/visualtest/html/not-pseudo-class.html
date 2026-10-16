@@ -11,7 +11,7 @@ body {
 }
 
 /*
- * :not() with a list of compound selectors (Selectors Level 4).
+ * :not() with a list of complex selectors (Selectors Level 4).
  *
  * Every box should end up green. A box marked .box starts red and only a :not()
  * rule that should match it turns it green. A box marked .neg starts green and
@@ -41,8 +41,12 @@ body {
 .c5 i:not(.z, #nope) { background-color: green; }
 .c5 .box.box { background-color: red; }
 
-/* 6. An argument with a combinator is invalid, so the whole rule is dropped. */
-.c6 .neg:not(div i) { background-color: red; }
+/* 6. Complex arguments: descendant, child and sibling combinators. */
+.c6 .box:not(span i, i + i + i) { background-color: green; }
+.c6 .neg:not(div > i) { background-color: red; }
+
+/* 7. An argument with a pseudo-element is invalid, so the whole rule is dropped. */
+.c7 .neg:not(div ::before) { background-color: red; }
 
 div {
   height: 20px;
@@ -63,6 +67,7 @@ i {
 <div class="c3"><i class="box"></i><i class="box"></i><i class="neg"></i></div>
 <div class="c4"><i class="box y"></i><i class="neg"></i><i class="neg z"></i></div>
 <div class="c5"><i class="box"></i></div>
-<div class="c6"><i class="neg"></i></div>
+<div class="c6"><i class="box"></i><i class="box"></i><i class="neg"></i></div>
+<div class="c7"><i class="neg"></i></div>
 </body>
 </html>

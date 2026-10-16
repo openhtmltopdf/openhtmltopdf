@@ -194,7 +194,7 @@ abstract class Condition {
     }
 
     /**
-     * the CSS condition that element matches none of the compound selectors in :not(...)
+     * the CSS condition that element matches none of the selectors in :not(...)
      */
     static Condition createNegationCondition(List<Selector> arguments) {
         return new NegationCondition(arguments);
@@ -655,15 +655,19 @@ abstract class Condition {
     private static class NegationCondition extends Condition {
 
         private final List<Selector> _arguments;
+        private final List<Selector[]> _chains = new ArrayList<>();
 
         NegationCondition(List<Selector> arguments) {
             _arguments = arguments;
+            for (Selector argument : arguments) {
+                _chains.add(argument.getChain());
+            }
         }
 
         @Override
         boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
-            for (Selector argument : _arguments) {
-                if (argument.matchesWithDynamicState(e, attRes, treeRes)) {
+            for (Selector[] chain : _chains) {
+                if (Selector.matchesChain(chain, chain.length - 1, e, attRes, treeRes)) {
                     return false;
                 }
             }
@@ -677,7 +681,7 @@ abstract class Condition {
                 if (i > 0) {
                     sb.append(", ");
                 }
-                _arguments.get(i).toCompoundCSS(sb);
+                _arguments.get(i).toComplexCSS(sb);
             }
             sb.append(')');
         }

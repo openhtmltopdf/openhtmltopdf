@@ -30,7 +30,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 /**
- * The Selectors Level 4 negation pseudo-class {@code :not()} with a list of compound selectors.
+ * The Selectors Level 4 negation pseudo-class {@code :not()} with a list of complex selectors.
  */
 public class NegationPseudoClassTest {
 
@@ -191,11 +191,40 @@ public class NegationPseudoClassTest {
     }
 
     @Test
+    public void notAcceptsComplexSelectors() {
+        Document doc = dom("<r><div><p id='child'/><span><p id='grandchild'/></span></div><p id='outside'/>" +
+                "<h1/><p id='after-h1'/></r>");
+
+        Matcher descendant = matcher("p:not(div p) { letter-spacing: 1px }");
+        assertNull(spacing(descendant, byId(doc, "child")));
+        assertNull(spacing(descendant, byId(doc, "grandchild")));
+        assertEquals("1px", spacing(descendant, byId(doc, "outside")));
+
+        Matcher child = matcher("p:not(div > p) { letter-spacing: 1px }");
+        assertNull(spacing(child, byId(doc, "child")));
+        assertEquals("1px", spacing(child, byId(doc, "grandchild")));
+
+        Matcher sibling = matcher("p:not(h1 + p, r > div > span > p) { letter-spacing: 1px }");
+        assertNull(spacing(sibling, byId(doc, "after-h1")));
+        assertNull(spacing(sibling, byId(doc, "grandchild")));
+        assertEquals("1px", spacing(sibling, byId(doc, "outside")));
+    }
+
+    @Test
+    public void complexArgumentsCountTheirWholeSpecificity() {
+        // :not(#a .x) counts (1,1,0) with the i, which beats i.c.d at (0,2,1).
+        Document doc = dom("<r><i id='e' class='c d'/></r>");
+        assertEquals("1px", spacing(
+                matcher("i:not(#a .x) { letter-spacing: 1px }\ni.c.d { letter-spacing: 2px }"), byId(doc, "e")));
+    }
+
+    @Test
     public void invalidArgumentsDropOnlyTheirRule() {
         Document doc = dom("<r><div><p id='p'/></div></r>");
         String[] invalid = {
-            "p:not(div p) { letter-spacing: 9px }",
-            "p:not(div > p) { letter-spacing: 9px }",
+            "p:not(div ::before) { letter-spacing: 9px }",
+            "p:not(div::before p) { letter-spacing: 9px }",
+            "p:not(div >) { letter-spacing: 9px }",
             "p:not(::before) { letter-spacing: 9px }",
             "p:not(:before) { letter-spacing: 9px }",
             "p:not() { letter-spacing: 9px }",

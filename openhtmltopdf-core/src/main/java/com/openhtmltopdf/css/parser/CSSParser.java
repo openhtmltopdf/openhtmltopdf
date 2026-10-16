@@ -1223,7 +1223,7 @@ public class CSSParser {
                 throw e;
             }
         } else if (f.equals("not")) {
-            selector.addNegationCondition(compound_selector_list(selector));
+            selector.addNegationCondition(complex_selector_list(selector));
             t = Token.TK_RPAREN;
         } else {
             save(t);
@@ -1236,22 +1236,17 @@ public class CSSParser {
         }
     }
 
-    //  compound_selector_list
-    //    : S* simple_selector S* [ ',' S* simple_selector S* ]* ')'
+    //  complex_selector_list
+    //    : S* complex_selector [ ',' S* complex_selector ]* ')'
     //    ;
-    // The argument of :not(): compound selectors only (no combinators, no pseudo-elements).
-    // User-action pseudo-classes such as :hover are valid but never match, as in any
-    // non-interactive user agent.
-    private List<Selector> compound_selector_list(Selector owner) throws IOException {
+    // The argument of :not(): complex selectors without pseudo-elements. User-action
+    // pseudo-classes such as :hover are valid but never match, as in any non-interactive
+    // user agent.
+    private List<Selector> complex_selector_list(Selector owner) throws IOException {
         List<Selector> list = new ArrayList<>();
         while (true) {
             skip_whitespace();
-            Selector argument = simple_selector(owner.getRuleset());
-            if (argument.isPseudoElementSelector()) {
-                throw new CSSParseException("Pseudo-elements are not allowed in :not()", getCurrentLine());
-            }
-            list.add(argument);
-            skip_whitespace();
+            list.add(complex_selector(owner.getRuleset(), "not"));
             Token t = next();
             if (t == Token.TK_RPAREN) {
                 return list;
@@ -1261,6 +1256,45 @@ public class CSSParser {
                 throw new CSSParseException(t, new Token[]{Token.TK_COMMA, Token.TK_RPAREN}, getCurrentLine());
             }
         }
+    }
+
+    //  complex_selector
+    //    : simple_selector [ combinator simple_selector ]* S*
+    //    ;
+    // A selector argument of a functional pseudo-class, returned as the first selector of its
+    // chain, as a ruleset's selectors are.
+    private Selector complex_selector(Ruleset ruleset, String function) throws IOException {
+        List<Selector> selectors = new ArrayList<>();
+        List<Token> combinators = new ArrayList<>();
+        selectors.add(simple_selector(ruleset));
+        while (true) {
+            Token t = nextWithSave();
+            if (t == Token.TK_S) {
+                skip_whitespace();
+                t = nextWithSave();
+                if (t == Token.TK_COMMA || t == Token.TK_RPAREN) {
+                    break;
+                }
+                if (t != Token.TK_PLUS && t != Token.TK_GREATER) {
+                    combinators.add(Token.TK_S);
+                    selectors.add(simple_selector(ruleset));
+                    continue;
+                }
+            }
+            if (t == Token.TK_PLUS || t == Token.TK_GREATER) {
+                combinators.add(combinator());
+                selectors.add(simple_selector(ruleset));
+            } else {
+                break;
+            }
+        }
+        for (Selector selector : selectors) {
+            if (selector.isPseudoElementSelector()) {
+                throw new CSSParseException("Pseudo-elements are not allowed in :" + function + "()",
+                        getCurrentLine());
+            }
+        }
+        return mergeSimpleSelectors(selectors, combinators);
     }
 
     private void addPseudoElement(Token t, Selector selector) {

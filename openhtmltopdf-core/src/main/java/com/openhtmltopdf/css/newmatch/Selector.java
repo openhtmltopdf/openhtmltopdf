@@ -25,6 +25,7 @@ import com.openhtmltopdf.css.sheet.Ruleset;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -287,8 +288,11 @@ public class Selector {
     public void addNegationCondition(List<Selector> arguments) {
         Selector mostSpecific = null;
         for (Selector argument : arguments) {
-            if (mostSpecific == null || argument.compareSpecificity(mostSpecific) > 0) {
-                mostSpecific = argument;
+            // A chain's specificity is held by its last selector.
+            Selector[] chain = argument.getChain();
+            Selector subject = chain[chain.length - 1];
+            if (mostSpecific == null || subject.compareSpecificity(mostSpecific) > 0) {
+                mostSpecific = subject;
             }
         }
         _specificityB += mostSpecific.getSpecificityB();
@@ -313,11 +317,43 @@ public class Selector {
     }
 
     /**
-     * Whether the element matches this compound selector including its dynamic pseudo-classes
-     * (:hover, :visited, ...), which never match without a user agent that reports them.
+     * The selectors of the chain that starts with this selector, the subject last.
      */
-    boolean matchesWithDynamicState(Object e, AttributeResolver attRes, TreeResolver treeRes) {
-        return matches(e, attRes, treeRes) && (_pc == 0 || matchesDynamic(e, attRes, treeRes));
+    Selector[] getChain() {
+        List<Selector> chain = new ArrayList<>();
+        for (Selector s = this; s != null; s = s.getChainedSelector()) {
+            chain.add(s);
+        }
+        return chain.toArray(new Selector[0]);
+    }
+
+    /**
+     * Check if the given Element matches chain[index], with the selectors before it matching
+     * its ancestors. Works upwards from the element, unlike Matcher, so it can test a whole
+     * selector at any element. A pseudo-element or a dynamic pseudo-class (:hover, ...) never
+     * matches, since nothing reports them.
+     */
+    static boolean matchesChain(
+            Selector[] chain, int index, Object e, AttributeResolver attRes, TreeResolver treeRes) {
+        Selector selector = chain[index];
+        if (selector.getPseudoElement() != null ||
+                !selector.matches(e, attRes, treeRes) ||
+                !selector.matchesDynamic(e, attRes, treeRes)) {
+            return false;
+        }
+        if (index == 0) {
+            return true;
+        }
+        Object ancestor = treeRes.getParentElement(e);
+        if (selector.getAxis() == CHILD_AXIS) {
+            return ancestor != null && matchesChain(chain, index - 1, ancestor, attRes, treeRes);
+        }
+        for (; ancestor != null; ancestor = treeRes.getParentElement(ancestor)) {
+            if (matchesChain(chain, index - 1, ancestor, attRes, treeRes)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -616,6 +652,25 @@ public class Selector {
 
             next = next.getChainedSelector();
         }
+    }
+
+    /** Prints the whole selector chain that starts with this selector, combinators included. */
+    void toComplexCSS(StringBuilder sb) {
+        Selector[] chain = getChain();
+        for (int i = 0; i < chain.length; i++) {
+            if (i > 0) {
+                sb.append(chain[i].getAxis() == CHILD_AXIS ? " > " : " ");
+            }
+            chain[i].toCompoundWithSiblingsCSS(sb);
+        }
+    }
+
+    private void toCompoundWithSiblingsCSS(StringBuilder sb) {
+        if (siblingSelector != null) {
+            siblingSelector.toCompoundWithSiblingsCSS(sb);
+            sb.append(" + ");
+        }
+        toCompoundCSS(sb);
     }
 
     /** Prints this selector's own compound part (element name and conditions), without any chain. */
