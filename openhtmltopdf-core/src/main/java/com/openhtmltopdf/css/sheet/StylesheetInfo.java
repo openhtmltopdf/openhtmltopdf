@@ -43,6 +43,7 @@ public class StylesheetInfo {
     private String title;
     private String uri;
     private int origin = USER_AGENT;
+    private String layer;
     private String type;
     private final List<String> mediaTypes = new ArrayList<>();
     private String content;
@@ -163,6 +164,17 @@ public class StylesheetInfo {
      */
     public int getOrigin() {
         return origin;
+    }
+
+    /**
+     * The cascade layer that an @import rule puts the style sheet in, or null.
+     */
+    public String getLayer() {
+        return layer;
+    }
+
+    public void setLayer(String layer) {
+        this.layer = layer;
     }
 
     /**

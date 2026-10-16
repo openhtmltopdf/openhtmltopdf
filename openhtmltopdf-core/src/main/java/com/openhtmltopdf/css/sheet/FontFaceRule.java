@@ -28,9 +28,21 @@ public class FontFaceRule implements RulesetContainer {
     private int _origin;
     private Ruleset _ruleset;
     private CalculatedStyle _calculatedStyle;
+    private String _layer;
 
     public FontFaceRule(int origin) {
         _origin = origin;
+    }
+
+    /**
+     * The full name of the cascade layer this rule is in, or null when it is unlayered.
+     */
+    public String getLayer() {
+        return _layer;
+    }
+
+    public void setLayer(String layer) {
+        _layer = layer;
     }
 
     @Override

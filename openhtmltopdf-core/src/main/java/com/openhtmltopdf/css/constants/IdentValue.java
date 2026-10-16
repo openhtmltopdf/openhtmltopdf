@@ -161,6 +161,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue PRE_LINE = addValue("pre-line");
     public final static IdentValue PRE_WRAP = addValue("pre-wrap");
     public final static IdentValue RELATIVE = addValue("relative");
+    public final static IdentValue REVERT_LAYER = addValue("revert-layer");
     public final static IdentValue REPEAT = addValue("repeat");
     public final static IdentValue REPEAT_X = addValue("repeat-x");
     public final static IdentValue REPEAT_Y = addValue("repeat-y");

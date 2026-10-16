@@ -1,7 +1,7 @@
 <html>
 <head>
 <style>
-    @page { size: 260px 150px; margin: 10px; }
+    @page { size: 260px 170px; margin: 10px; }
     body { font-family: 'TestFont'; font-size: 14px; line-height: 20px; margin: 0; }
 
     /* Every box should be green; red means the layer order was not applied. */
@@ -25,6 +25,8 @@
         #b3.box.sub { background-color: #e00000; }
     }
     .unlayered { background-color: #00a000; }
+    @layer reset { .revert { background-color: #00a000; } }
+    @layer theme { .revert { background-color: #e00000; } #b5 { background-color: revert-layer; } }
     @layer reset {
         .sub { background-color: #00a000; }
     }
@@ -35,13 +37,14 @@
 <!--
 The layer statement orders reset before theme. 1: a later layer beats an earlier more
 specific rule. 2: an important declaration in an earlier layer beats one in a later layer.
-3: rules directly in reset beat its sublayer reset.inner. 4: unlayered rules beat layers.
+3: rules directly in reset beat its sublayer reset.inner. 4: unlayered rules beat layers. 5: revert-layer rolls back to the reset layer.
 -->
 
 <div id="b1" class="box later">1 later layer</div>
 <div id="b2" class="box theme-important">2 reversed important</div>
 <div id="b3" class="box sub">3 sublayer</div>
 <div id="b4" class="unlayered">4 unlayered</div>
+<div id="b5" class="revert">5 revert-layer</div>
 
 </body>
 </html>

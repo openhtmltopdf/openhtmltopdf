@@ -30,6 +30,7 @@ public class PageRule implements RulesetContainer {
     private String _pseudoPage;
     private Ruleset _ruleset;
     private int _origin;
+    private String _layer;
     
     private final Map<MarginBoxName,List<PropertyDeclaration>> _marginBoxes = new HashMap<>();
 
@@ -77,6 +78,17 @@ public class PageRule implements RulesetContainer {
     @Override
     public int getOrigin() {
         return _origin;
+    }
+
+    /**
+     * The full name of the cascade layer this rule is in, or null when it is unlayered.
+     */
+    public String getLayer() {
+        return _layer;
+    }
+
+    public void setLayer(String layer) {
+        _layer = layer;
     }
 
     public void setOrigin(int origin) {

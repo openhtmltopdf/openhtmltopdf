@@ -2,12 +2,26 @@ package com.openhtmltopdf.nonvisualregressiontests;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.w3c.dom.Element;
 
+import com.openhtmltopdf.css.extend.lib.DOMTreeResolver;
+import com.openhtmltopdf.css.newmatch.Matcher;
+import com.openhtmltopdf.css.parser.CSSParser;
 import com.openhtmltopdf.css.parser.FSRGBColor;
+import com.openhtmltopdf.css.sheet.FontFaceRule;
+import com.openhtmltopdf.css.sheet.Stylesheet;
+import com.openhtmltopdf.css.sheet.StylesheetInfo;
 import com.openhtmltopdf.pdfboxout.PdfBoxRenderer;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.render.Box;
@@ -129,9 +143,58 @@ public class CascadeLayersTest {
     }
 
     @Test
-    public void testPageRulesInALayerStillApply() throws IOException {
-        color("@layer base { @page { size: 300px 200px; margin: 0; } }");
-        assertEquals(300, rootBox.getWidth() / 20);
+    public void testPageRulesAreLayered() throws IOException {
+        color("@layer base { @page { size: 300px 200px; margin: 0; } } @page { size: 400px 200px; margin: 0; }");
+        assertEquals("unlayered wins", 400, rootBox.getWidth() / 20);
+        color("@layer a, b; @layer b { @page { size: 300px 200px; margin: 0; } } " +
+                "@layer a { @page :first { size: 400px 200px; margin: 0; } }");
+        assertEquals("a later layer beats a more specific page selector", 300, rootBox.getWidth() / 20);
+    }
+
+    @Test
+    public void testFontFaceRulesAreOrderedByLayer() throws IOException {
+        Stylesheet sheet = new CSSParser((uri, message) -> { }).parseStylesheet("test://css", StylesheetInfo.AUTHOR,
+                new StringReader("@layer a, b; @layer b { @font-face { font-family: B; } } " +
+                        "@font-face { font-family: U; } @layer a { @font-face { font-family: A; } }"));
+        Matcher matcher = new Matcher(new DOMTreeResolver(), null, null, Collections.singletonList(sheet), "print");
+        List<FontFaceRule> inSource = sheet.getFontFaceRules(); // B, U, A
+        assertEquals(Arrays.asList(inSource.get(2), inSource.get(0), inSource.get(1)), matcher.getFontFaceRules());
+    }
+
+    @Test
+    public void testRevertLayerRollsBackToThePreviousLayer() throws IOException {
+        assertEquals(BLUE, color("@layer base { div { color: blue; } } @layer theme { div { color: red; } " +
+                "#x { color: revert-layer; } }"));
+        // Without a lower layer it rolls back to the previous origin, so the color is inherited.
+        assertEquals(GREEN, color("body { color: green; } div { color: red; } #x { color: revert-layer; }"));
+        // In the style attribute it rolls back to the rules.
+        assertEquals(RED, color("div { color: red; }", "color: revert-layer"));
+    }
+
+    @Test
+    public void testRevertLayerOnAnImportantDeclarationRollsBackToTheNextLayer() throws IOException {
+        // Important layers in priority order: unlayered, b, a. Reverting a leaves b.
+        assertEquals(BLUE, color("@layer a { #x { color: revert-layer !important; } } " +
+                "@layer b { div { color: blue !important; } } div { color: red !important; }"));
+    }
+
+    @Test
+    public void testImportedStyleSheetsCanBeLayered() throws IOException {
+        Path imported = Files.createTempFile("cascade-layers", ".css");
+        try {
+            Files.write(imported, "#x { color: blue; } @layer inner { div { color: green; } }".getBytes(StandardCharsets.UTF_8));
+            String url = imported.toUri().toString();
+            assertEquals(BLUE, color("@import url('" + url + "'); div { color: red; }"));
+            assertEquals(RED, color("@import url('" + url + "') layer(base); div { color: red; }"));
+            assertEquals(RED, color("@import url('" + url + "') layer; div { color: red; }"));
+            // The imported sheet's own layers nest inside the import layer: base.inner ranks below base.
+            assertEquals(BLUE, color("@import url('" + url + "') layer(base); @layer base.inner { #x { color: red; } }"));
+            // A layer statement before the import sets the order.
+            assertEquals(BLUE, color("@layer theme, base; @import url('" + url + "') layer(base); " +
+                    "@layer theme { #x { color: red; } }"));
+        } finally {
+            Files.delete(imported);
+        }
     }
 
     @Test

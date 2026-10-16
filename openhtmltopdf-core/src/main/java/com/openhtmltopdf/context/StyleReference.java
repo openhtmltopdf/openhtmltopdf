@@ -27,6 +27,7 @@ import com.openhtmltopdf.css.newmatch.PageInfo;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
 import com.openhtmltopdf.css.sheet.FontFaceRule;
 import com.openhtmltopdf.css.sheet.PropertyDeclaration;
+import com.openhtmltopdf.css.sheet.Ruleset;
 import com.openhtmltopdf.css.sheet.Stylesheet;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
 import com.openhtmltopdf.css.style.CalculatedStyle;
@@ -104,11 +105,15 @@ public class StyleReference {
                 new DOMTreeResolver(),
                 new StandardAttributeResolver(_nsh, _uac, ui),
                 _stylesheetFactory,
-                readAndParseAll(infos, _context.getMedia()),
+                readAndParseAll(infos, _context.getMedia(), null),
                 _context.getMedia());
     }
 
-    private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium) {
+    /**
+     * Reads the style sheets and, before each, the ones it imports. {@code layer} is the cascade
+     * layer the @import rules leading here put them in, or null.
+     */
+    private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium, String layer) {
         List<Stylesheet> result = new ArrayList<>(infos.size() * 2); // Local aggregation prevents tail recursion, but it's extremely unlikely for this to become an issue.
 
         for (StylesheetInfo info : infos) {
@@ -125,8 +130,22 @@ public class StyleReference {
                 continue;
             }
 
+            String sheetLayer = info.getLayer() == null ? layer :
+                    layer == null ? info.getLayer() : layer + "." + info.getLayer();
+            // Set for every document, since a parsed style sheet can be shared.
+            sheet.setImportLayer(sheetLayer);
+
             if (!sheet.getImportRules().isEmpty()) {
-                result.addAll(readAndParseAll(sheet.getImportRules(), medium));
+                if (!sheet.getLeadingLayerStatements().isEmpty()) {
+                    // Declares those layers before the imported sheets add theirs.
+                    Stylesheet statements = new Stylesheet(sheet.getURI(), sheet.getOrigin());
+                    for (Ruleset statement : sheet.getLeadingLayerStatements()) {
+                        statements.addContent(statement);
+                    }
+                    statements.setImportLayer(sheetLayer);
+                    result.add(statements);
+                }
+                result.addAll(readAndParseAll(sheet.getImportRules(), medium, sheetLayer));
             }
 
             result.add(sheet);

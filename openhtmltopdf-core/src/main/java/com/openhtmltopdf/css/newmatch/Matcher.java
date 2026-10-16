@@ -41,6 +41,7 @@ import com.openhtmltopdf.css.constants.MarginBoxName;
 import com.openhtmltopdf.css.extend.AttributeResolver;
 import com.openhtmltopdf.css.extend.StylesheetFactory;
 import com.openhtmltopdf.css.extend.TreeResolver;
+import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.sheet.*;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
@@ -81,6 +82,9 @@ public class Matcher {
 
     /** Cascade layer name to rank: a higher rank wins for normal declarations. Empty without @layer. */
     private final Map<String, Integer> _layerRanks = new HashMap<>();
+    /** The full layer name of each layered rule, page rule and font face rule. */
+    private final Map<Object, String> _ruleLayers = new IdentityHashMap<>();
+    private boolean _hasRevertLayer;
 
     public Matcher(
             TreeResolver tr, AttributeResolver ar, StylesheetFactory factory, List<Stylesheet> stylesheets, String medium) {
@@ -136,9 +140,10 @@ public class Matcher {
         Map<MarginBoxName, List<PropertyDeclaration>>  marginBoxes = new HashMap<>();
         List<PropertyDeclaration> footnote = new ArrayList<>();
 
+        List<PageRule> applying = new ArrayList<>();
         for (PageRule pageRule : _pageRules) {
             if (pageRule.applies(pageName, pseudoPage)) {
-                props.addAll(pageRule.getRuleset().getPropertyDeclarations());
+                applying.add(pageRule);
                 marginBoxes.putAll(pageRule.getMarginBoxes());
 
                 if (pageRule.getFootnoteAreaProperties() != null) {
@@ -146,6 +151,22 @@ public class Matcher {
                 }
             }
         }
+
+        // As for elements, important declarations take the layers in reverse order.
+        List<Integer> layers = new ArrayList<>();
+        List<PageRule> importantOrder = new ArrayList<>(applying);
+        importantOrder.sort(Comparator.comparingInt((PageRule rule) -> getLayerRank(rule)).reversed());
+        for (boolean important : new boolean[] { false, true }) {
+            for (PageRule pageRule : important ? importantOrder : applying) {
+                for (PropertyDeclaration decl : pageRule.getRuleset().getPropertyDeclarations()) {
+                    if (decl.isImportant() == important) {
+                        props.add(decl);
+                        layers.add(getLayerRank(pageRule));
+                    }
+                }
+            }
+        }
+        props = revertLayers(props, layers);
         
         CascadedStyle style;
         if (props.isEmpty()) {
@@ -247,37 +268,34 @@ public class Matcher {
         int count = 0;
         int pCount = 0;
         List<Selector> selectors = new ArrayList<>();
+        List<FontFaceRule> fontFaceRules = new ArrayList<>();
         // Layers in the order they are first declared, keyed by their parent layer ("" at the top).
         Map<String, List<String>> sublayers = new HashMap<>();
         for (Stylesheet stylesheet : stylesheets) {
+            String importLayer = stylesheet.getImportLayer();
             for (Object obj : stylesheet.getContents()) {
                 if (obj instanceof Ruleset) {
-                    declareLayer(sublayers, ((Ruleset) obj).getLayer());
-                    for (Selector selector : ((Ruleset) obj).getFSSelectors()) {
-                        selector.setPos(++count);
-                        selectors.add(selector);
-                    }
+                    count = addRuleset((Ruleset) obj, importLayer, sublayers, selectors, count);
                 } else if (obj instanceof PageRule) {
-                    ((PageRule) obj).setPos(++pCount);
-                    _pageRules.add((PageRule) obj);
+                    PageRule pageRule = (PageRule) obj;
+                    declareRuleLayer(pageRule, importLayer, pageRule.getLayer(), sublayers);
+                    pageRule.setPos(++pCount);
+                    _pageRules.add(pageRule);
                 } else if (obj instanceof MediaRule) {
                     MediaRule mediaRule = (MediaRule) obj;
                     // A layer in a media rule that does not apply is not declared.
                     if (mediaRule.matches(medium)) {
                         for (Object o : mediaRule.getContents()) {
-                            Ruleset ruleset = (Ruleset) o;
-                            declareLayer(sublayers, ruleset.getLayer());
-                            for (Object o1 : ruleset.getFSSelectors()) {
-                                Selector selector = (Selector) o1;
-                                selector.setPos(++count);
-                                selectors.add(selector);
-                            }
+                            count = addRuleset((Ruleset) o, importLayer, sublayers, selectors, count);
                         }
                     }
                 }
             }
 
-            _fontFaceRules.addAll(stylesheet.getFontFaceRules());
+            for (FontFaceRule fontFaceRule : stylesheet.getFontFaceRules()) {
+                declareRuleLayer(fontFaceRule, importLayer, fontFaceRule.getLayer(), sublayers);
+                fontFaceRules.add(fontFaceRule);
+            }
         }
 
         rankLayers(sublayers, "");
@@ -286,11 +304,19 @@ public class Matcher {
             String layer = String.format("%05d", getLayerRank(selector.getRuleset()));
             sorter.put(layer + selector.getOrder(), selector);
         }
-        
+
+        // A later font face wins over an earlier one with the same descriptors, so the layer
+        // order applies to them as to rules. The sort is stable, keeping source order within a layer.
+        fontFaceRules.sort(Comparator.comparingInt(this::getLayerRank));
+        _fontFaceRules.addAll(fontFaceRules);
+
         Collections.sort(_pageRules, new Comparator<PageRule>() {
             @Override
             public int compare(PageRule p1, PageRule p2) {
-                if (p1.getOrder() - p2.getOrder() < 0) {
+                int layers = Integer.compare(getLayerRank(p1), getLayerRank(p2));
+                if (layers != 0) {
+                    return layers;
+                } else if (p1.getOrder() - p2.getOrder() < 0) {
                     return -1;
                 } else if (p1.getOrder() == p2.getOrder()) {
                     return 0;
@@ -301,10 +327,33 @@ public class Matcher {
         });
     }
 
-    private static void declareLayer(Map<String, List<String>> sublayers, String layer) {
-        if (layer == null) {
-            return;
+    /** Adds a ruleset's selectors, numbered after {@code count}, and returns the last number. */
+    private int addRuleset(
+            Ruleset ruleset, String importLayer, Map<String, List<String>> sublayers, List<Selector> selectors, int count) {
+        declareRuleLayer(ruleset, importLayer, ruleset.getLayer(), sublayers);
+        if (!_hasRevertLayer) {
+            _hasRevertLayer = hasRevertLayer(ruleset);
         }
+        for (Selector selector : ruleset.getFSSelectors()) {
+            selector.setPos(++count);
+            selectors.add(selector);
+        }
+        return count;
+    }
+
+    /**
+     * Records the layer of a rule, which an @import rule may nest in a layer of its own, and
+     * declares it in the layer order.
+     */
+    private void declareRuleLayer(Object rule, String importLayer, String layer, Map<String, List<String>> sublayers) {
+        String full = importLayer == null ? layer : layer == null ? importLayer : importLayer + "." + layer;
+        if (full != null) {
+            _ruleLayers.put(rule, full);
+            declareLayer(sublayers, full);
+        }
+    }
+
+    private static void declareLayer(Map<String, List<String>> sublayers, String layer) {
         int dot = layer.lastIndexOf('.');
         String parent = dot < 0 ? "" : layer.substring(0, dot);
         if (dot >= 0) {
@@ -331,18 +380,73 @@ public class Matcher {
         }
     }
 
-    private int getLayerRank(Ruleset ruleset) {
-        String layer = ruleset.getLayer();
+    /** The rank of a rule's layer; unlayered rules rank last. */
+    private int getLayerRank(Object rule) {
+        String layer = _ruleLayers.get(rule);
         return layer == null ? _layerRanks.size() : _layerRanks.get(layer);
+    }
+
+    private static boolean hasRevertLayer(Ruleset ruleset) {
+        if (ruleset == null) {
+            return false;
+        }
+        for (PropertyDeclaration decl : ruleset.getPropertyDeclarations()) {
+            if (isRevertLayer(decl)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isRevertLayer(PropertyDeclaration decl) {
+        return decl.getValue() instanceof PropertyValue &&
+                ((PropertyValue) decl.getValue()).getIdentValue() == IdentValue.REVERT_LAYER;
+    }
+
+    /**
+     * Resolves revert-layer. Such a declaration and the earlier ones of its layer for the same
+     * property, importance and origin drop out, so the property rolls back to the previous
+     * layer, or to the previous origin when no layer below sets it. The declarations are in
+     * ascending priority within each importance and origin, with their layer ranks alongside.
+     */
+    private static List<PropertyDeclaration> revertLayers(List<PropertyDeclaration> props, List<Integer> layers) {
+        boolean[] dropped = new boolean[props.size()];
+        boolean any = false;
+        for (int i = 0; i < props.size(); i++) {
+            PropertyDeclaration decl = props.get(i);
+            if (!isRevertLayer(decl)) {
+                continue;
+            }
+            any = true;
+            for (int j = 0; j <= i; j++) {
+                PropertyDeclaration other = props.get(j);
+                if (other.getCSSName() == decl.getCSSName() &&
+                        other.getImportanceAndOrigin() == decl.getImportanceAndOrigin() &&
+                        layers.get(j).equals(layers.get(i))) {
+                    dropped[j] = true;
+                }
+            }
+        }
+        if (!any) {
+            return props;
+        }
+        List<PropertyDeclaration> result = new ArrayList<>(props.size());
+        for (int i = 0; i < props.size(); i++) {
+            if (!dropped[i]) {
+                result.add(props.get(i));
+            }
+        }
+        return result;
     }
 
     /**
      * Adds the declarations of the selectors' rules, which are in cascade order for normal
-     * declarations. Important declarations take the cascade layers in reverse order.
+     * declarations. Important declarations take the cascade layers in reverse order. When
+     * {@code layers} is not null, it gets the layer rank of each declaration added.
      */
-    private void addRuleDeclarations(
-            List<Selector> selectors, List<PropertyDeclaration> propList, List<CustomPropertyDeclaration> customPropList) {
-        if (_layerRanks.isEmpty()) {
+    private void addRuleDeclarations(List<Selector> selectors, List<PropertyDeclaration> propList,
+            List<CustomPropertyDeclaration> customPropList, List<Integer> layers) {
+        if (_layerRanks.isEmpty() && layers == null) {
             for (Selector sel : selectors) {
                 propList.addAll(sel.getRuleset().getPropertyDeclarations());
                 customPropList.addAll(sel.getRuleset().getCustomPropertyDeclarations());
@@ -352,16 +456,20 @@ public class Matcher {
 
         List<Selector> importantOrder = new ArrayList<>(selectors);
         importantOrder.sort(Comparator.comparingInt((Selector sel) -> getLayerRank(sel.getRuleset())).reversed());
-        addRuleDeclarations(selectors, false, propList, customPropList);
-        addRuleDeclarations(importantOrder, true, propList, customPropList);
+        addRuleDeclarations(selectors, false, propList, customPropList, layers);
+        addRuleDeclarations(importantOrder, true, propList, customPropList, layers);
     }
 
-    private static void addRuleDeclarations(List<Selector> selectors, boolean important,
-            List<PropertyDeclaration> propList, List<CustomPropertyDeclaration> customPropList) {
+    private void addRuleDeclarations(List<Selector> selectors, boolean important,
+            List<PropertyDeclaration> propList, List<CustomPropertyDeclaration> customPropList, List<Integer> layers) {
         for (Selector sel : selectors) {
+            int rank = getLayerRank(sel.getRuleset());
             for (PropertyDeclaration decl : sel.getRuleset().getPropertyDeclarations()) {
                 if (decl.isImportant() == important) {
                     propList.add(decl);
+                    if (layers != null) {
+                        layers.add(rank);
+                    }
                 }
             }
             for (CustomPropertyDeclaration decl : sel.getRuleset().getCustomPropertyDeclarations()) {
@@ -369,6 +477,14 @@ public class Matcher {
                     customPropList.add(decl);
                 }
             }
+        }
+    }
+
+    private static void addAll(List<PropertyDeclaration> propList, List<PropertyDeclaration> decls,
+            List<Integer> layers, int layer) {
+        propList.addAll(decls);
+        if (layers != null) {
+            layers.addAll(Collections.nCopies(decls.size(), layer));
         }
     }
 
@@ -844,20 +960,25 @@ public class Matcher {
 
             List<PropertyDeclaration> propList = new ArrayList<>();
             List<CustomPropertyDeclaration> customPropList = new ArrayList<>();
+            List<Integer> layers = _hasRevertLayer || hasRevertLayer(elementStyling) ? new ArrayList<>() : null;
 
             // Specificity 0,0,0,0
             if (nonCssStyling != null) {
-                propList.addAll(nonCssStyling.getPropertyDeclarations());
+                addAll(propList, nonCssStyling.getPropertyDeclarations(), layers, -1);
                 customPropList.addAll(nonCssStyling.getCustomPropertyDeclarations());
             }
 
             // These should have been returned in order of specificity
-            addRuleDeclarations(mappedSelectors, propList, customPropList);
+            addRuleDeclarations(mappedSelectors, propList, customPropList, layers);
 
             // Specificity 1,0,0,0
             if (elementStyling != null) {
-                propList.addAll(elementStyling.getPropertyDeclarations());
+                addAll(propList, elementStyling.getPropertyDeclarations(), layers, Integer.MAX_VALUE);
                 customPropList.addAll(elementStyling.getCustomPropertyDeclarations());
+            }
+
+            if (layers != null) {
+                propList = revertLayers(propList, layers);
             }
 
             if (propList.isEmpty() && customPropList.isEmpty()) {
@@ -885,7 +1006,11 @@ public class Matcher {
             List<PropertyDeclaration> propList = new ArrayList<>();
             List<CustomPropertyDeclaration> customPropList = new ArrayList<>();
 
-            addRuleDeclarations(pe, propList, customPropList);
+            List<Integer> layers = _hasRevertLayer ? new ArrayList<>() : null;
+            addRuleDeclarations(pe, propList, customPropList, layers);
+            if (layers != null) {
+                propList = revertLayers(propList, layers);
+            }
 
             if (propList.isEmpty() && customPropList.isEmpty()) {
                 return CascadedStyle.emptyCascadedStyle;

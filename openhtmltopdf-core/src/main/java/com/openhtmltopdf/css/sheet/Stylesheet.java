@@ -20,6 +20,7 @@
 package com.openhtmltopdf.css.sheet;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -50,6 +51,8 @@ public class Stylesheet implements RulesetContainer {
      *  May contain page rules, media rules or rulesets.
      */
     private final List<Object> _contents = new ArrayList<>();
+    private String _importLayer;
+    private List<Ruleset> _leadingLayerStatements = Collections.emptyList();
 
     /**
      * Creates a new instance of Stylesheet
@@ -79,6 +82,31 @@ public class Stylesheet implements RulesetContainer {
      */
     public String getURI() {
         return _uri;
+    }
+
+    /**
+     * The cascade layer that the @import rules leading to this style sheet put it in, or null.
+     * Set for each document by {@link com.openhtmltopdf.context.StyleReference}, since a parsed
+     * style sheet can be shared.
+     */
+    public String getImportLayer() {
+        return _importLayer;
+    }
+
+    public void setImportLayer(String importLayer) {
+        _importLayer = importLayer;
+    }
+
+    /**
+     * The "@layer a, b;" statements before this style sheet's @import rules. They set the layer
+     * order before the imported style sheets, which come first in the cascade.
+     */
+    public List<Ruleset> getLeadingLayerStatements() {
+        return _leadingLayerStatements;
+    }
+
+    public void setLeadingLayerStatements(List<Ruleset> statements) {
+        _leadingLayerStatements = statements;
     }
     
     @Override

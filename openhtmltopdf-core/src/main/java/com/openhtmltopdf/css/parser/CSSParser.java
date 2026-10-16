@@ -198,6 +198,14 @@ public class CSSParser {
                     break;
                 }
             }
+            if (!stylesheet.getImportRules().isEmpty()) {
+                // Only layer statements, which are rulesets, can come before @import rules.
+                List<Ruleset> statements = new ArrayList<>();
+                for (Object statement : stylesheet.getContents()) {
+                    statements.add((Ruleset) statement);
+                }
+                stylesheet.setLeadingLayerStatements(statements);
+            }
 
             /* March 2024: https://archive.is/Yreun
             "Any @namespace rules must follow all @charset and @import rules, and precede all other at-rules and style declarations in a style sheet." */
@@ -294,6 +302,22 @@ public class CSSParser {
                         info.setUri(resolved);
 
                         skip_whitespace();
+                        t = nextWithSave();
+                        if (t == Token.TK_IDENT && "layer".equals(getTokenValue(t))) {
+                            next();
+                            skip_whitespace();
+                            info.setLayer(qualifyLayerName(anonymousLayerName()));
+                        } else if (t == Token.TK_FUNCTION && "layer(".equals(getTokenValue(t))) {
+                            next();
+                            skip_whitespace();
+                            info.setLayer(qualifyLayerName(layer_name()));
+                            t = next();
+                            if (t != Token.TK_RPAREN) {
+                                save(t);
+                                throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
+                            }
+                            skip_whitespace();
+                        }
                         t = nextWithSave();
                         if (t == Token.TK_IDENT) {
                             info.addMedium(medium());
@@ -484,6 +508,7 @@ public class CSSParser {
         Token t = next();
         try {
             FontFaceRule fontFaceRule = new FontFaceRule(stylesheet.getOrigin());
+            fontFaceRule.setLayer(_layer);
             if (t == Token.TK_FONT_FACE_SYM) {
                 skip_whitespace();
 
@@ -534,6 +559,7 @@ public class CSSParser {
         Token t = next();
         try {
             PageRule pageRule = new PageRule(stylesheet.getOrigin());
+            pageRule.setLayer(_layer);
             if (t == Token.TK_PAGE_SYM) {
                 skip_whitespace();
                 t = nextWithSave();
@@ -797,7 +823,7 @@ public class CSSParser {
                 skip_whitespace();
                 String outerLayer = _layer;
                 // An anonymous layer gets a name no other rule can refer to.
-                _layer = qualifyLayerName(names.isEmpty() ? "\0" + ANONYMOUS_LAYERS.incrementAndGet() : names.get(0));
+                _layer = qualifyLayerName(names.isEmpty() ? anonymousLayerName() : names.get(0));
                 try {
                     declareLayer(container, _layer);
                     while (true) {
@@ -810,7 +836,6 @@ public class CSSParser {
                         } else if (t == Token.TK_MEDIA_SYM && container == stylesheet) {
                             media(stylesheet);
                         } else if (t == Token.TK_PAGE_SYM && container == stylesheet) {
-                            // @page and @font-face rules keep their own cascade, unlayered.
                             page(stylesheet);
                         } else if (t == Token.TK_FONT_FACE_SYM && container == stylesheet) {
                             font_face(stylesheet);
@@ -864,6 +889,11 @@ public class CSSParser {
 
     private boolean isLayerRule(Token t) {
         return t == Token.TK_AT_RULE && "layer".equals(getTokenValue(t));
+    }
+
+    // A name no rule can refer to, for "@layer { }" and "@import ... layer".
+    private static String anonymousLayerName() {
+        return "\0" + ANONYMOUS_LAYERS.incrementAndGet();
     }
 
     private String qualifyLayerName(String name) {
@@ -1436,12 +1466,13 @@ public class CSSParser {
     }
 
     /**
-     * Handles the CSS-wide keywords {@code initial} and {@code unset}, which the
-     * property builders don't know about. The builder expands {@code inherit}
+     * Handles the CSS-wide keywords {@code initial}, {@code unset} and {@code revert-layer},
+     * which the property builders don't know about. The builder expands {@code inherit}
      * (so shorthands yield their longhands), then each longhand is set to
      * {@link IdentValue#FS_INITIAL_VALUE}, which is resolved to the property's
      * initial value when the style is computed. {@code unset} keeps
-     * {@code inherit} for inherited properties.
+     * {@code inherit} for inherited properties. {@code revert-layer} longhands get
+     * {@link IdentValue#REVERT_LAYER}, which the Matcher resolves in the cascade.
      *
      * @return the declarations, or null if the value is not one of these keywords
      */
@@ -1454,7 +1485,8 @@ public class CSSParser {
 
         String keyword = values.get(0).getStringValue();
         boolean unset = "unset".equalsIgnoreCase(keyword);
-        if (!unset && !"initial".equalsIgnoreCase(keyword)) {
+        boolean revertLayer = "revert-layer".equalsIgnoreCase(keyword);
+        if (!unset && !revertLayer && !"initial".equalsIgnoreCase(keyword)) {
             return null;
         }
 
@@ -1468,7 +1500,10 @@ public class CSSParser {
 
         List<PropertyDeclaration> result = new ArrayList<>(inherited.size());
         for (PropertyDeclaration decl : inherited) {
-            if (unset && CSSName.propertyInherits(decl.getCSSName())) {
+            if (revertLayer) {
+                result.add(new PropertyDeclaration(
+                        decl.getCSSName(), new PropertyValue(IdentValue.REVERT_LAYER), important, origin));
+            } else if (unset && CSSName.propertyInherits(decl.getCSSName())) {
                 result.add(decl);
             } else {
                 result.add(new PropertyDeclaration(
