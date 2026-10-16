@@ -167,6 +167,10 @@ public class Matcher {
             }
         }
         props = revertLayers(props, layers);
+        for (Map.Entry<MarginBoxName, List<PropertyDeclaration>> box : marginBoxes.entrySet()) {
+            // A margin box's declarations come merged from one page rule, so they share a layer.
+            box.setValue(revertLayers(box.getValue(), Collections.nCopies(box.getValue().size(), 0)));
+        }
         
         CascadedStyle style;
         if (props.isEmpty()) {

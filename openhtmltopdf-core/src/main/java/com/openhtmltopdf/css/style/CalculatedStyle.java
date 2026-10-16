@@ -619,6 +619,12 @@ public class CalculatedStyle {
     public FSDerivedValue valueByName(CSSName cssName) {
         FSDerivedValue val = _derivedValuesById[cssName.FS_ID];
 
+        if (val == IdentValue.REVERT_LAYER) {
+            // Only a var() substitution, after the cascade, can still yield revert-layer here; the
+            // layers are gone by then, so it acts as unset.
+            val = null;
+        }
+
         boolean needInitialValue = val == IdentValue.FS_INITIAL_VALUE;
 
         // but the property may not be defined for this Element

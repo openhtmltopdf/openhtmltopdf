@@ -172,6 +172,21 @@ public class CascadeLayersTest {
     }
 
     @Test
+    public void testRevertLayerInAMarginBoxIsResolved() throws IOException {
+        // Rolls back to the user agent value instead of reaching the computed style unresolved.
+        color("@page { margin: 20px; @top-center { content: 'x'; color: revert-layer; } }");
+        assertNotNull(rootBox);
+    }
+
+    @Test
+    public void testRevertLayerThroughACustomPropertyActsAsUnset() throws IOException {
+        // After the cascade the layers are gone, so a substituted revert-layer acts as unset:
+        // color inherits from the body.
+        assertEquals(GREEN, color("body { color: green; } " +
+                "div { --c: revert-layer; color: var(--c); background-color: var(--missing, revert-layer); }"));
+    }
+
+    @Test
     public void testRevertLayerOnAnImportantDeclarationRollsBackToTheNextLayer() throws IOException {
         // Important layers in priority order: unlayered, b, a. Reverting a leaves b.
         assertEquals(BLUE, color("@layer a { #x { color: revert-layer !important; } } " +
