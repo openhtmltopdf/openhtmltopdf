@@ -284,6 +284,15 @@ public class Selector {
         addCondition(Condition.createNestingCondition(parents));
     }
 
+    private static int compareSpecificity(int[] a, int[] b) {
+        for (int i = 0; i < a.length; i++) {
+            if (a[i] != b[i]) {
+                return Integer.compare(a[i], b[i]);
+            }
+        }
+        return 0;
+    }
+
     /**
      * the CSS condition :lang(Xx)
      */
@@ -507,7 +516,8 @@ public class Selector {
     /**
      * Check if the given Element matches chain[index], with the selectors before it matching
      * its ancestors. Works upwards from the element, unlike Matcher, so it can test a whole
-     * selector at any element. A pseudo-element or a dynamic pseudo-class never matches.
+     * selector at any element. A pseudo-element or a dynamic pseudo-class (:hover, ...) never
+     * matches, since nothing reports them.
      */
     static boolean matchesChain(
             Selector[] chain, int index, Object e, AttributeResolver attRes, TreeResolver treeRes) {
@@ -530,15 +540,6 @@ public class Selector {
             }
         }
         return false;
-    }
-
-    private static int compareSpecificity(int[] a, int[] b) {
-        for (int i = 0; i < a.length; i++) {
-            if (a[i] != b[i]) {
-                return Integer.compare(a[i], b[i]);
-            }
-        }
-        return 0;
     }
 
     /**

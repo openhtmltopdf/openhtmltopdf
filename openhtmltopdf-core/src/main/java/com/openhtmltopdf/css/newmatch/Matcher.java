@@ -236,6 +236,8 @@ public class Matcher {
     Mapper createDocumentMapper(List<Stylesheet> stylesheets, String medium) {
         java.util.TreeMap<String,Selector> sorter = new java.util.TreeMap<>();
         addAllStylesheets(stylesheets, sorter, medium);
+        // Rules from @media nested in style rules carry their own media types.
+        sorter.values().removeIf(selector -> !selector.getRuleset().matchesMedium(medium));
         XRLog.log(Level.INFO, LogMessageId.LogMessageId1Param.MATCH_MATCHER_CREATED_WITH_SELECTOR, sorter.size());
         return new Mapper(sorter.values());
     }
@@ -246,9 +248,6 @@ public class Matcher {
         for (Stylesheet stylesheet : stylesheets) {
             for (Object obj : stylesheet.getContents()) {
                 if (obj instanceof Ruleset) {
-                    if (!((Ruleset) obj).matchesMedium(medium)) {
-                        continue;
-                    }
                     for (Selector selector : ((Ruleset) obj).getFSSelectors()) {
                         selector.setPos(++count);
                         sorter.put(selector.getOrder(), selector);
@@ -261,9 +260,6 @@ public class Matcher {
                     if (mediaRule.matches(medium)) {
                         for (Object o : mediaRule.getContents()) {
                             Ruleset ruleset = (Ruleset) o;
-                            if (!ruleset.matchesMedium(medium)) {
-                                continue;
-                            }
                             for (Object o1 : ruleset.getFSSelectors()) {
                                 Selector selector = (Selector) o1;
                                 selector.setPos(++count);

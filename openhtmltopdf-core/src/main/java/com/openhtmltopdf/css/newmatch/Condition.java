@@ -146,6 +146,13 @@ abstract class Condition {
     static Condition createRootCondition() {
         return new RootCondition();
     }
+
+    /**
+     * the CSS nesting selector &amp;, matching what the parent rule's selectors match
+     */
+    static Condition createNestingCondition(List<Selector> parents) {
+        return new NestingCondition(parents);
+    }
     
     /**
      * the CSS condition that element has pseudo-class :last-child
@@ -191,13 +198,6 @@ abstract class Condition {
      */
     static Condition createLinkCondition() {
         return new LinkCondition();
-    }
-
-    /**
-     * the CSS nesting selector &amp;, matching what the parent rule's selectors match
-     */
-    static Condition createNestingCondition(List<Selector> parents) {
-        return new NestingCondition(parents);
     }
 
     /**
@@ -522,6 +522,35 @@ abstract class Condition {
             sb.append(":root");
         }
     }
+
+    /**
+     * represents unsupported (or invalid) css, never matches
+     */
+    private static class NestingCondition extends Condition {
+
+        private final List<Selector[]> _parentChains = new ArrayList<>();
+
+        NestingCondition(List<Selector> parents) {
+            for (Selector parent : parents) {
+                _parentChains.add(parent.getChain());
+            }
+        }
+
+        @Override
+        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            for (Selector[] chain : _parentChains) {
+                if (Selector.matchesChain(chain, chain.length - 1, e, attRes, treeRes)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        void toCSS(StringBuilder sb) {
+            sb.append('&');
+        }
+    }
     
     private static class LastChildCondition extends Condition {
 
@@ -665,35 +694,6 @@ abstract class Condition {
         @Override
         void toCSS(StringBuilder sb) {
             sb.append(":link");
-        }
-    }
-
-    /**
-     * represents unsupported (or invalid) css, never matches
-     */
-    private static class NestingCondition extends Condition {
-
-        private final List<Selector[]> _parentChains = new ArrayList<>();
-
-        NestingCondition(List<Selector> parents) {
-            for (Selector parent : parents) {
-                _parentChains.add(parent.getChain());
-            }
-        }
-
-        @Override
-        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
-            for (Selector[] chain : _parentChains) {
-                if (Selector.matchesChain(chain, chain.length - 1, e, attRes, treeRes)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        void toCSS(StringBuilder sb) {
-            sb.append('&');
         }
     }
 
