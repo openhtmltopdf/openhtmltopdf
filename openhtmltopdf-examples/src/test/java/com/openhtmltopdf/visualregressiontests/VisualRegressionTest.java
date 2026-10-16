@@ -1930,6 +1930,15 @@ public class VisualRegressionTest {
     }
 
     /**
+     * ::marker font-size scales disc, circle and square markers relative to the list item, and
+     * ::marker color paints them. A list item without a ::marker rule keeps its marker.
+     */
+    @Test
+    public void testMarkerGlyphStyle() throws IOException {
+        assertTrue(vt.runTest("marker-glyph-style", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests pagination of a list with floated li::before bullets after a heading with
      * page-break-after: avoid: the heading only keeps with the list's first line, a
      * bullet moves with its pushed paragraph, and widows: 2 splits a paragraph 2 + 2.
@@ -1959,15 +1968,6 @@ public class VisualRegressionTest {
     @Test
     public void testTopMarginInsideBfcAtPageTop() throws IOException {
         assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
-    }
-
-    /**
-     * ::marker font-size scales disc, circle and square markers relative to the list item, and
-     * ::marker color paints them. A list item without a ::marker rule keeps its marker.
-     */
-    @Test
-    public void testMarkerGlyphStyle() throws IOException {
-        assertTrue(vt.runTest("marker-glyph-style", TestSupport.WITH_FONT));
     }
 
     @Test
