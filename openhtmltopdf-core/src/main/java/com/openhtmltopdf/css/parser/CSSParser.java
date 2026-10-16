@@ -1236,28 +1236,6 @@ public class CSSParser {
         }
     }
 
-    //  complex_selector_list
-    //    : S* complex_selector [ ',' S* complex_selector ]* ')'
-    //    ;
-    // The argument of :not(): complex selectors without pseudo-elements. User-action
-    // pseudo-classes such as :hover are valid but never match, as in any non-interactive
-    // user agent.
-    private List<Selector> complex_selector_list(Selector owner) throws IOException {
-        List<Selector> list = new ArrayList<>();
-        while (true) {
-            skip_whitespace();
-            list.add(complex_selector(owner.getRuleset(), "not"));
-            Token t = next();
-            if (t == Token.TK_RPAREN) {
-                return list;
-            }
-            if (t != Token.TK_COMMA) {
-                save(t);
-                throw new CSSParseException(t, new Token[]{Token.TK_COMMA, Token.TK_RPAREN}, getCurrentLine());
-            }
-        }
-    }
-
     //  complex_selector
     //    : simple_selector [ combinator simple_selector ]* S*
     //    ;
@@ -1303,6 +1281,28 @@ public class CSSParser {
             selector.setPseudoElement(value);
         } else {
             throw new CSSParseException(value + " is not a recognized psuedo-element", getCurrentLine());
+        }
+    }
+
+    //  complex_selector_list
+    //    : S* complex_selector [ ',' S* complex_selector ]* ')'
+    //    ;
+    // The argument of :not(): complex selectors without pseudo-elements. User-action
+    // pseudo-classes such as :hover are valid but never match, as in any non-interactive
+    // user agent.
+    private List<Selector> complex_selector_list(Selector owner) throws IOException {
+        List<Selector> list = new ArrayList<>();
+        while (true) {
+            skip_whitespace();
+            list.add(complex_selector(owner.getRuleset(), "not"));
+            Token t = next();
+            if (t == Token.TK_RPAREN) {
+                return list;
+            }
+            if (t != Token.TK_COMMA) {
+                save(t);
+                throw new CSSParseException(t, new Token[]{Token.TK_COMMA, Token.TK_RPAREN}, getCurrentLine());
+            }
         }
     }
 

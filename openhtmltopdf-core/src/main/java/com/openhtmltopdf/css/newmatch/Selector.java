@@ -214,6 +214,16 @@ public class Selector {
     }
 
     /**
+     * the CSS condition :not(a, b, ...), which counts with the specificity of its most
+     * specific argument. The arguments' ids and classes are deliberately not recorded as
+     * required for the rule index, since they must be absent for a match.
+     */
+    public void addNegationCondition(List<Selector> arguments) {
+        addMostSpecific(arguments);
+        addCondition(Condition.createNegationCondition(arguments));
+    }
+
+    /**
      * the CSS condition that element has pseudo-class :first-child
      */
     public void addFirstChildCondition() {
@@ -278,82 +288,6 @@ public class Selector {
         if (_requiredId == null) {
             _requiredId = id;
         }
-    }
-
-    /**
-     * the CSS condition :not(a, b, ...), which counts with the specificity of its most
-     * specific argument. The arguments' ids and classes are deliberately not recorded as
-     * required for the rule index, since they must be absent for a match.
-     */
-    public void addNegationCondition(List<Selector> arguments) {
-        Selector mostSpecific = null;
-        for (Selector argument : arguments) {
-            // A chain's specificity is held by its last selector.
-            Selector[] chain = argument.getChain();
-            Selector subject = chain[chain.length - 1];
-            if (mostSpecific == null || subject.compareSpecificity(mostSpecific) > 0) {
-                mostSpecific = subject;
-            }
-        }
-        _specificityB += mostSpecific.getSpecificityB();
-        _specificityC += mostSpecific.getSpecificityC();
-        _specificityD += mostSpecific.getSpecificityD();
-        addCondition(Condition.createNegationCondition(arguments));
-    }
-
-    private int compareSpecificity(Selector other) {
-        if (getSpecificityB() != other.getSpecificityB()) {
-            return Integer.compare(getSpecificityB(), other.getSpecificityB());
-        }
-        if (getSpecificityC() != other.getSpecificityC()) {
-            return Integer.compare(getSpecificityC(), other.getSpecificityC());
-        }
-        return Integer.compare(getSpecificityD(), other.getSpecificityD());
-    }
-
-    /** Whether this compound selector represents a pseudo-element (::before, ::marker, ...). */
-    public boolean isPseudoElementSelector() {
-        return _pe != null || isPseudoClass(MARKER_PSEUDOCLASS);
-    }
-
-    /**
-     * The selectors of the chain that starts with this selector, the subject last.
-     */
-    Selector[] getChain() {
-        List<Selector> chain = new ArrayList<>();
-        for (Selector s = this; s != null; s = s.getChainedSelector()) {
-            chain.add(s);
-        }
-        return chain.toArray(new Selector[0]);
-    }
-
-    /**
-     * Check if the given Element matches chain[index], with the selectors before it matching
-     * its ancestors. Works upwards from the element, unlike Matcher, so it can test a whole
-     * selector at any element. A pseudo-element or a dynamic pseudo-class (:hover, ...) never
-     * matches, since nothing reports them.
-     */
-    static boolean matchesChain(
-            Selector[] chain, int index, Object e, AttributeResolver attRes, TreeResolver treeRes) {
-        Selector selector = chain[index];
-        if (selector.getPseudoElement() != null ||
-                !selector.matches(e, attRes, treeRes) ||
-                !selector.matchesDynamic(e, attRes, treeRes)) {
-            return false;
-        }
-        if (index == 0) {
-            return true;
-        }
-        Object ancestor = treeRes.getParentElement(e);
-        if (selector.getAxis() == CHILD_AXIS) {
-            return ancestor != null && matchesChain(chain, index - 1, ancestor, attRes, treeRes);
-        }
-        for (; ancestor != null; ancestor = treeRes.getParentElement(ancestor)) {
-            if (matchesChain(chain, index - 1, ancestor, attRes, treeRes)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -422,6 +356,42 @@ public class Selector {
     public void addAttributeMatchesFirstPartCondition(String namespaceURI, String name, String value) {
         _specificityC++;
         addCondition(Condition.createAttributeMatchesFirstPartCondition(namespaceURI, name, value));
+    }
+
+    /**
+     * Adds the specificity of the most specific argument of a functional pseudo-class, counting
+     * its whole selector chain; nothing for an empty list.
+     */
+    private void addMostSpecific(List<Selector> arguments) {
+        Selector mostSpecific = null;
+        for (Selector argument : arguments) {
+            // A chain's specificity is held by its last selector.
+            Selector[] chain = argument.getChain();
+            Selector subject = chain[chain.length - 1];
+            if (mostSpecific == null || subject.compareSpecificity(mostSpecific) > 0) {
+                mostSpecific = subject;
+            }
+        }
+        if (mostSpecific != null) {
+            _specificityB += mostSpecific.getSpecificityB();
+            _specificityC += mostSpecific.getSpecificityC();
+            _specificityD += mostSpecific.getSpecificityD();
+        }
+    }
+
+    private int compareSpecificity(Selector other) {
+        if (getSpecificityB() != other.getSpecificityB()) {
+            return Integer.compare(getSpecificityB(), other.getSpecificityB());
+        }
+        if (getSpecificityC() != other.getSpecificityC()) {
+            return Integer.compare(getSpecificityC(), other.getSpecificityC());
+        }
+        return Integer.compare(getSpecificityD(), other.getSpecificityD());
+    }
+
+    /** Whether this compound selector represents a pseudo-element (::before, ::marker, ...). */
+    public boolean isPseudoElementSelector() {
+        return _pe != null || isPseudoClass(MARKER_PSEUDOCLASS);
     }
 
     /**
@@ -544,6 +514,46 @@ public class Selector {
         String d = "000" + getSpecificityD();
         String p = "00000" + _pos;
         return "0" + b.substring(b.length() - 3) + c.substring(c.length() - 3) + d.substring(d.length() - 3) + p.substring(p.length() - 5);
+    }
+
+    /**
+     * The selectors of the chain that starts with this selector, the subject last.
+     */
+    Selector[] getChain() {
+        List<Selector> chain = new ArrayList<>();
+        for (Selector s = this; s != null; s = s.getChainedSelector()) {
+            chain.add(s);
+        }
+        return chain.toArray(new Selector[0]);
+    }
+
+    /**
+     * Check if the given Element matches chain[index], with the selectors before it matching
+     * its ancestors. Works upwards from the element, unlike Matcher, so it can test a whole
+     * selector at any element. A pseudo-element or a dynamic pseudo-class (:hover, ...) never
+     * matches, since nothing reports them.
+     */
+    static boolean matchesChain(
+            Selector[] chain, int index, Object e, AttributeResolver attRes, TreeResolver treeRes) {
+        Selector selector = chain[index];
+        if (selector.getPseudoElement() != null ||
+                !selector.matches(e, attRes, treeRes) ||
+                !selector.matchesDynamic(e, attRes, treeRes)) {
+            return false;
+        }
+        if (index == 0) {
+            return true;
+        }
+        Object ancestor = treeRes.getParentElement(e);
+        if (selector.getAxis() == CHILD_AXIS) {
+            return ancestor != null && matchesChain(chain, index - 1, ancestor, attRes, treeRes);
+        }
+        for (; ancestor != null; ancestor = treeRes.getParentElement(ancestor)) {
+            if (matchesChain(chain, index - 1, ancestor, attRes, treeRes)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

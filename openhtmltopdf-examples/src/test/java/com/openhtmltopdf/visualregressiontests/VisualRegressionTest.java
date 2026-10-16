@@ -1868,6 +1868,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests the :not() negation pseudo-class with a list of complex selectors: single and
+     * listed arguments, structural pseudo-classes, nesting, the specificity of the most specific
+     * argument, combinators, and an invalid (pseudo-element) argument dropping its rule. Every
+     * box should be green.
+     */
+    @Test
+    public void testNotPseudoClass() throws IOException {
+        assertTrue(vt.runTest("not-pseudo-class"));
+    }
+
+    /**
      * Tests the text-underline-position (auto/under, including inheritance)
      * and text-underline-offset (px/em/percentage/negative) properties, and
      * that they leave line-through and overline alone.
@@ -1916,16 +1927,6 @@ public class VisualRegressionTest {
     @Test
     public void testIssue113NthChildWithOffset() throws IOException {
         assertTrue(vt.runTest("nth-child-n-plus-i"));
-    }
-
-    /**
-     * Tests the :not() negation pseudo-class with a list of compound selectors: single and
-     * listed arguments, structural pseudo-classes, nesting, the specificity of the most specific
-     * argument, and an invalid (complex) argument dropping its rule. Every box should be green.
-     */
-    @Test
-    public void testNotPseudoClass() throws IOException {
-        assertTrue(vt.runTest("not-pseudo-class"));
     }
 
     /**
