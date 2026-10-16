@@ -965,6 +965,19 @@ public final class CSSName implements Comparable<CSSName> {
                     INHERITS,
                     new PrimitivePropertyBuilders.PageBreakInside()
             );
+
+    /**
+     * Whether a box's margins survive a fragmentation break: auto (truncated after an
+     * unforced break, kept after a forced one), keep or discard.
+     */
+    public final static CSSName MARGIN_BREAK =
+            addProperty(
+                    "margin-break",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.MarginBreak()
+            );
     
     public final static CSSName BREAK_AFTER =
             addProperty(

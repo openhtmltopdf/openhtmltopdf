@@ -1,0 +1,33 @@
+<html>
+<head>
+<style>
+    @page { size: 200px 150px; margin: 0; }
+    body { font-family: 'TestFont'; font-size: 12px; line-height: 16px; margin: 0; }
+
+    .block  { margin-top: 20px; height: 100px; page-break-inside: avoid;
+              background-color: #999999; color: white; }
+    .keep   { margin-break: keep; }
+    .discard { margin-break: discard; }
+    .forced { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!--
+margin-break (CSS Fragmentation Level 4) decides whether a top margin survives the
+break before a box. Every block is 120px with its margin, so only one fits on a 150px page:
+  page 1: the first page, margin kept as always
+  page 2: moved by its avoid, margin-break: auto truncates the margin (flush with the top)
+  page 3: moved by its avoid, margin-break: keep preserves the 20px margin
+  page 4: after a forced break, margin-break: auto preserves the margin
+  page 5: after a forced break, margin-break: discard truncates the margin (flush)
+-->
+
+<div class="block">first page</div>
+<div class="block">auto, truncated</div>
+<div class="block keep">keep, margin kept</div>
+<div class="block forced">forced, kept</div>
+<div class="block forced discard">discard, truncated</div>
+
+</body>
+</html>

@@ -1390,6 +1390,9 @@ public class BlockBox extends Box {
      * A positive margin adjoining an unforced break is truncated, so the box starts
      * flush with the top of its page. Margins adjoining a forced break are preserved,
      * and so is a negative one, which pulls the box back onto the previous page.
+     * <code>margin-break: keep</code> preserves the margin after any break, and
+     * <code>margin-break: discard</code> truncates it after forced breaks and at the top of
+     * the first page too.
      * Nothing is truncated on the first page, where no break precedes the box.
      * <br><br>
      * Only a margin that adjoins the break is truncated. A margin inside a box that
@@ -1397,10 +1400,20 @@ public class BlockBox extends Box {
      * <code>overflow: hidden</code>, does not adjoin a break before that box.
      */
     private boolean isTopMarginTruncatedAtBreak(LayoutContext c, PageBox page) {
-        return page.getPageNo() > 0 &&
-               getStyleMargin(c).top() > 0 &&
-               !getStyle().isForcePageBreakBefore() &&
-               !c.getRootLayer().isPageStartedByForcedBreak(page.getTop()) &&
+        IdentValue marginBreak = getStyle().getIdent(CSSName.MARGIN_BREAK);
+        if (marginBreak == IdentValue.KEEP) {
+            return false;
+        }
+        if (getStyleMargin(c).top() <= 0) {
+            return false;
+        }
+        if (page.getPageNo() == 0) {
+            // The start of the fragmentation context: only discard truncates there.
+            return marginBreak == IdentValue.DISCARD && isTopMarginAdjoiningContextStart();
+        }
+        boolean forcedBreak = getStyle().isForcePageBreakBefore() ||
+                              c.getRootLayer().isPageStartedByForcedBreak(page.getTop());
+        return (marginBreak == IdentValue.DISCARD || !forcedBreak) &&
                isTopMarginAdjoiningBreak(page);
     }
 
@@ -1417,6 +1430,25 @@ public class BlockBox extends Box {
             }
 
             BlockBox block = (BlockBox) parent;
+            if (!block.isMayCollapseMarginsWithChildren() ||
+                block.getStyle().establishesBFC()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the top margin of this box, which starts the first page, adjoins the start of
+     * the fragmentation context: every ancestor up to the root collapses margins with it.
+     */
+    private boolean isTopMarginAdjoiningContextStart() {
+        for (Box parent = getParent(); parent instanceof BlockBox; parent = parent.getParent()) {
+            BlockBox block = (BlockBox) parent;
+            if (block.getParent() == null) {
+                return true;
+            }
             if (!block.isMayCollapseMarginsWithChildren() ||
                 block.getStyle().establishesBFC()) {
                 return false;

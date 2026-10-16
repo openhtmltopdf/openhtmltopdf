@@ -91,6 +91,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue DASHED = addValue("dashed");
     public final static IdentValue DECIMAL = addValue("decimal");
     public final static IdentValue DECIMAL_LEADING_ZERO = addValue("decimal-leading-zero");
+    public final static IdentValue DISCARD = addValue("discard");
     public final static IdentValue DISC = addValue("disc");
     public final static IdentValue DOTTED = addValue("dotted");
     public final static IdentValue DOUBLE = addValue("double");

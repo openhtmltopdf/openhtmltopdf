@@ -1260,6 +1260,18 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    public static class MarginBreak extends SingleIdent {
+        // auto | keep | discard
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] {
+                        IdentValue.AUTO, IdentValue.KEEP, IdentValue.DISCARD });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class Position extends AbstractPropertyBuilder {
         // static | relative | absolute | fixed | inherit
         private static final BitSet ALLOWED = setFor(
