@@ -1129,11 +1129,20 @@ public class BlockBox extends Box {
         if (c.isPrint()) {
             PageBox firstPage = c.getRootLayer().getFirstPage(c, this);
             if (firstPage != null && firstPage.getTop() == getAbsY() - getPageClearance()) {
+                int continued = getMarginContinuedPastBreak(c, firstPage);
                 if (isTopMarginTruncatedAtBreak(c, firstPage)) {
-                    setMarginTop(c, 0);
+                    setMarginTop(c, continued);
                 } else {
                     resetTopMargin(c);
+                    if (continued > 0) {
+                        int margin = (int) getMargin(c).top();
+                        // Margins on either side of a forced break do not collapse.
+                        setMarginTop(c, isPageStartedByForcedBreak(c, firstPage) ?
+                                margin + continued : Math.max(margin, continued));
+                    }
                 }
+            } else if (firstPage != null) {
+                truncateTopMarginAcrossBreak(c, firstPage);
             }
         }
 
@@ -1392,7 +1401,8 @@ public class BlockBox extends Box {
      * and so is a negative one, which pulls the box back onto the previous page.
      * <code>margin-break: keep</code> preserves the margin after any break, and
      * <code>margin-break: discard</code> truncates it after forced breaks and at the top of
-     * the first page too.
+     * the first page too. The bottom margin of the box before the break is truncated to the
+     * space left on its page; see {@link #getMarginContinuedPastBreak}.
      * Nothing is truncated on the first page, where no break precedes the box.
      * <br><br>
      * Only a margin that adjoins the break is truncated. A margin inside a box that
@@ -1411,10 +1421,52 @@ public class BlockBox extends Box {
             // The start of the fragmentation context: only discard truncates there.
             return marginBreak == IdentValue.DISCARD && isTopMarginAdjoiningContextStart();
         }
-        boolean forcedBreak = getStyle().isForcePageBreakBefore() ||
-                              c.getRootLayer().isPageStartedByForcedBreak(page.getTop());
-        return (marginBreak == IdentValue.DISCARD || !forcedBreak) &&
+        return (marginBreak == IdentValue.DISCARD || !isPageStartedByForcedBreak(c, page)) &&
                isTopMarginAdjoiningBreak(page);
+    }
+
+    /**
+     * A top margin (collapsed with the bottom margin before it) that runs past the end of the
+     * page this box starts on adjoins the break there. Unless the box has
+     * <code>margin-break: keep</code>, it is truncated to the space left on that page, so the
+     * border box starts the next page, after any margin kept by the box before (CSS
+     * Fragmentation 4).
+     */
+    private void truncateTopMarginAcrossBreak(LayoutContext c, PageBox page) {
+        int margin = (int) getMargin(c).top();
+        int pageEnd = page.getBottom(c);
+        if (margin <= 0 || getAbsY() + margin <= pageEnd ||
+                getStyle().isIdent(CSSName.MARGIN_BREAK, IdentValue.KEEP)) {
+            return;
+        }
+        PageBox next = c.getRootLayer().getPage(c, page.getBottom());
+        if (next == null || next == page) {
+            return;
+        }
+        int truncated = next.getTop() - getAbsY() + getMarginContinuedPastBreak(c, next);
+        if (truncated < margin) {
+            setMarginTop(c, truncated);
+        }
+    }
+
+    private boolean isPageStartedByForcedBreak(LayoutContext c, PageBox page) {
+        return getStyle().isForcePageBreakBefore() || c.getRootLayer().isPageStartedByForcedBreak(page.getTop());
+    }
+
+    /**
+     * The part of the previous box's bottom margin that continues past the break before this
+     * box. That margin is truncated to the space left on its page, unless the previous box has
+     * <code>margin-break: keep</code>, which keeps all of it.
+     */
+    private int getMarginContinuedPastBreak(LayoutContext c, PageBox page) {
+        Box previous = getPreviousSibling();
+        if (!(previous instanceof BlockBox) ||
+                !previous.getStyle().isIdent(CSSName.MARGIN_BREAK, IdentValue.KEEP)) {
+            return 0;
+        }
+        int margin = (int) previous.getStyleMargin(c).bottom();
+        int borderBoxBottom = previous.getAbsY() + (int) previous.getMargin(c).top() + previous.getBorderBoxHeight(c);
+        return Math.max(0, margin - Math.max(0, page.getTop() - borderBoxBottom));
     }
 
     /**

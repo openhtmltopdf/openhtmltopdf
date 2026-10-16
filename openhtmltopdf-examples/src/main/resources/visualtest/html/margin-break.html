@@ -9,6 +9,8 @@
     .keep   { margin-break: keep; }
     .discard { margin-break: discard; }
     .forced { page-break-before: always; }
+    .tall   { height: 100px; margin-bottom: 80px; background-color: #999999; color: white; }
+    .next   { height: 30px; background-color: #0050c0; color: white; }
 </style>
 </head>
 <body>
@@ -21,6 +23,10 @@ break before a box. Every block is 120px with its margin, so only one fits on a 
   page 3: moved by its avoid, margin-break: keep preserves the 20px margin
   page 4: after a forced break, margin-break: auto preserves the margin
   page 5: after a forced break, margin-break: discard truncates the margin (flush)
+The bottom margin before a break: a 100px block with an 80px bottom margin, 50px of
+which fit on its page, then a 30px block.
+  pages 6-7: margin-break: auto truncates the margin at the page end (blue block flush)
+  pages 8-9: margin-break: keep continues the other 30px on the next page
 -->
 
 <div class="block">first page</div>
@@ -28,6 +34,10 @@ break before a box. Every block is 120px with its margin, so only one fits on a 
 <div class="block keep">keep, margin kept</div>
 <div class="block forced">forced, kept</div>
 <div class="block forced discard">discard, truncated</div>
+<div class="tall forced">bottom margin, auto</div>
+<div class="next">flush</div>
+<div class="tall forced keep">bottom margin, keep</div>
+<div class="next">30px down</div>
 
 </body>
 </html>

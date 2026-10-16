@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Tests the {@code margin-break} property (CSS Fragmentation Level 4) on the top margin of a
- * box that starts a page.
+ * box that starts a page, and on the bottom margin of the box before it.
  */
 @RunWith(PrintingRunner.class)
 public class MarginBreakTest {
@@ -179,5 +179,65 @@ public class MarginBreakTest {
             assertEquals(IdentValue.KEEP, findById(root, "p").getStyle().getIdent(CSSName.MARGIN_BREAK));
             assertEquals(IdentValue.AUTO, findById(root, "c").getStyle().getIdent(CSSName.MARGIN_BREAK));
         }
+    }
+
+    /**
+     * Lays out #a, 150px high with a bottom margin, on a 200px page, then #b, which does not fit
+     * after the margin and starts the second page. Returns where #b's border box starts on
+     * that page, in px.
+     */
+    private static int bottomMarginLayout(String aStyle, String bStyle) throws IOException {
+        String html =
+            "<html><head><style>\n" +
+            "@page { size: 200px 200px; margin: 0; }\n" +
+            "body { margin: 0; }\n" +
+            "#a { height: 150px; margin-bottom: 80px; " + aStyle + " }\n" +
+            "#b { height: 30px; " + bStyle + " }\n" +
+            "</style></head><body><div id='a'></div><div id='b'></div></body></html>";
+        PdfRendererBuilder builder = new PdfRendererBuilder();
+        builder.withHtmlContent(html, null);
+        builder.toStream(new ByteArrayOutputStream());
+        try (PdfBoxRenderer renderer = builder.buildPdfRenderer()) {
+            renderer.layout();
+            BlockBox root = renderer.getRootBox();
+            LayoutContext c = renderer.getSharedContext().newLayoutContextInstance();
+            Box b = findById(root, "b");
+            PageBox second = root.getLayer().getPages().get(1);
+            int top = b.getAbsY() + (int) b.getMargin(c).top() - second.getTop();
+            assertTrue("#b starts the second page", top >= 0 && b.getAbsY() < second.getBottom());
+            return top / renderer.getSharedContext().getDotsPerPixel();
+        }
+    }
+
+    @Test
+    public void testAutoTruncatesTheBottomMarginBeforeABreak() throws IOException {
+        assertEquals(0, bottomMarginLayout("", ""));
+        assertEquals(0, bottomMarginLayout("", "page-break-before: always;"));
+    }
+
+    @Test
+    public void testKeepContinuesTheBottomMarginPastAnUnforcedBreak() throws IOException {
+        // 50px of the 80px margin fit on the first page; the other 30px continue on the second.
+        assertEquals(30, bottomMarginLayout("margin-break: keep;", ""));
+        // It collapses with #b's own top margin there.
+        assertEquals(30, bottomMarginLayout("margin-break: keep;", "margin-top: 20px;"));
+    }
+
+    @Test
+    public void testKeepContinuesTheBottomMarginPastAForcedBreak() throws IOException {
+        assertEquals(30, bottomMarginLayout("margin-break: keep;", "page-break-before: always;"));
+        // Margins on either side of a forced break do not collapse: #b keeps its own 20px too.
+        assertEquals(50, bottomMarginLayout("margin-break: keep;", "page-break-before: always; margin-top: 20px;"));
+    }
+
+    @Test
+    public void testDiscardTruncatesTheBottomMarginBeforeABreak() throws IOException {
+        assertEquals(0, bottomMarginLayout("margin-break: discard;", ""));
+        assertEquals(0, bottomMarginLayout("margin-break: discard;", "page-break-before: always;"));
+    }
+
+    @Test
+    public void testAKeptBottomMarginThatFitsBeforeTheBreakDoesNotContinue() throws IOException {
+        assertEquals(0, bottomMarginLayout("margin-break: keep; margin-bottom: 40px;", "height: 60px; page-break-inside: avoid;"));
     }
 }
