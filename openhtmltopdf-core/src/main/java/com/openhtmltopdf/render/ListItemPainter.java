@@ -109,6 +109,9 @@ public class ListItemPainter {
         MarkerData markerData = box.getMarkerData();
         StrutMetrics strutMetrics = markerData.getStructMetrics();
         MarkerData.GlyphMarker marker = markerData.getGlyphMarker();
+        if (marker.getColor() != null) {
+            c.getOutputDevice().setColor(marker.getColor());
+        }
         int refX = getReferenceX(c, box);
         int x = refX;
         // see issue 478. To be noted, the X positioning does not consider the available padding space

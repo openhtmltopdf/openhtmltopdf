@@ -20,6 +20,7 @@
 package com.openhtmltopdf.render;
 
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.extend.FSImage;
 
 /**
@@ -120,6 +121,16 @@ public class MarkerData {
     public static class GlyphMarker {
         private int _diameter;
         private int _layoutWidth;
+        private FSColor _color;
+
+        /** The ::marker color, or null to paint with the list item's color. */
+        public FSColor getColor() {
+            return _color;
+        }
+
+        public void setColor(FSColor color) {
+            _color = color;
+        }
         
         public int getDiameter() {
             return _diameter;

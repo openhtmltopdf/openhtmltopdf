@@ -1,0 +1,35 @@
+<html>
+<head>
+<style>
+    @page { size: 220px 170px; margin: 10px; }
+    body { font-family: 'TestFont'; font-size: 16px; line-height: 22px; margin: 0; color: #333333; }
+
+    ul { margin: 0 0 6px 0; padding-left: 30px; }
+    .small::marker { font-size: 8px; }
+    .red::marker { color: #e00000; }
+    .large::marker { font-size: 24px; color: #0050c0; }
+    .square { list-style-type: square; }
+    .square::marker { font-size: 10px; color: #008000; }
+    .circle { list-style-type: circle; }
+    .circle::marker { font-size: 24px; }
+</style>
+</head>
+<body>
+
+<!--
+::marker font-size and color apply to disc, circle and square markers (CSS Lists 3):
+the glyph scales with the marker's font-size relative to the list item's, and is
+painted in the marker's color. Without a ::marker rule nothing changes.
+-->
+
+<ul>
+    <li>default disc</li>
+    <li class="small">small disc</li>
+    <li class="red">red disc</li>
+    <li class="large">large blue disc</li>
+    <li class="square">small green square</li>
+    <li class="circle">large circle</li>
+</ul>
+
+</body>
+</html>

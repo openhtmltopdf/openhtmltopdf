@@ -1961,6 +1961,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
     }
 
+    /**
+     * ::marker font-size scales disc, circle and square markers relative to the list item, and
+     * ::marker color paints them. A list item without a ::marker rule keeps its marker.
+     */
+    @Test
+    public void testMarkerGlyphStyle() throws IOException {
+        assertTrue(vt.runTest("marker-glyph-style", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));

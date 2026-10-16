@@ -377,7 +377,7 @@ public class BlockBox extends Box {
         } else if ((listStyle != IdentValue.NONE || listStyleType!=null)  && ! imageMarker) {
             if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
                     listStyle == IdentValue.DISC || listStyleType!=null) {
-                result.setGlyphMarker(makeGlyphMarker(strutMetrics));
+                result.setGlyphMarker(makeGlyphMarker(c, strutMetrics, markerStyle));
             } else {
                 result.setTextMarker(makeTextMarker(c, listStyle));
             }
@@ -386,12 +386,26 @@ public class BlockBox extends Box {
         setMarkerData(result);
     }
 
-    private MarkerData.GlyphMarker makeGlyphMarker(StrutMetrics strutMetrics) {
-        int diameter = (int) ((strutMetrics.getAscent() + strutMetrics.getDescent()) / 3);
+    /**
+     * A disc, circle or square marker. A ::marker rule sizes it by its font-size, relative to
+     * the list item's, and paints it in its color (CSS Lists 3); without one it keeps the list
+     * item's size and color.
+     */
+    private MarkerData.GlyphMarker makeGlyphMarker(
+            LayoutContext c, StrutMetrics strutMetrics, CascadedStyle markerStyle) {
+        float diameter = (strutMetrics.getAscent() + strutMetrics.getDescent()) / 3;
 
         MarkerData.GlyphMarker result = new MarkerData.GlyphMarker();
-        result.setDiameter(diameter);
-        result.setLayoutWidth(diameter * 3);
+        if (markerStyle != null) {
+            CalculatedStyle marker = getStyle().deriveStyle(markerStyle);
+            float itemSize = getStyle().getFont(c).size;
+            if (itemSize > 0) {
+                diameter *= marker.getFont(c).size / itemSize;
+            }
+            result.setColor(marker.getColor());
+        }
+        result.setDiameter((int) diameter);
+        result.setLayoutWidth((int) diameter * 3);
 
         return result;
     }
