@@ -66,12 +66,12 @@ public class CSSParser {
     private CSSErrorHandler _errorHandler;
     private String _URI;
 
-    private Map<String, String> _namespaces = new HashMap<>();
-    private boolean _supportCMYKColors;
-
     /** The full name of the cascade layer being parsed, null outside @layer blocks. */
     private String _layer;
     private static final AtomicInteger ANONYMOUS_LAYERS = new AtomicInteger();
+
+    private Map<String, String> _namespaces = new HashMap<>();
+    private boolean _supportCMYKColors;
 
     public CSSParser(CSSErrorHandler errorHandler) {
         _lexer = new Lexer(new StringReader(""));
@@ -508,7 +508,6 @@ public class CSSParser {
         Token t = next();
         try {
             FontFaceRule fontFaceRule = new FontFaceRule(stylesheet.getOrigin());
-            fontFaceRule.setLayer(_layer);
             if (t == Token.TK_FONT_FACE_SYM) {
                 skip_whitespace();
 
@@ -559,7 +558,6 @@ public class CSSParser {
         Token t = next();
         try {
             PageRule pageRule = new PageRule(stylesheet.getOrigin());
-            pageRule.setLayer(_layer);
             if (t == Token.TK_PAGE_SYM) {
                 skip_whitespace();
                 t = nextWithSave();
@@ -824,6 +822,8 @@ public class CSSParser {
                 String outerLayer = _layer;
                 // An anonymous layer gets a name no other rule can refer to.
                 _layer = qualifyLayerName(names.isEmpty() ? anonymousLayerName() : names.get(0));
+                int contents = contentCount(container);
+                int fontFaces = stylesheet.getFontFaceRules().size();
                 try {
                     declareLayer(container, _layer);
                     while (true) {
@@ -845,6 +845,8 @@ public class CSSParser {
                             ruleset(container);
                         }
                     }
+                    // Rules of sublayers got their layer from their own block first.
+                    setLayer(container, contents, stylesheet.getFontFaceRules(), fontFaces, _layer);
                 } finally {
                     _layer = outerLayer;
                 }
@@ -891,6 +893,39 @@ public class CSSParser {
         return t == Token.TK_AT_RULE && "layer".equals(getTokenValue(t));
     }
 
+    private static int contentCount(RulesetContainer container) {
+        return container instanceof Stylesheet ?
+                ((Stylesheet) container).getContents().size() : ((MediaRule) container).getContents().size();
+    }
+
+    /**
+     * Puts the rules a layer block added to the container, from index {@code from} on, and the
+     * font faces it added, in the layer, unless a sublayer block already did.
+     */
+    private static void setLayer(
+            RulesetContainer container, int from, List<FontFaceRule> fontFaces, int fontFacesFrom, String layer) {
+        List<?> contents = container instanceof Stylesheet ?
+                ((Stylesheet) container).getContents() : ((MediaRule) container).getContents();
+        for (Object rule : contents.subList(from, contents.size())) {
+            if (rule instanceof Ruleset && ((Ruleset) rule).getLayer() == null) {
+                ((Ruleset) rule).setLayer(layer);
+            } else if (rule instanceof PageRule && ((PageRule) rule).getLayer() == null) {
+                ((PageRule) rule).setLayer(layer);
+            } else if (rule instanceof MediaRule) {
+                for (Ruleset ruleset : ((MediaRule) rule).getContents()) {
+                    if (ruleset.getLayer() == null) {
+                        ruleset.setLayer(layer);
+                    }
+                }
+            }
+        }
+        for (FontFaceRule fontFace : fontFaces.subList(fontFacesFrom, fontFaces.size())) {
+            if (fontFace.getLayer() == null) {
+                fontFace.setLayer(layer);
+            }
+        }
+    }
+
     // A name no rule can refer to, for "@layer { }" and "@import ... layer".
     private static String anonymousLayerName() {
         return "\0" + ANONYMOUS_LAYERS.incrementAndGet();
@@ -918,7 +953,6 @@ public class CSSParser {
         //System.out.println("ruleset()");
         try {
             Ruleset ruleset = new Ruleset(container.getOrigin());
-            ruleset.setLayer(_layer);
 
             selector(ruleset);
             Token t;

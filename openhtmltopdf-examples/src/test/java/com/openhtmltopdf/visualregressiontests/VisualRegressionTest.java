@@ -1961,16 +1961,6 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
     }
 
-    /**
-     * Cascade layers: a layer statement sets the order, a later layer beats a more specific rule
-     * in an earlier one, important declarations take the layers in reverse, rules directly in a
-     * layer beat its sublayers and unlayered rules beat all layers.
-     */
-    @Test
-    public void testCascadeLayers() throws IOException {
-        assertTrue(vt.runTest("cascade-layers", TestSupport.WITH_FONT));
-    }
-
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
@@ -2002,6 +1992,16 @@ public class VisualRegressionTest {
     @Test
     public void testRgbaOverlapCircles() throws IOException {
         assertTrue(vt.runTest("rgba-overlap-circles", TestSupport.WITH_SRGB));
+    }
+
+    /**
+     * Cascade layers: a layer statement sets the order, a later layer beats a more specific rule
+     * in an earlier one, important declarations take the layers in reverse, rules directly in a
+     * layer beat its sublayers and unlayered rules beat all layers.
+     */
+    @Test
+    public void testCascadeLayers() throws IOException {
+        assertTrue(vt.runTest("cascade-layers", TestSupport.WITH_FONT));
     }
 
     /**

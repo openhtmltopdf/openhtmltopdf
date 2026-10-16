@@ -33,9 +33,9 @@ public class Ruleset {
     private final int _origin;
     private final List<PropertyDeclaration> _props;
     private final List<Selector> _fsSelectors;
+    private String _layer;
     private List<InvalidPropertyDeclaration> _invalidProperties;
     private List<CustomPropertyDeclaration> _customProperties;
-    private String _layer;
 
     public Ruleset(int orig) {
         _origin = orig;
@@ -71,18 +71,6 @@ public class Ruleset {
     
     public int getOrigin() {
         return _origin;
-    }
-
-    /**
-     * The full name of the cascade layer this rule is in, such as "base.reset", or null when
-     * the rule is unlayered.
-     */
-    public String getLayer() {
-        return _layer;
-    }
-
-    public void setLayer(String layer) {
-        _layer = layer;
     }
 
     public void toCSS(StringBuilder sb) {
@@ -129,5 +117,17 @@ public class Ruleset {
 
     public List<CustomPropertyDeclaration> getCustomPropertyDeclarations() {
         return _customProperties == null ? Collections.emptyList() : _customProperties;
+    }
+
+    /**
+     * The full name of the cascade layer this rule is in, such as "base.reset", or null when
+     * the rule is unlayered.
+     */
+    public String getLayer() {
+        return _layer;
+    }
+
+    public void setLayer(String layer) {
+        _layer = layer;
     }
 }
