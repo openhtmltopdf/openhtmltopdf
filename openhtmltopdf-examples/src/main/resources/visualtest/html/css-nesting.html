@@ -1,0 +1,42 @@
+<html>
+<head>
+<style>
+    @page { size: 260px 190px; margin: 10px; }
+    body { font-family: 'TestFont'; font-size: 14px; line-height: 20px; margin: 0; color: #333333; }
+
+    /* Every box should be green; red means a nested rule did not apply. */
+    .card {
+        border: 2px solid #999999;
+        padding: 4px;
+        margin-bottom: 6px;
+
+        &amp; .title { background-color: #00a000; color: white; }
+        .body { background-color: #00a000; }
+        > .direct { background-color: #00a000; }
+        &amp;.wide { border-color: #00a000; }
+        .deep { .inner { background-color: #00a000; } }
+
+        background-color: #e0ffe0;
+    }
+
+    .title, .body, .direct, .inner { background-color: #e00000; }
+    .wide { border-color: #e00000; }
+</style>
+</head>
+<body>
+
+<!--
+CSS Nesting: &amp; with a descendant, an implicit &amp;, a relative "> " selector, &amp; in a
+compound and a rule nested two deep. The trailing background-color is a nested
+declarations rule. The red fallbacks come later, so a nested rule only wins on specificity.
+-->
+
+<div class="card wide">
+    <div class="title">title</div>
+    <div class="body">body</div>
+    <div class="direct">direct child</div>
+    <div class="deep"><div class="inner">two deep</div></div>
+</div>
+
+</body>
+</html>

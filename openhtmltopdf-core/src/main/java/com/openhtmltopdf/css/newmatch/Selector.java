@@ -25,6 +25,7 @@ import com.openhtmltopdf.css.sheet.Ruleset;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -261,6 +262,29 @@ public class Selector {
     }
 
     /**
+     * the CSS nesting selector &amp;: matches what any of the parent rule's selectors matches,
+     * with the specificity of the most specific of them, as :is() does
+     */
+    public void addNestingCondition(List<Selector> parents) {
+        int[] max = {0, 0, 0};
+        for (Selector parent : parents) {
+            Selector[] chain = parent.getChain();
+            Selector subject = chain[chain.length - 1];
+            if (subject.getPseudoElement() != null) {
+                continue;
+            }
+            int[] specificity = {subject._specificityB, subject._specificityC, subject._specificityD};
+            if (compareSpecificity(specificity, max) > 0) {
+                max = specificity;
+            }
+        }
+        _specificityB += max[0];
+        _specificityC += max[1];
+        _specificityD += max[2];
+        addCondition(Condition.createNestingCondition(parents));
+    }
+
+    /**
      * the CSS condition :lang(Xx)
      */
     public void addLangCondition(String lang) {
@@ -467,6 +491,54 @@ public class Selector {
         String d = "000" + getSpecificityD();
         String p = "00000" + _pos;
         return "0" + b.substring(b.length() - 3) + c.substring(c.length() - 3) + d.substring(d.length() - 3) + p.substring(p.length() - 5);
+    }
+
+    /**
+     * The selectors of the chain that starts with this selector, the subject last.
+     */
+    Selector[] getChain() {
+        List<Selector> chain = new ArrayList<>();
+        for (Selector s = this; s != null; s = s.getChainedSelector()) {
+            chain.add(s);
+        }
+        return chain.toArray(new Selector[0]);
+    }
+
+    /**
+     * Check if the given Element matches chain[index], with the selectors before it matching
+     * its ancestors. Works upwards from the element, unlike Matcher, so it can test a whole
+     * selector at any element. A pseudo-element or a dynamic pseudo-class never matches.
+     */
+    static boolean matchesChain(
+            Selector[] chain, int index, Object e, AttributeResolver attRes, TreeResolver treeRes) {
+        Selector selector = chain[index];
+        if (selector.getPseudoElement() != null ||
+                !selector.matches(e, attRes, treeRes) ||
+                !selector.matchesDynamic(e, attRes, treeRes)) {
+            return false;
+        }
+        if (index == 0) {
+            return true;
+        }
+        Object ancestor = treeRes.getParentElement(e);
+        if (selector.getAxis() == CHILD_AXIS) {
+            return ancestor != null && matchesChain(chain, index - 1, ancestor, attRes, treeRes);
+        }
+        for (; ancestor != null; ancestor = treeRes.getParentElement(ancestor)) {
+            if (matchesChain(chain, index - 1, ancestor, attRes, treeRes)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int compareSpecificity(int[] a, int[] b) {
+        for (int i = 0; i < a.length; i++) {
+            if (a[i] != b[i]) {
+                return Integer.compare(a[i], b[i]);
+            }
+        }
+        return 0;
     }
 
     /**

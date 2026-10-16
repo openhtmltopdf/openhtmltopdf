@@ -68,6 +68,10 @@ public class CSSParser {
     private Map<String, String> _namespaces = new HashMap<>();
     private boolean _supportCMYKColors;
 
+    /** The selectors that &amp; refers to while parsing a nested rule, null at the top level. */
+    private List<Selector> _nestingParents;
+    private boolean _nestingSelectorFound;
+
     public CSSParser(CSSErrorHandler errorHandler) {
         _lexer = new Lexer(new StringReader(""));
         _errorHandler = errorHandler;
@@ -750,52 +754,142 @@ public class CSSParser {
     }
 
     //  ruleset
-//    : selector [ COMMA S* selector ]*
-//      LBRACE S* [ declaration ';' S* ]* '}' S*
+//    : selector [ COMMA S* selector ]* style_block
 //    ;
     private void ruleset(RulesetContainer container) throws IOException {
         //System.out.println("ruleset()");
         try {
             Ruleset ruleset = new Ruleset(container.getOrigin());
+            List<Ruleset> nestedRules = new ArrayList<>();
 
-            selector(ruleset);
-            Token t;
-            while (true) {
-                t = nextWithSave();
-                if (t == Token.TK_COMMA) {
-                    next();
-                    skip_whitespace();
-                    selector(ruleset);
-                } else {
-                    break;
-                }
-            }
-            t = next();
-            if (t == Token.TK_LBRACE) {
-                skip_whitespace();
-                declaration_list(ruleset, false, false, false);
-                t = next();
-                if (t == Token.TK_RBRACE) {
-                    skip_whitespace();
-                } else {
-                    save(t);
-                    throw new CSSParseException(t, Token.TK_RBRACE, getCurrentLine());
-                }
-            } else {
-                save(t);
-                throw new CSSParseException(
-                        t, new Token[]{Token.TK_COMMA, Token.TK_LBRACE}, getCurrentLine());
-            }
+            selector_list(ruleset);
+            style_block(ruleset, nestedRules);
 
-            if (!ruleset.getPropertyDeclarations().isEmpty() ||
-                    !ruleset.getInvalidPropertyDeclarations().isEmpty() ||
-                    !ruleset.getCustomPropertyDeclarations().isEmpty()) {
+            // Nested rules follow their parent in the cascade, in source order.
+            if (hasDeclarations(ruleset)) {
                 container.addContent(ruleset);
+            }
+            for (Ruleset nested : nestedRules) {
+                if (hasDeclarations(nested)) {
+                    container.addContent(nested);
+                }
             }
         } catch (CSSParseException e) {
             error(e, "ruleset", true);
             recover(true, false);
         }
+    }
+
+    private static boolean hasDeclarations(Ruleset ruleset) {
+        return !ruleset.getPropertyDeclarations().isEmpty() ||
+                !ruleset.getInvalidPropertyDeclarations().isEmpty() ||
+                !ruleset.getCustomPropertyDeclarations().isEmpty();
+    }
+
+    private void selector_list(Ruleset ruleset) throws IOException {
+        selector(ruleset);
+        while (true) {
+            Token t = nextWithSave();
+            if (t == Token.TK_COMMA) {
+                next();
+                skip_whitespace();
+                selector(ruleset);
+            } else {
+                break;
+            }
+        }
+    }
+
+    //  style_block
+//    : LBRACE S* [ declaration ';' S* | nested_rule ]* '}' S*
+//    ;
+    // A nested rule starts with a symbol, never an identifier, so it is told apart from a
+    // declaration by its first token: write "& div" for a type selector.
+    private void style_block(Ruleset ruleset, List<Ruleset> nestedRules) throws IOException {
+        Token t = next();
+        if (t != Token.TK_LBRACE) {
+            save(t);
+            throw new CSSParseException(
+                    t, new Token[]{Token.TK_COMMA, Token.TK_LBRACE}, getCurrentLine());
+        }
+        skip_whitespace();
+
+        // Declarations after a nested rule form a nested declarations rule, which matches
+        // like & and keeps its place in the cascade after that nested rule.
+        Ruleset declarations = ruleset;
+        LOOP:
+        while (true) {
+            t = nextWithSave();
+            switch (t.getType()) {
+                case Token.SEMICOLON:
+                    next();
+                    skip_whitespace();
+                    continue;
+                case Token.RBRACE:
+                    break LOOP;
+                default:
+                    if (isNestedRuleStart(t)) {
+                        nested_rule(ruleset, nestedRules);
+                        declarations = null;
+                    } else {
+                        if (declarations == null) {
+                            declarations = new Ruleset(ruleset.getOrigin());
+                            declarations.addFSSelector(nestingSelector(declarations, ruleset.getFSSelectors()));
+                            nestedRules.add(declarations);
+                        }
+                        declaration(declarations, false);
+                    }
+            }
+        }
+        next();
+        skip_whitespace();
+    }
+
+    //  nested_rule
+//    : selector [ COMMA S* selector ]* style_block
+//    ;
+    private void nested_rule(Ruleset parent, List<Ruleset> nestedRules) throws IOException {
+        List<Selector> outerParents = _nestingParents;
+        int index = nestedRules.size();
+        _nestingParents = parent.getFSSelectors();
+        try {
+            Ruleset ruleset = new Ruleset(parent.getOrigin());
+            selector_list(ruleset);
+            style_block(ruleset, nestedRules);
+            nestedRules.add(index, ruleset);
+        } catch (CSSParseException e) {
+            nestedRules.subList(index, nestedRules.size()).clear();
+            error(e, "nested rule", true);
+            recover(false, true);
+        } finally {
+            _nestingParents = outerParents;
+        }
+    }
+
+    private boolean isNestedRuleStart(Token t) {
+        switch (t.getType()) {
+            case Token.PERIOD:
+            case Token.HASH:
+            case Token.LBRACKET:
+            case Token.COLON:
+            case Token.ASTERISK:
+            case Token.GREATER:
+            case Token.PLUS:
+                return true;
+            default:
+                return isNestingSelector(t);
+        }
+    }
+
+    private boolean isNestingSelector(Token t) {
+        return t.getType() == Token.OTHER && "&".equals(getRawTokenValue());
+    }
+
+    private Selector nestingSelector(Ruleset ruleset, List<Selector> parents) {
+        Selector selector = new Selector();
+        selector.setParent(ruleset);
+        selector.addNestingCondition(parents);
+        return selector;
     }
 
     //  selector
@@ -805,6 +899,14 @@ public class CSSParser {
         //System.out.println("selector()");
         List<Selector> selectors = new ArrayList<>();
         List<Token> combinators = new ArrayList<>();
+        _nestingSelectorFound = false;
+        Token first = nextWithSave();
+        if (_nestingParents != null && (first == Token.TK_GREATER || first == Token.TK_PLUS)) {
+            // A relative selector: "> .b" is "& > .b".
+            selectors.add(nestingSelector(ruleset, _nestingParents));
+            combinators.add(combinator());
+            _nestingSelectorFound = true;
+        }
         selectors.add(simple_selector(ruleset));
         LOOP:
         while (true) {
@@ -815,6 +917,10 @@ public class CSSParser {
                 case Token.S:
                     combinators.add(combinator());
                     t = nextWithSave();
+                    if (isNestingSelector(t)) {
+                        selectors.add(simple_selector(ruleset));
+                        break;
+                    }
                     switch (t.getType()) {
                         case Token.IDENT:
                         case Token.ASTERISK:
@@ -833,6 +939,11 @@ public class CSSParser {
                 default:
                     break LOOP;
             }
+        }
+        if (_nestingParents != null && !_nestingSelectorFound) {
+            // A nested selector without & is relative to it: ".b" is "& .b".
+            selectors.add(0, nestingSelector(ruleset, _nestingParents));
+            combinators.add(0, Token.TK_S);
         }
         ruleset.addFSSelector(mergeSimpleSelectors(selectors, combinators));
     }
@@ -919,6 +1030,10 @@ public class CSSParser {
                 LOOP:
                 while (true) {
                     t = nextWithSave();
+                    if (isNestingSelector(t)) {
+                        nesting_selector(selector);
+                        continue;
+                    }
                     switch (t.getType()) {
                         case Token.HASH:
                             t = next();
@@ -943,6 +1058,11 @@ public class CSSParser {
                 LOOP:
                 while (true) {
                     t = nextWithSave();
+                    if (isNestingSelector(t)) {
+                        nesting_selector(selector);
+                        found = true;
+                        continue;
+                    }
                     switch (t.getType()) {
                         case Token.HASH:
                             t = next();
@@ -972,6 +1092,20 @@ public class CSSParser {
                 }
         }
         return selector;
+    }
+
+    //  nesting_selector
+//    : '&'
+//    ;
+    private void nesting_selector(Selector selector) throws IOException {
+        next();
+        _nestingSelectorFound = true;
+        if (_nestingParents == null) {
+            // Outside a style rule & is the scoping root, which for a style sheet is :root.
+            selector.addRootCondition();
+        } else {
+            selector.addNestingCondition(_nestingParents);
+        }
     }
 
     //    type_selector

@@ -1961,6 +1961,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
     }
 
+    /**
+     * CSS Nesting: nested style rules with and without &amp;, relative selectors, &amp; in a
+     * compound, rules nested two deep and a nested declarations rule.
+     */
+    @Test
+    public void testCssNesting() throws IOException {
+        assertTrue(vt.runTest("css-nesting", TestSupport.WITH_FONT));
+    }
+
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
