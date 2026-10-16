@@ -342,11 +342,13 @@ public class InlineBoxing {
             StateVariables previous, List<InlineBox> openInlineBoxes,
             InlineBox inlineBox, CalculatedStyle style) {
 
-        int rightMBP = style.getMarginBorderPadding(
-                c, space.maxAvailableWidth, CalculatedStyle.RIGHT);
+        if (!isCloneDecorations(style)) {
+            int rightMBP = style.getMarginBorderPadding(
+                    c, space.maxAvailableWidth, CalculatedStyle.RIGHT);
 
-        space.pendingRightMBP -= rightMBP;
-        space.remainingWidth -= rightMBP;
+            space.pendingRightMBP -= rightMBP;
+            space.remainingWidth -= rightMBP;
+        }
 
         openInlineBoxes.remove(openInlineBoxes.size() - 1);
 
@@ -399,6 +401,14 @@ public class InlineBoxing {
         
         space.remainingWidth = space.maxAvailableWidth;
         space.remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, current.line, space.remainingWidth);
+
+        // A box with box-decoration-break: clone repeats its start and end edges on every line.
+        for (InlineBox open : openInlineBoxes) {
+            if (isCloneDecorations(open.getStyle())) {
+                space.remainingWidth -= open.getStyle().getMarginBorderPadding(c, space.maxAvailableWidth, CalculatedStyle.LEFT);
+                space.remainingWidth -= open.getStyle().getMarginBorderPadding(c, space.maxAvailableWidth, CalculatedStyle.RIGHT);
+            }
+        }
     }
 
     private enum StartInlineTextResult {
@@ -660,8 +670,18 @@ public class InlineBoxing {
         //To break the line well, assume we don't just want to paint padding on next line
         space.pendingLeftMBP += style.getMarginBorderPadding(
                 c, space.maxAvailableWidth, CalculatedStyle.LEFT);
-        space.pendingRightMBP += style.getMarginBorderPadding(
-                c, space.maxAvailableWidth, CalculatedStyle.RIGHT);
+        if (isCloneDecorations(style)) {
+            // Every fragment of a cloned box ends with its right edge, so it is kept free on each
+            // line the box is open on.
+            space.remainingWidth -= style.getMarginBorderPadding(c, space.maxAvailableWidth, CalculatedStyle.RIGHT);
+        } else {
+            space.pendingRightMBP += style.getMarginBorderPadding(
+                    c, space.maxAvailableWidth, CalculatedStyle.RIGHT);
+        }
+    }
+
+    private static boolean isCloneDecorations(CalculatedStyle style) {
+        return style.isIdent(CSSName.BOX_DECORATION_BREAK, IdentValue.CLONE);
     }
 
     private static void addBoxId(LayoutContext c, StateVariables current) {

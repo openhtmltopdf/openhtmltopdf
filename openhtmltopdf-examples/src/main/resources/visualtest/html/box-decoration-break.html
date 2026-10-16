@@ -13,6 +13,8 @@
     }
     .clone { box-decoration-break: clone; }
     .outer { border-color: #00a000; background-color: #e0ffe0; }
+    .mark { border: 2px solid #c05000; border-radius: 6px; padding: 0 6px; margin: 0 4px;
+            background-color: #ffe8d0; line-height: 26px; }
 </style>
 </head>
 <body>
@@ -20,12 +22,18 @@
 <!--
 Pages 1-2: a box with the initial slice, broken without a border at the page break.
 Pages 3-4: the same box with clone, each fragment wrapped in its own border, radius,
-padding and background. Pages 5-6: a clone box inside a clone box.
+padding and background. Pages 5-6: a clone box inside a clone box. Page 7: an inline box broken across lines, first
+with slice, then with clone, where each line's fragment has its own border and padding.
 -->
 
 <div class="box">slice one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen</div>
 <div style="page-break-before: always" class="box clone">clone one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen</div>
 <div style="page-break-before: always" class="box clone outer"><div class="box clone">nested one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen</div></div>
+
+<div style="page-break-before: always">
+<span class="mark">slice one two three four five six seven</span><br/>
+<span class="mark clone">clone one two three four five six seven</span>
+</div>
 
 </body>
 </html>

@@ -14,6 +14,8 @@ import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.pdfboxout.PdfBoxRenderer;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.render.Box;
+import com.openhtmltopdf.render.BorderPainter;
+import com.openhtmltopdf.render.InlineLayoutBox;
 import com.openhtmltopdf.render.LineBox;
 import com.openhtmltopdf.render.PageBox;
 import com.openhtmltopdf.visualtest.TestSupport;
@@ -161,5 +163,59 @@ public class BoxDecorationBreakTest {
         assertEquals(box("slice").getHeight(), box("clone").getHeight());
         int offset = (box("clone").getAbsY() - box("slice").getAbsY()) / dotsPerPixel;
         assertEquals(firstLineOffset("slice", 0) + offset, firstLineOffset("clone", 0));
+    }
+
+    // Inline boxes: 4px margin, 2px border and 6px padding on each side, in a 300px wide page.
+    private static final String INLINE_CSS =
+        ".mark { margin: 0 4px; border: 2px solid black; padding: 0 6px; } ";
+    private static final String INLINE_TEXT =
+        "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen";
+
+    private List<InlineLayoutBox> fragments(String id) {
+        List<InlineLayoutBox> result = new ArrayList<>();
+        collectFragments(rootBox, id, result);
+        return result;
+    }
+
+    private static void collectFragments(Box box, String id, List<InlineLayoutBox> result) {
+        if (box instanceof InlineLayoutBox && box.getElement() != null &&
+                id.equals(box.getElement().getAttribute("id"))) {
+            result.add((InlineLayoutBox) box);
+        }
+        for (int i = 0; i < box.getChildCount(); i++) {
+            collectFragments(box.getChild(i), id, result);
+        }
+        if (box instanceof InlineLayoutBox) {
+            for (Object child : ((InlineLayoutBox) box).getInlineChildren()) {
+                if (child instanceof Box) {
+                    collectFragments((Box) child, id, result);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testSlicedInlineFragmentsHaveEdgesOnlyAtTheEnds() throws IOException {
+        layout(INLINE_CSS, "<span id='m' class='mark'>" + INLINE_TEXT + "</span>");
+        List<InlineLayoutBox> f = fragments("m");
+        assertTrue("breaks across lines", f.size() > 1);
+        assertEquals(BorderPainter.ALL - BorderPainter.RIGHT, f.get(0).getBorderSides());
+        assertEquals(0, f.get(1).getLeftMarginBorderPadding(null) / dotsPerPixel);
+    }
+
+    @Test
+    public void testClonedInlineFragmentsEachHaveBothEdges() throws IOException {
+        layout(INLINE_CSS + ".mark { box-decoration-break: clone; }",
+                "<span id='m' class='mark'>" + INLINE_TEXT + "</span>");
+        List<InlineLayoutBox> f = fragments("m");
+        assertTrue("breaks across lines", f.size() > 1);
+        int pageWidth = rootBox.getWidth();
+        for (InlineLayoutBox fragment : f) {
+            assertEquals(BorderPainter.ALL, fragment.getBorderSides());
+            assertEquals(12, fragment.getLeftMarginBorderPadding(null) / dotsPerPixel);
+            assertEquals(12, fragment.getRightMarginPaddingBorder(null) / dotsPerPixel);
+            // The repeated end edge is laid out inside the line, not past it.
+            assertTrue(fragment.getAbsX() + fragment.getInlineWidth() <= pageWidth);
+        }
     }
 }

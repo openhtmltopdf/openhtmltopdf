@@ -21,6 +21,7 @@
 package com.openhtmltopdf.render;
 
 import com.openhtmltopdf.context.ContentFunctionFactory.LeaderFunction;
+import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
@@ -207,6 +208,23 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         _startsHere = startsHere;
     }
 
+    /**
+     * Whether this fragment has the box's start edge (margin, border and padding): the first
+     * fragment does, and with box-decoration-break: clone every fragment does.
+     */
+    public boolean hasStartEdge() {
+        return _startsHere || isCloneDecorations();
+    }
+
+    /** Whether this fragment has the box's end edge; see {@link #hasStartEdge()}. */
+    public boolean hasEndEdge() {
+        return _endsHere || isCloneDecorations();
+    }
+
+    private boolean isCloneDecorations() {
+        return getStyle().isIdent(CSSName.BOX_DECORATION_BREAK, IdentValue.CLONE);
+    }
+
     public boolean isPending() {
         return _pending;
     }
@@ -323,10 +341,10 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     public int getBorderSides() {
         int result = BorderPainter.TOP + BorderPainter.BOTTOM;
         
-        if (_startsHere) {
+        if (hasStartEdge()) {
             result += BorderPainter.LEFT;
         }
-        if (_endsHere) {
+        if (hasEndEdge()) {
             result += BorderPainter.RIGHT;
         }
         
@@ -340,12 +358,12 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         
         float marginLeft = 0;
         float marginRight = 0;
-        if (_startsHere || _endsHere) {
+        if (hasStartEdge() || hasEndEdge()) {
             RectPropertySet margin = getMargin(cssCtx);
-            if (_startsHere) {
+            if (hasStartEdge()) {
                 marginLeft = margin.left();
             } 
-            if (_endsHere) {
+            if (hasEndEdge()) {
                 marginRight = margin.right();
             }
         }
@@ -365,12 +383,12 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         Rectangle result = getBorderEdge(left, top, cssCtx);
         float marginLeft = 0;
         float marginRight = 0;
-        if (_startsHere || _endsHere) {
+        if (hasStartEdge() || hasEndEdge()) {
             RectPropertySet margin = getMargin(cssCtx);
-            if (_startsHere) {
+            if (hasStartEdge()) {
                 marginLeft = margin.left();
             } 
-            if (_endsHere) {
+            if (hasEndEdge()) {
                 marginRight = margin.right();
             }
         }
@@ -399,14 +417,14 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         float paddingLeft = 0;
         float paddingRight = 0;
         
-        if (_startsHere || _endsHere) {
+        if (hasStartEdge() || hasEndEdge()) {
             RectPropertySet margin = getMargin(cssCtx);
-            if (_startsHere) {
+            if (hasStartEdge()) {
                 marginLeft = margin.left();
                 borderLeft = border.left();
                 paddingLeft = padding.left();
             } 
-            if (_endsHere) {
+            if (hasEndEdge()) {
                 marginRight = margin.right();
                 borderRight = border.right();
                 paddingRight = padding.right();
@@ -423,7 +441,7 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
     
     public int getLeftMarginBorderPadding(CssContext cssCtx) {
-        if (_startsHere) {
+        if (hasStartEdge()) {
             return getMarginBorderPadding(cssCtx, CalculatedStyle.LEFT);
         } else {
             return 0;
@@ -431,7 +449,7 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
     
     public int getRightMarginPaddingBorder(CssContext cssCtx) {
-        if (_endsHere) {
+        if (hasEndEdge()) {
             return getMarginBorderPadding(cssCtx, CalculatedStyle.RIGHT);
         } else {
             return 0;
