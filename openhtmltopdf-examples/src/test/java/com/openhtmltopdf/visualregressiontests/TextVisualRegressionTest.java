@@ -652,6 +652,14 @@ public class TextVisualRegressionTest {
         assertTrue(run("columns-floats-unbalanced"));
     }
 
+    /**
+     * Tests combination of columns and footnotes.
+     */
+    @Test
+    public void testColumnsFootnote() throws IOException {
+        assertTrue(run("columns-footnote"));
+    }
+
     private static class WatermarkDrawer implements FSObjectDrawer {
         @Override
         public Map<Shape, String> drawObject(Element e, double x, double y, double width, double height,
