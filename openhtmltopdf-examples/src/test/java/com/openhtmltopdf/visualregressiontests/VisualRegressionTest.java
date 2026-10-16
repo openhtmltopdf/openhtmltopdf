@@ -1961,15 +1961,6 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
     }
 
-    /**
-     * margin-break: auto truncates a top margin after an unforced break and keeps it after
-     * a forced one, keep always preserves it, and discard truncates it after forced breaks too.
-     */
-    @Test
-    public void testMarginBreak() throws IOException {
-        assertTrue(vt.runTest("margin-break", TestSupport.WITH_FONT));
-    }
-
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
@@ -2069,6 +2060,15 @@ public class VisualRegressionTest {
     @Test
     public void testTheadRowspanRepeat() throws IOException {
         assertTrue(vt.runTest("issue-214-thead-rowspan-repeat", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * margin-break: auto truncates a top margin after an unforced break and keeps it after
+     * a forced one, keep always preserves it, and discard truncates it after forced breaks too.
+     */
+    @Test
+    public void testMarginBreak() throws IOException {
+        assertTrue(vt.runTest("margin-break", TestSupport.WITH_FONT));
     }
 
     /**
