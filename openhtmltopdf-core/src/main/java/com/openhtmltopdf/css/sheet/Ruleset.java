@@ -22,6 +22,7 @@ package com.openhtmltopdf.css.sheet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import com.openhtmltopdf.css.newmatch.Selector;
 
 
@@ -35,6 +36,7 @@ public class Ruleset {
     private final List<Selector> _fsSelectors;
     private List<InvalidPropertyDeclaration> _invalidProperties;
     private List<CustomPropertyDeclaration> _customProperties;
+    private List<String> _media;
 
     public Ruleset(int orig) {
         _origin = orig;
@@ -70,6 +72,23 @@ public class Ruleset {
     
     public int getOrigin() {
         return _origin;
+    }
+
+    /**
+     * The media types of the @media rules this rule is nested in inside a style rule, or null
+     * when it applies to all media. An empty list matches no medium.
+     */
+    public List<String> getMedia() {
+        return _media;
+    }
+
+    public void setMedia(List<String> media) {
+        _media = media;
+    }
+
+    public boolean matchesMedium(String medium) {
+        return _media == null || medium.equalsIgnoreCase("all") || _media.contains("all") ||
+                _media.contains(medium.toLowerCase(Locale.US));
     }
 
     public void toCSS(StringBuilder sb) {

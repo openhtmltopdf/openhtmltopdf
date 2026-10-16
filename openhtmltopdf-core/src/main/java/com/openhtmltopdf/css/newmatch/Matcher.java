@@ -246,6 +246,9 @@ public class Matcher {
         for (Stylesheet stylesheet : stylesheets) {
             for (Object obj : stylesheet.getContents()) {
                 if (obj instanceof Ruleset) {
+                    if (!((Ruleset) obj).matchesMedium(medium)) {
+                        continue;
+                    }
                     for (Selector selector : ((Ruleset) obj).getFSSelectors()) {
                         selector.setPos(++count);
                         sorter.put(selector.getOrder(), selector);
@@ -258,6 +261,9 @@ public class Matcher {
                     if (mediaRule.matches(medium)) {
                         for (Object o : mediaRule.getContents()) {
                             Ruleset ruleset = (Ruleset) o;
+                            if (!ruleset.matchesMedium(medium)) {
+                                continue;
+                            }
                             for (Object o1 : ruleset.getFSSelectors()) {
                                 Selector selector = (Selector) o1;
                                 selector.setPos(++count);

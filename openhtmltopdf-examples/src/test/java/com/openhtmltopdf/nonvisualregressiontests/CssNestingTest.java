@@ -15,6 +15,7 @@ import com.openhtmltopdf.visualtest.TestSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests CSS Nesting: style rules nested in style rules, the nesting selector {@code &}
@@ -160,12 +161,58 @@ public class CssNestingTest {
     }
 
     @Test
-    public void testANestedRuleStartingWithAnIdentifierIsSkipped() throws IOException {
-        // Told apart from a declaration by its first token only; "& div" is the supported form.
-        layout(".a { div { color: black; } color: red; & div { color: blue; } }",
+    public void testANestedRuleCanStartWithATypeSelector() throws IOException {
+        // Parsed as a declaration first and, when that fails, again as a nested rule (CSS Syntax 3).
+        layout(".a { color: red; div { color: blue; } span:last-child { color: green; } }",
+                "<div id='a' class='a'><div id='div'>x</div><span id='span'>y</span></div>");
+        assertEquals(RED, color("a"));
+        assertEquals(BLUE, color("div"));
+        assertEquals("rgb(0, 128, 0)", color("span"));
+    }
+
+    @Test
+    public void testDeclarationsStillParseAsDeclarations() throws IOException {
+        // Values that look like selectors stay declarations, and the rules around them still apply.
+        layout(".a { font-family: serif; color: red; div { color: blue; } }",
                 "<div id='a' class='a'><div id='div'>x</div></div>");
         assertEquals(RED, color("a"));
         assertEquals(BLUE, color("div"));
+    }
+
+    @Test
+    public void testAnInvalidDeclarationStillReportsItsOwnError() throws IOException {
+        java.util.List<String> errors = new java.util.ArrayList<>();
+        com.openhtmltopdf.css.parser.CSSParser parser = new com.openhtmltopdf.css.parser.CSSParser(
+                (uri, message) -> errors.add(message));
+        parser.parseStylesheet("test://css", com.openhtmltopdf.css.sheet.StylesheetInfo.AUTHOR,
+                new java.io.StringReader(".a { color red; width: 10px; }"));
+        assertEquals(errors.toString(), 1, errors.size());
+        assertTrue(errors.get(0), errors.get(0).contains("Skipping declaration"));
+    }
+
+    @Test
+    public void testNestedMediaRulesApplyForTheirMedia() throws IOException {
+        layout(".a { color: black; @media print { color: red; .b { color: blue; } } " +
+                "@media screen { color: green; .b { color: green; } } }",
+                "<div id='a' class='a'><div id='b' class='b'>x</div></div>");
+        assertEquals(RED, color("a"));
+        assertEquals(BLUE, color("b"));
+    }
+
+    @Test
+    public void testNestedMediaRulesCombineWithTheMediaAroundThem() throws IOException {
+        layout("@media print { .a { @media screen { color: green; } @media all { & .b { color: blue; } } } } " +
+                ".c { @media print { @media print, screen { color: red; } } }",
+                "<div id='a' class='a'><div id='b' class='b'>x</div></div><div id='c' class='c'>x</div>");
+        assertEquals(BLACK, color("a"));
+        assertEquals(BLUE, color("b"));
+        assertEquals(RED, color("c"));
+    }
+
+    @Test
+    public void testDeclarationsAfterANestedMediaRuleComeAfterIt() throws IOException {
+        layout(".a { @media print { color: red; } color: blue; }", "<div id='a' class='a'>x</div>");
+        assertEquals(BLUE, color("a"));
     }
 
     @Test

@@ -71,6 +71,15 @@ public class CSSParser {
     /** The selectors that &amp; refers to while parsing a nested rule, null at the top level. */
     private List<Selector> _nestingParents;
     private boolean _nestingSelectorFound;
+    /** The media types of the @media rules nested in style rules around the parser, or null. */
+    private List<String> _nestingMedia;
+
+    // The text and line of the current token, kept apart from the lexer so that recorded tokens
+    // can be parsed again: a nested rule can start like a declaration (CSS Syntax 3).
+    private String _tokenText = "";
+    private int _tokenLine;
+    private List<Object[]> _recording;
+    private final Deque<Object[]> _replay = new ArrayDeque<>();
 
     public CSSParser(CSSErrorHandler errorHandler) {
         _lexer = new Lexer(new StringReader(""));
@@ -763,7 +772,7 @@ public class CSSParser {
             List<Ruleset> nestedRules = new ArrayList<>();
 
             selector_list(ruleset);
-            style_block(ruleset, nestedRules);
+            style_block(ruleset, ruleset, nestedRules);
 
             // Nested rules follow their parent in the cascade, in source order.
             if (hasDeclarations(ruleset)) {
@@ -801,11 +810,11 @@ public class CSSParser {
     }
 
     //  style_block
-//    : LBRACE S* [ declaration ';' S* | nested_rule ]* '}' S*
+//    : LBRACE S* [ declaration ';' S* | nested_rule | nested_media ]* '}' S*
 //    ;
-    // A nested rule starts with a symbol, never an identifier, so it is told apart from a
-    // declaration by its first token: write "& div" for a type selector.
-    private void style_block(Ruleset ruleset, List<Ruleset> nestedRules) throws IOException {
+    // The block of the style rule `rule`. Its declarations go to `declarations` (null in a nested
+    // @media rule) until a nested rule, and then to nested declarations rules.
+    private void style_block(Ruleset rule, Ruleset declarations, List<Ruleset> nestedRules) throws IOException {
         Token t = next();
         if (t != Token.TK_LBRACE) {
             save(t);
@@ -816,7 +825,6 @@ public class CSSParser {
 
         // Declarations after a nested rule form a nested declarations rule, which matches
         // like & and keeps its place in the cascade after that nested rule.
-        Ruleset declarations = ruleset;
         LOOP:
         while (true) {
             t = nextWithSave();
@@ -828,16 +836,25 @@ public class CSSParser {
                 case Token.RBRACE:
                     break LOOP;
                 default:
-                    if (isNestedRuleStart(t)) {
-                        nested_rule(ruleset, nestedRules);
+                    if (t == Token.TK_MEDIA_SYM) {
+                        nested_media(rule, nestedRules);
+                        declarations = null;
+                    } else if (isNestedRuleStart(t)) {
+                        nested_rule(rule, nestedRules);
                         declarations = null;
                     } else {
                         if (declarations == null) {
-                            declarations = new Ruleset(ruleset.getOrigin());
-                            declarations.addFSSelector(nestingSelector(declarations, ruleset.getFSSelectors()));
+                            declarations = nestedRuleset(rule.getOrigin());
+                            declarations.addFSSelector(nestingSelector(declarations, rule.getFSSelectors()));
                             nestedRules.add(declarations);
                         }
-                        declaration(declarations, false);
+                        if (t == Token.TK_IDENT) {
+                            if (!declaration_or_nested_rule(rule, declarations, nestedRules)) {
+                                declarations = null;
+                            }
+                        } else {
+                            declaration(declarations, false);
+                        }
                     }
             }
         }
@@ -845,22 +862,135 @@ public class CSSParser {
         skip_whitespace();
     }
 
+    /**
+     * An identifier starts a declaration or a nested rule with a type selector, such as
+     * "div { ... }". As in CSS Syntax 3, it is parsed as a declaration and, when that fails,
+     * parsed again from the same token as a nested rule. Returns true for a declaration.
+     */
+    private boolean declaration_or_nested_rule(Ruleset rule, Ruleset declarations, List<Ruleset> nestedRules)
+            throws IOException {
+        int before = countDeclarations(declarations);
+        List<String> declarationErrors = new ArrayList<>();
+        CSSErrorHandler errorHandler = _errorHandler;
+        _errorHandler = (uri, message) -> declarationErrors.add(message);
+        List<Object[]> tokens = startRecording();
+        try {
+            declaration(declarations, false);
+        } finally {
+            _errorHandler = errorHandler;
+            _recording = null;
+        }
+        if (countDeclarations(declarations) > before) {
+            reportErrors(declarationErrors);
+            return true;
+        }
+
+        replay(tokens);
+        List<String> ruleErrors = new ArrayList<>();
+        _errorHandler = (uri, message) -> ruleErrors.add(message);
+        boolean nestedRule;
+        try {
+            nestedRule = nested_rule(rule, nestedRules);
+        } finally {
+            _errorHandler = errorHandler;
+        }
+        // Neither parse worked: report the declaration's errors, as before nesting existed.
+        reportErrors(nestedRule ? ruleErrors : declarationErrors);
+        return !nestedRule;
+    }
+
+    private static int countDeclarations(Ruleset ruleset) {
+        return ruleset.getPropertyDeclarations().size() +
+                ruleset.getInvalidPropertyDeclarations().size() +
+                ruleset.getCustomPropertyDeclarations().size();
+    }
+
+    private void reportErrors(List<String> messages) {
+        for (String message : messages) {
+            _errorHandler.error(_URI, message);
+        }
+    }
+
+    private List<Object[]> startRecording() {
+        _recording = new ArrayList<>();
+        if (_saved != null) {
+            _recording.add(new Object[] { _saved, _tokenText, _tokenLine });
+        }
+        return _recording;
+    }
+
+    private void replay(List<Object[]> tokens) {
+        _saved = null;
+        for (int i = tokens.size() - 1; i >= 0; i--) {
+            _replay.addFirst(tokens.get(i));
+        }
+    }
+
+    //  nested_media
+//    : MEDIA_SYM S* medium [ COMMA S* medium ]* style_block
+//    ;
+    // Inside a style rule, @media holds declarations for the rule's own elements and nested
+    // rules; they apply for the media types of every @media rule around them.
+    private void nested_media(Ruleset rule, List<Ruleset> nestedRules) throws IOException {
+        int index = nestedRules.size();
+        List<String> outerMedia = _nestingMedia;
+        try {
+            next();
+            skip_whitespace();
+            List<String> media = new ArrayList<>();
+            media.add(medium());
+            while (nextWithSave() == Token.TK_COMMA) {
+                next();
+                skip_whitespace();
+                media.add(medium());
+            }
+            _nestingMedia = intersectMedia(outerMedia, media);
+            style_block(rule, null, nestedRules);
+        } catch (CSSParseException e) {
+            nestedRules.subList(index, nestedRules.size()).clear();
+            error(e, "nested @media rule", true);
+            recover(false, true);
+        } finally {
+            _nestingMedia = outerMedia;
+        }
+    }
+
+    private static List<String> intersectMedia(List<String> outer, List<String> inner) {
+        if (outer == null || outer.contains("all")) {
+            return inner;
+        }
+        if (inner.contains("all")) {
+            return outer;
+        }
+        List<String> result = new ArrayList<>(inner);
+        result.retainAll(outer);
+        return result;
+    }
+
+    private Ruleset nestedRuleset(int origin) {
+        Ruleset ruleset = new Ruleset(origin);
+        ruleset.setMedia(_nestingMedia);
+        return ruleset;
+    }
+
     //  nested_rule
 //    : selector [ COMMA S* selector ]* style_block
 //    ;
-    private void nested_rule(Ruleset parent, List<Ruleset> nestedRules) throws IOException {
+    private boolean nested_rule(Ruleset parent, List<Ruleset> nestedRules) throws IOException {
         List<Selector> outerParents = _nestingParents;
         int index = nestedRules.size();
         _nestingParents = parent.getFSSelectors();
         try {
-            Ruleset ruleset = new Ruleset(parent.getOrigin());
+            Ruleset ruleset = nestedRuleset(parent.getOrigin());
             selector_list(ruleset);
-            style_block(ruleset, nestedRules);
+            style_block(ruleset, ruleset, nestedRules);
             nestedRules.add(index, ruleset);
+            return true;
         } catch (CSSParseException e) {
             nestedRules.subList(index, nestedRules.size()).clear();
             error(e, "nested rule", true);
             recover(false, true);
+            return false;
         } finally {
             _nestingParents = outerParents;
         }
@@ -2203,9 +2333,22 @@ public class CSSParser {
             Token result = _saved;
             _saved = null;
             return result;
-        } else {
-            return _lexer.yylex();
         }
+        Token t;
+        if (!_replay.isEmpty()) {
+            Object[] token = _replay.removeFirst();
+            t = (Token) token[0];
+            _tokenText = (String) token[1];
+            _tokenLine = (Integer) token[2];
+        } else {
+            t = _lexer.yylex();
+            _tokenText = _lexer.yytext();
+            _tokenLine = _lexer.yyline();
+        }
+        if (_recording != null) {
+            _recording.add(new Object[] { t, _tokenText, _tokenLine });
+        }
+        return t;
     }
 
     private void save(Token t) {
@@ -2271,6 +2414,8 @@ public class CSSParser {
 
     public void reset(Reader r) {
         _saved = null;
+        _replay.clear();
+        _recording = null;
         _namespaces.clear();
         _lexer.yyreset(r);
         _lexer.setyyline(0);
@@ -2285,7 +2430,7 @@ public class CSSParser {
     }
 
     private String getRawTokenValue() {
-        return _lexer.yytext();
+        return _tokenText;
     }
 
     private String getTokenValue(Token t) {
@@ -2297,13 +2442,13 @@ public class CSSParser {
         int count;
         switch (t.getType()) {
             case Token.STRING:
-                count = _lexer.yylength();
-                return processEscapes(_lexer.yytext().toCharArray(), 1, count - 1);
+                count = _tokenText.length();
+                return processEscapes(_tokenText.toCharArray(), 1, count - 1);
             case Token.HASH:
-                count = _lexer.yylength();
-                return processEscapes(_lexer.yytext().toCharArray(), 1, count);
+                count = _tokenText.length();
+                return processEscapes(_tokenText.toCharArray(), 1, count);
             case Token.URI:
-                char[] ch = _lexer.yytext().toCharArray();
+                char[] ch = _tokenText.toCharArray();
                 start = 4;
                 while (ch[start] == '\t' || ch[start] == '\r' ||
                         ch[start] == '\n' || ch[start] == '\f') {
@@ -2333,19 +2478,19 @@ public class CSSParser {
             case Token.IDENT:
             case Token.FUNCTION:
                 start = t.getType() == Token.AT_RULE ? 1 : 0;
-                count = _lexer.yylength();
-                String result = processEscapes(_lexer.yytext().toCharArray(), start, count);
+                count = _tokenText.length();
+                String result = processEscapes(_tokenText.toCharArray(), start, count);
                 if (!literal) {
                     result = result.toLowerCase();
                 }
                 return result;
             default:
-                return _lexer.yytext();
+                return _tokenText;
         }
     }
 
     private int getCurrentLine() {
-        return _lexer.yyline();
+        return _tokenLine;
     }
 
     private static boolean isHexChar(char c) {
