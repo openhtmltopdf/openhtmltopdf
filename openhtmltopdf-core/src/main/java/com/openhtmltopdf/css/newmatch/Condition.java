@@ -130,6 +130,14 @@ abstract class Condition {
     }
 
     /**
+     * the CSS condition that element matches at least one of the selectors in :is(...) or
+     * :where(...)
+     */
+    static Condition createMatchesAnyCondition(List<Selector> arguments, String function) {
+        return new MatchesAnyCondition(arguments, function);
+    }
+
+    /**
      * the CSS condition that element has pseudo-class :first-child
      *
      * @return Returns
@@ -479,6 +487,43 @@ abstract class Condition {
         void toCSS(StringBuilder sb) {
             sb.append(":lang(");
             sb.append(_lang);
+            sb.append(')');
+        }
+    }
+
+    private static class MatchesAnyCondition extends Condition {
+
+        private final List<Selector> _arguments;
+        private final List<Selector[]> _chains = new ArrayList<>();
+        private final String _function;
+
+        MatchesAnyCondition(List<Selector> arguments, String function) {
+            _arguments = arguments;
+            _function = function;
+            for (Selector argument : arguments) {
+                _chains.add(argument.getChain());
+            }
+        }
+
+        @Override
+        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            for (Selector[] chain : _chains) {
+                if (Selector.matchesChain(chain, chain.length - 1, e, attRes, treeRes)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void toCSS(StringBuilder sb) {
+            sb.append(':').append(_function).append('(');
+            for (int i = 0; i < _arguments.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                _arguments.get(i).toComplexCSS(sb);
+            }
             sb.append(')');
         }
     }

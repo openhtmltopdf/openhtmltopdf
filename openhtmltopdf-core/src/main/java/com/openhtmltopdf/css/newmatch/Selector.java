@@ -25,6 +25,7 @@ import com.openhtmltopdf.css.sheet.Ruleset;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -227,6 +228,19 @@ public class Selector {
         _specificityC++;
         addCondition(Condition.createRootCondition());
     }
+
+    /**
+     * the CSS condition :is(a, b, ...), which counts with the specificity of its most specific
+     * argument, or :where(a, b, ...), which counts nothing. As with :not(), the arguments are
+     * alternatives, so none of their ids or classes are recorded as required for the rule index.
+     * An empty list (every argument was invalid) matches nothing.
+     */
+    public void addMatchesAnyCondition(List<Selector> arguments, boolean zeroSpecificity) {
+        if (!zeroSpecificity) {
+            addMostSpecific(arguments);
+        }
+        addCondition(Condition.createMatchesAnyCondition(arguments, zeroSpecificity ? "where" : "is"));
+    }
     
     /**
      * the CSS condition that element has pseudo-class :last-child
@@ -345,6 +359,42 @@ public class Selector {
     public void addAttributeMatchesFirstPartCondition(String namespaceURI, String name, String value) {
         _specificityC++;
         addCondition(Condition.createAttributeMatchesFirstPartCondition(namespaceURI, name, value));
+    }
+
+    /**
+     * Adds the specificity of the most specific argument of a functional pseudo-class, counting
+     * its whole selector chain; nothing for an empty list.
+     */
+    private void addMostSpecific(List<Selector> arguments) {
+        Selector mostSpecific = null;
+        for (Selector argument : arguments) {
+            // A chain's specificity is held by its last selector.
+            Selector[] chain = argument.getChain();
+            Selector subject = chain[chain.length - 1];
+            if (mostSpecific == null || subject.compareSpecificity(mostSpecific) > 0) {
+                mostSpecific = subject;
+            }
+        }
+        if (mostSpecific != null) {
+            _specificityB += mostSpecific.getSpecificityB();
+            _specificityC += mostSpecific.getSpecificityC();
+            _specificityD += mostSpecific.getSpecificityD();
+        }
+    }
+
+    private int compareSpecificity(Selector other) {
+        if (getSpecificityB() != other.getSpecificityB()) {
+            return Integer.compare(getSpecificityB(), other.getSpecificityB());
+        }
+        if (getSpecificityC() != other.getSpecificityC()) {
+            return Integer.compare(getSpecificityC(), other.getSpecificityC());
+        }
+        return Integer.compare(getSpecificityD(), other.getSpecificityD());
+    }
+
+    /** Whether this compound selector represents a pseudo-element (::before, ::marker, ...). */
+    public boolean isPseudoElementSelector() {
+        return _pe != null || isPseudoClass(MARKER_PSEUDOCLASS);
     }
 
     /**
@@ -470,6 +520,46 @@ public class Selector {
     }
 
     /**
+     * The selectors of the chain that starts with this selector, the subject last.
+     */
+    Selector[] getChain() {
+        List<Selector> chain = new ArrayList<>();
+        for (Selector s = this; s != null; s = s.getChainedSelector()) {
+            chain.add(s);
+        }
+        return chain.toArray(new Selector[0]);
+    }
+
+    /**
+     * Check if the given Element matches chain[index], with the selectors before it matching
+     * its ancestors. Works upwards from the element, unlike Matcher, so it can test a whole
+     * selector at any element. A pseudo-element or a dynamic pseudo-class (:hover, ...) never
+     * matches, since nothing reports them.
+     */
+    static boolean matchesChain(
+            Selector[] chain, int index, Object e, AttributeResolver attRes, TreeResolver treeRes) {
+        Selector selector = chain[index];
+        if (selector.getPseudoElement() != null ||
+                !selector.matches(e, attRes, treeRes) ||
+                !selector.matchesDynamic(e, attRes, treeRes)) {
+            return false;
+        }
+        if (index == 0) {
+            return true;
+        }
+        Object ancestor = treeRes.getParentElement(e);
+        if (selector.getAxis() == CHILD_AXIS) {
+            return ancestor != null && matchesChain(chain, index - 1, ancestor, attRes, treeRes);
+        }
+        for (; ancestor != null; ancestor = treeRes.getParentElement(ancestor)) {
+            if (matchesChain(chain, index - 1, ancestor, attRes, treeRes)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Gets the appropriateSibling attribute of the Selector object
      *
      * @param e       PARAM
@@ -574,6 +664,39 @@ public class Selector {
             sb.append(' ');
 
             next = next.getChainedSelector();
+        }
+    }
+
+    /** Prints the whole selector chain that starts with this selector, combinators included. */
+    void toComplexCSS(StringBuilder sb) {
+        Selector[] chain = getChain();
+        for (int i = 0; i < chain.length; i++) {
+            if (i > 0) {
+                sb.append(chain[i].getAxis() == CHILD_AXIS ? " > " : " ");
+            }
+            chain[i].toCompoundWithSiblingsCSS(sb);
+        }
+    }
+
+    private void toCompoundWithSiblingsCSS(StringBuilder sb) {
+        if (siblingSelector != null) {
+            siblingSelector.toCompoundWithSiblingsCSS(sb);
+            sb.append(" + ");
+        }
+        toCompoundCSS(sb);
+    }
+
+    /** Prints this selector's own compound part (element name and conditions), without any chain. */
+    void toCompoundCSS(StringBuilder sb) {
+        if (_name != null) {
+            sb.append(_name);
+        } else if (conditions == null) {
+            sb.append('*');
+        }
+        if (conditions != null) {
+            for (Condition condition : conditions) {
+                condition.toCSS(sb);
+            }
         }
     }
 

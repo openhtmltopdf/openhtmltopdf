@@ -1,0 +1,62 @@
+<html>
+<head>
+<style>
+@page {
+  /* One page, so no box is split across a page break. */
+  size: 280px 230px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+}
+
+/*
+ * :is() and :where() with a forgiving list of compound selectors (Selectors Level 4).
+ *
+ * Every box should end up green. A box marked .box starts red and only a rule that should
+ * match it turns it green. A box marked .neg starts green and a rule that must NOT win for it
+ * would turn it red.
+ */
+.box { background-color: red; }
+.neg { background-color: green; }
+
+/* 1. :is() matches any argument. */
+.c1 .box:is(.a, .b, [data-k]) { background-color: green; }
+.c1 .neg:is(.a, .b, [data-k]) { background-color: red; }
+
+/* 2. :is() takes the specificity of its most specific argument: :is(.box, #nope) counts as an id,
+      so it beats the later rule with three classes. */
+.c2 i:is(.box, #nope) { background-color: green; }
+.c2 .box.box { background-color: red; }
+
+/* 3. :where() adds no specificity, so it loses to .neg even though it comes later. */
+:where(.neg) { background-color: red; }
+
+/* 4. The list is forgiving: the invalid arguments are skipped and the rule still applies. */
+.c4 .box:is(div ::before, .box, ::before) { background-color: green; }
+
+/* 5. Complex arguments: child and next-sibling combinators. */
+.c5 .box:is(.c5 > i + i, .c5 > .first) { background-color: green; }
+.c5 .neg:is(.c4 > i, span i) { background-color: red; }
+
+div {
+  height: 20px;
+  margin-bottom: 8px;
+}
+i {
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  margin-right: 4px;
+  border: 1px solid black;
+}
+</style>
+</head>
+<body>
+<div class="c1"><i class="box a"></i><i class="box b"></i><i class="box" data-k="1"></i><i class="neg"></i></div>
+<div class="c2"><i class="box"></i></div>
+<div class="c3"><i class="neg"></i><i class="neg"></i></div>
+<div class="c4"><i class="box"></i></div>
+<div class="c5"><i class="box first"></i><i class="box"></i><i class="neg"></i></div>
+</body>
+</html>

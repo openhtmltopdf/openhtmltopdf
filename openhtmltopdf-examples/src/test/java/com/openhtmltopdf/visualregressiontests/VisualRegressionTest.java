@@ -1906,6 +1906,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests the :is() and :where() pseudo-classes with a forgiving list of complex selectors:
+     * matching any argument, the specificity of the most specific argument for :is() and none for
+     * :where(), invalid arguments being skipped, and combinators. Every box should be green.
+     */
+    @Test
+    public void testIsWherePseudoClasses() throws IOException {
+        assertTrue(vt.runTest("is-where-pseudo-classes"));
+    }
+
+    /**
      * Tests that :nth-child(an+b) selectors with a non-zero, non-unary step
      * (such as :nth-child(n+3), :nth-child(-n+3) and :nth-child(2n+3)) only
      * select the elements reachable via a non-negative repeat count, rather

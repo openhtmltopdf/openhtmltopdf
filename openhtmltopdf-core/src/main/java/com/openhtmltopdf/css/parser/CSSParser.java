@@ -1193,11 +1193,69 @@ public class CSSParser {
         }
     }
 
+    //  forgiving_selector_list
+    //    : S* complex_selector? [ ',' S* complex_selector? ]* ')'
+    //    ;
+    // The argument of :is() and :where(): a forgiving list of complex selectors without
+    // pseudo-elements, where an invalid argument is skipped with a warning instead of
+    // invalidating the whole selector. User-action pseudo-classes such as :hover are valid but
+    // never match, as in any non-interactive user agent.
+    private List<Selector> forgiving_selector_list(Selector owner, String function) throws IOException {
+        List<Selector> list = new ArrayList<>();
+        while (true) {
+            skip_whitespace();
+            Token t;
+            try {
+                Selector argument = complex_selector(owner.getRuleset(), function);
+                t = next();
+                if (t != Token.TK_RPAREN && t != Token.TK_COMMA) {
+                    save(t);
+                    throw new CSSParseException(t, new Token[]{Token.TK_COMMA, Token.TK_RPAREN}, getCurrentLine());
+                }
+                list.add(argument);
+            } catch (CSSParseException e) {
+                if (e.isEOF()) {
+                    throw e;
+                }
+                error(e, "argument of :" + function + "()", false);
+                t = skip_selector_list_argument();
+            }
+            if (t == Token.TK_RPAREN) {
+                return list;
+            }
+        }
+    }
+
+    // Skips the rest of an invalid selector list argument, up to and including the comma or
+    // closing parenthesis that ends it, and returns that token.
+    private Token skip_selector_list_argument() throws IOException {
+        int depth = 0;
+        while (true) {
+            Token t = next();
+            if (t == Token.TK_EOF) {
+                save(t);
+                throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
+            } else if (t.getType() == Token.FUNCTION) {
+                depth++;
+            } else if (t == Token.TK_RPAREN) {
+                if (depth == 0) {
+                    return t;
+                }
+                depth--;
+            } else if (t == Token.TK_COMMA && depth == 0) {
+                return t;
+            }
+        }
+    }
+
     private void addPseudoClassOrElementFunction(Token t, Selector selector) throws IOException {
         String f = getTokenValue(t);
         f = f.substring(0, f.length() - 1);
 
-        if (f.equals("lang")) {
+        if (f.equals("is") || f.equals("where")) {
+            selector.addMatchesAnyCondition(forgiving_selector_list(selector, f), f.equals("where"));
+            t = Token.TK_RPAREN;
+        } else if (f.equals("lang")) {
             skip_whitespace();
             t = next();
             if (t == Token.TK_IDENT) {
@@ -1231,6 +1289,45 @@ public class CSSParser {
             save(t);
             throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
         }
+    }
+
+    //  complex_selector
+    //    : simple_selector [ combinator simple_selector ]* S*
+    //    ;
+    // A selector argument of a functional pseudo-class, returned as the first selector of its
+    // chain, as a ruleset's selectors are.
+    private Selector complex_selector(Ruleset ruleset, String function) throws IOException {
+        List<Selector> selectors = new ArrayList<>();
+        List<Token> combinators = new ArrayList<>();
+        selectors.add(simple_selector(ruleset));
+        while (true) {
+            Token t = nextWithSave();
+            if (t == Token.TK_S) {
+                skip_whitespace();
+                t = nextWithSave();
+                if (t == Token.TK_COMMA || t == Token.TK_RPAREN) {
+                    break;
+                }
+                if (t != Token.TK_PLUS && t != Token.TK_GREATER) {
+                    combinators.add(Token.TK_S);
+                    selectors.add(simple_selector(ruleset));
+                    continue;
+                }
+            }
+            if (t == Token.TK_PLUS || t == Token.TK_GREATER) {
+                combinators.add(combinator());
+                selectors.add(simple_selector(ruleset));
+            } else {
+                break;
+            }
+        }
+        for (Selector selector : selectors) {
+            if (selector.isPseudoElementSelector()) {
+                throw new CSSParseException("Pseudo-elements are not allowed in :" + function + "()",
+                        getCurrentLine());
+            }
+        }
+        return mergeSimpleSelectors(selectors, combinators);
     }
 
     private void addPseudoElement(Token t, Selector selector) {
