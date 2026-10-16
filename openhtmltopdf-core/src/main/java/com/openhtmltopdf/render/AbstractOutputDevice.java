@@ -205,7 +205,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             return;
         }
 
-        Rectangle borderBounds = box.getPaintingBorderEdge(c);
+        Rectangle borderBounds = box.getPaintingDecorationEdge(c);
 
         BorderPainter.paint(borderBounds, box.getBorderSides(), box.getBorder(c), c, 0, true);
     }
@@ -242,7 +242,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             return;
         }
 
-        Rectangle backgroundBounds = box.getPaintingBorderEdge(c);
+        Rectangle backgroundBounds = box.getPaintingDecorationEdge(c);
         BorderPropertySet border = box.getStyle().getBorder(c);
         paintBackground0(c, box.getStyle(), backgroundBounds, backgroundBounds, border);
     }
@@ -260,7 +260,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             return;
         }
 
-        Rectangle borderEdge = box.getPaintingBorderEdge(c);
+        Rectangle borderEdge = box.getPaintingDecorationEdge(c);
         BorderPropertySet border = box.getStyle().getBorder(c);
         Shape borderBox = BorderPainter.generateBorderBounds(borderEdge, border, false);
 

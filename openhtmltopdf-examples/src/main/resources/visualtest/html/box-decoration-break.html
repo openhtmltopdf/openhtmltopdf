@@ -1,0 +1,31 @@
+<html>
+<head>
+<style>
+    @page { size: 220px 150px; margin: 10px; }
+    body { font-family: 'TestFont'; font-size: 14px; line-height: 20px; margin: 0; }
+
+    .box {
+        border: 4px solid #0050c0;
+        border-radius: 8px;
+        padding: 6px;
+        background-color: #e0ecff;
+        margin-bottom: 10px;
+    }
+    .clone { box-decoration-break: clone; }
+    .outer { border-color: #00a000; background-color: #e0ffe0; }
+</style>
+</head>
+<body>
+
+<!--
+Pages 1-2: a box with the initial slice, broken without a border at the page break.
+Pages 3-4: the same box with clone, each fragment wrapped in its own border, radius,
+padding and background. Pages 5-6: a clone box inside a clone box.
+-->
+
+<div class="box">slice one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen</div>
+<div style="page-break-before: always" class="box clone">clone one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen</div>
+<div style="page-break-before: always" class="box clone outer"><div class="box clone">nested one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen</div></div>
+
+</body>
+</html>

@@ -966,6 +966,19 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.PageBreakInside()
             );
     
+    /**
+     * Whether a box broken across pages is painted as one box sliced at the breaks (slice) or
+     * with its border, padding and background repeated on each fragment (clone).
+     */
+    public final static CSSName BOX_DECORATION_BREAK =
+            addProperty(
+                    "box-decoration-break",
+                    PRIMITIVE,
+                    "slice",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BoxDecorationBreak()
+            );
+
     public final static CSSName BREAK_AFTER =
             addProperty(
                     "break-after",

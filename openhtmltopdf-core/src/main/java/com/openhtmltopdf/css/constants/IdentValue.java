@@ -78,6 +78,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue CIRCLE = addValue("circle");
     public final static IdentValue CJK_IDEOGRAPHIC = addValue("cjk-ideographic");
     public final static IdentValue CLOSE_QUOTE = addValue("close-quote");
+    public final static IdentValue CLONE = addValue("clone");
     public final static IdentValue COLLAPSE = addValue("collapse");
     public final static IdentValue COMPACT = addValue("compact");
     public final static IdentValue CONTAIN = addValue("contain");
@@ -214,6 +215,7 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue PROGRESS = addValue("progress");
     public final static IdentValue S_RESIZE = addValue("s-resize");
     public final static IdentValue SE_RESIZE = addValue("se-resize");
+    public final static IdentValue SLICE = addValue("slice");
     public final static IdentValue SMALL = addValue("small");
     public final static IdentValue SMALLER = addValue("smaller");
     public final static IdentValue START = addValue("start");

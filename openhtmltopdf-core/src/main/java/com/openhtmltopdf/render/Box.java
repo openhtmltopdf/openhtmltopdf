@@ -457,6 +457,14 @@ public abstract class Box implements Styleable, DisplayListItem {
         return getBorderEdge(getAbsX(), getAbsY(), cssCtx);
     }
 
+    /**
+     * The border box that this box's background, border and box-shadow are painted on, which is
+     * the painting border edge unless a page break splits a box with cloned decorations.
+     */
+    public Rectangle getPaintingDecorationEdge(RenderingContext c) {
+        return getPaintingBorderEdge(c);
+    }
+
     public Rectangle getPaintingPaddingEdge(CssContext cssCtx) {
         return getPaddingEdge(getAbsX(), getAbsY(), cssCtx);
     }

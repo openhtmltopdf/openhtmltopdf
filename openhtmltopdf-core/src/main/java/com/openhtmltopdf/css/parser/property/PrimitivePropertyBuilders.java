@@ -547,6 +547,17 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    public static class BoxDecorationBreak extends SingleIdent {
+        // slice | clone
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.SLICE, IdentValue.CLONE });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class BorderCollapse extends SingleIdent {
         // collapse | separate | inherit
         private static final BitSet ALLOWED = setFor(

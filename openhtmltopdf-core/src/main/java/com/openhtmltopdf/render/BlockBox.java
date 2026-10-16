@@ -1074,6 +1074,46 @@ public class BlockBox extends Box {
         }
     }
 
+    private boolean isCloneDecorations() {
+        return getStyle().isIdent(CSSName.BOX_DECORATION_BREAK, IdentValue.CLONE);
+    }
+
+    /**
+     * With box-decoration-break: clone, a page break edge of this box moves to the page edge,
+     * inside the border and padding that clone ancestors repeat there, so the fragment on each
+     * page is painted as a whole box.
+     */
+    @Override
+    public Rectangle getPaintingDecorationEdge(RenderingContext c) {
+        Rectangle edge = getPaintingBorderEdge(c);
+        PageBox page = c.getPage();
+        if (!c.isPrint() || page == null || !isCloneDecorations()) {
+            return edge;
+        }
+
+        int top = edge.y;
+        int bottom = edge.y + edge.height;
+        if (top < page.getTop()) {
+            top = page.getTop() + getCloneAncestorInset(c, true);
+        }
+        if (bottom > page.getBottom(c)) {
+            bottom = page.getBottom(c) - getCloneAncestorInset(c, false);
+        }
+        return new Rectangle(edge.x, top, edge.width, bottom - top);
+    }
+
+    private int getCloneAncestorInset(CssContext c, boolean top) {
+        int inset = 0;
+        for (Box ancestor = getParent(); ancestor != null; ancestor = ancestor.getParent()) {
+            if (ancestor instanceof BlockBox && ((BlockBox) ancestor).isCloneDecorations()) {
+                inset += top ?
+                        (int) ancestor.getBorder(c).top() + (int) ancestor.getPadding(c).top() :
+                        (int) ancestor.getBorder(c).bottom() + (int) ancestor.getPadding(c).bottom();
+            }
+        }
+        return inset;
+    }
+
     private void calcExtraPageClearance(LayoutContext c) {
         if (c.isPageBreaksAllowed() &&
                 c.getExtraSpaceTop() > 0 && (getStyle().isSpecifiedAsBlock() || getStyle().isListItem())) {
@@ -1162,7 +1202,19 @@ public class BlockBox extends Box {
         setTy(ty);
         c.translate(getTx(), getTy());
         if (! isReplaced()) {
+            int extraSpaceTop = c.getExtraSpaceTop();
+            int extraSpaceBottom = c.getExtraSpaceBottom();
+            boolean clone = c.isPrint() && isCloneDecorations();
+            if (clone) {
+                // Keep the content clear of the border and padding repeated at each page break.
+                c.setExtraSpaceTop(extraSpaceTop + (int) border.top() + (int) padding.top());
+                c.setExtraSpaceBottom(extraSpaceBottom + (int) border.bottom() + (int) padding.bottom());
+            }
             layoutChildren(c, contentStart);
+            if (clone) {
+                c.setExtraSpaceTop(extraSpaceTop);
+                c.setExtraSpaceBottom(extraSpaceBottom);
+            }
         } else {
             setState(Box.DONE);
         }
