@@ -1,7 +1,7 @@
 <html>
 <head>
 <style>
-    @page { size: 220px 170px; margin: 10px; }
+    @page { size: 220px 270px; margin: 10px; }
     body { font-family: 'TestFont'; font-size: 16px; line-height: 22px; margin: 0; color: #333333; }
 
     ul { margin: 0 0 6px 0; padding-left: 30px; }
@@ -12,14 +12,19 @@
     .square::marker { font-size: 10px; color: #008000; }
     .circle { list-style-type: circle; }
     .circle::marker { font-size: 24px; }
+    ol { margin: 0 0 6px 0; padding-left: 40px; }
+    .num::marker { font-size: 10px; color: #e00000; }
+    .bignum::marker { font-size: 22px; color: #0050c0; }
+    .arrow::marker { content: '>'; color: #008000; font-size: 22px; }
 </style>
 </head>
 <body>
 
 <!--
-::marker font-size and color apply to disc, circle and square markers (CSS Lists 3):
-the glyph scales with the marker's font-size relative to the list item's, and is
-painted in the marker's color. Without a ::marker rule nothing changes.
+::marker font and color apply to every marker (CSS Lists 3): a disc, circle or square
+glyph scales with the marker's font-size relative to the list item's, and numbered and
+content markers are set in the marker's font. All are painted in the marker's color.
+Without a ::marker rule nothing changes.
 -->
 
 <ul>
@@ -30,6 +35,13 @@ painted in the marker's color. Without a ::marker rule nothing changes.
     <li class="square">small green square</li>
     <li class="circle">large circle</li>
 </ul>
+
+<ol>
+    <li>default number</li>
+    <li class="num">small red</li>
+    <li class="bignum">large blue</li>
+    <li class="arrow">green content</li>
+</ol>
 
 </body>
 </html>

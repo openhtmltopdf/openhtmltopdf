@@ -205,11 +205,12 @@ public class ListItemPainter {
             }
         }
 
-        c.getOutputDevice().setColor(box.getStyle().getColor());
+        CalculatedStyle style = text.getStyle() != null ? text.getStyle() : box.getStyle();
+        c.getOutputDevice().setColor(style.getColor());
         if (c.getOutputDevice() instanceof AbstractOutputDevice) {
-            ((AbstractOutputDevice) c.getOutputDevice()).setFontSpecification(box.getStyle().getFontSpecification());
+            ((AbstractOutputDevice) c.getOutputDevice()).setFontSpecification(style.getFontSpecification());
         }
-        c.getOutputDevice().setFont(box.getStyle().getFSFont(c));
+        c.getOutputDevice().setFont(style.getFSFont(c));
         c.getTextRenderer().drawString(
                 c.getOutputDevice(), text.getText(), x, y);
     }

@@ -20,8 +20,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
- * Tests that {@code ::marker} font-size and color apply to the disc, circle and square
- * markers (CSS Lists Level 3), not only to marker {@code content}.
+ * Tests that {@code ::marker} font and color apply to every marker (CSS Lists Level 3): the
+ * disc, circle and square glyphs, numbered markers and marker {@code content}.
  */
 public class MarkerGlyphStyleTest {
 
@@ -39,10 +39,13 @@ public class MarkerGlyphStyleTest {
         "#plain-rule::marker { white-space: pre; }\n" +
         "#square { list-style-type: square; }\n" +
         "#square::marker { font-size: 10px; color: rgb(0, 0, 255); }\n" +
+        "#n-big::marker { font-size: 40px; color: rgb(0, 128, 0); }\n" +
+        "#content::marker { content: '>'; color: rgb(255, 0, 0); font-size: 10px; }\n" +
         "</style></head><body><ul>\n" +
         "<li id='default'>a</li><li id='half'>b</li><li id='double'>c</li>\n" +
         "<li id='red'>d</li><li id='plain-rule'>e</li><li id='square'>f</li>\n" +
-        "</ul></body></html>";
+        "<li id='content'>g</li>\n" +
+        "</ul><ol><li id='n-plain'>h</li><li id='n-big'>i</li></ol></body></html>";
 
     private BlockBox rootBox;
 
@@ -54,6 +57,14 @@ public class MarkerGlyphStyleTest {
             renderer.layout();
             rootBox = renderer.getRootBox();
         }
+    }
+
+    private MarkerData.TextMarker text(String id) {
+        BlockBox box = (BlockBox) findById(rootBox, id);
+        assertNotNull("no box for #" + id, box);
+        MarkerData.TextMarker text = box.getMarkerData().getTextMarker();
+        assertNotNull("no text marker for #" + id, text);
+        return text;
     }
 
     private MarkerData.GlyphMarker glyph(String id) {
@@ -125,5 +136,31 @@ public class MarkerGlyphStyleTest {
         layout();
         assertEquals(glyph("default").getDiameter() / 2, glyph("square").getDiameter(), 1);
         assertColor((FSRGBColor) glyph("square").getColor(), 0, 0, 255);
+    }
+
+    @Test
+    public void testANumberedMarkerWithoutAMarkerRuleKeepsTheListItemStyle() throws IOException {
+        layout();
+        assertNull(text("n-plain").getStyle());
+    }
+
+    @Test
+    public void testMarkerFontAndColorApplyToNumberedMarkers() throws IOException {
+        layout();
+        MarkerData.TextMarker big = text("n-big");
+        assertColor((FSRGBColor) big.getStyle().getColor(), 0, 128, 0);
+        // Measured in the marker's font: 40px against the list item's 20px is twice as wide.
+        assertEquals(text("n-plain").getLayoutWidth() * 2, big.getLayoutWidth(), 2);
+    }
+
+    @Test
+    public void testMarkerFontAndColorApplyToMarkerContent() throws IOException {
+        layout();
+        MarkerData.TextMarker content = text("content");
+        assertEquals(">  ", content.getText());
+        assertColor((FSRGBColor) content.getStyle().getColor(), 255, 0, 0);
+        // 10px against the list item's 20px.
+        float itemSize = findById(rootBox, "content").getStyle().getFont(null).size;
+        assertEquals(itemSize / 2, content.getStyle().getFont(null).size, 0.01f);
     }
 }

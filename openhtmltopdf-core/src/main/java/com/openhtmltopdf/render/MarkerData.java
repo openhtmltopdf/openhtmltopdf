@@ -21,6 +21,7 @@ package com.openhtmltopdf.render;
 
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.FSColor;
+import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.extend.FSImage;
 
 /**
@@ -154,8 +155,18 @@ public class MarkerData {
         private int _layoutWidth;
 
         private IdentValue _alignment;
+        private CalculatedStyle _style;
         
         public TextMarker() {
+        }
+
+        /** The ::marker style, or null to paint with the list item's font and color. */
+        public CalculatedStyle getStyle() {
+            return _style;
+        }
+
+        public void setStyle(CalculatedStyle style) {
+            _style = style;
         }
 
         public String getText() {

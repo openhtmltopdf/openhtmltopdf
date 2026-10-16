@@ -379,7 +379,7 @@ public class BlockBox extends Box {
                     listStyle == IdentValue.DISC || listStyleType!=null) {
                 result.setGlyphMarker(makeGlyphMarker(c, strutMetrics, markerStyle));
             } else {
-                result.setTextMarker(makeTextMarker(c, listStyle));
+                result.setTextMarker(makeTextMarker(c, listStyle, markerStyle));
             }
         }
 
@@ -429,7 +429,7 @@ public class BlockBox extends Box {
         return null;
     }
 
-    private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle) {
+    private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle, CascadedStyle markerStyle) {
         String text;
 
         int listCounter = getListCounter();
@@ -444,12 +444,13 @@ public class BlockBox extends Box {
             text = text.concat(".  ");
         }
 
+        MarkerData.TextMarker result = new MarkerData.TextMarker();
+        CalculatedStyle style = getMarkerTextStyle(markerStyle, result);
+
         int w = c.getTextRenderer().getWidth(
                 c.getFontContext(),
-                getStyle().getFSFont(c),
+                style.getFSFont(c),
                 text);
-
-        MarkerData.TextMarker result = new MarkerData.TextMarker();
 
         result.setAlignment(IdentValue.END);
         result.setLayoutWidth(w);
@@ -510,12 +511,13 @@ public class BlockBox extends Box {
 
         String text = sb.toString();
 
+        MarkerData.TextMarker result = new MarkerData.TextMarker();
+        CalculatedStyle style = getMarkerTextStyle(markerStyle, result);
+
         int w = c.getTextRenderer().getWidth(
                 c.getFontContext(),
-                getStyle().getFSFont(c),
+                style.getFSFont(c),
                 text);
-
-        MarkerData.TextMarker result = new MarkerData.TextMarker();
 
         if (alignment != null) {
             result.setAlignment(alignment);
@@ -524,6 +526,19 @@ public class BlockBox extends Box {
         result.setText(text);
 
         return result;
+    }
+
+    /**
+     * The style a text marker is measured and painted with: a ::marker rule's font and color
+     * apply to it (CSS Lists 3), and without one it keeps the list item's.
+     */
+    private CalculatedStyle getMarkerTextStyle(CascadedStyle markerStyle, MarkerData.TextMarker marker) {
+        if (markerStyle == null) {
+            return getStyle();
+        }
+        CalculatedStyle style = getStyle().deriveStyle(markerStyle);
+        marker.setStyle(style);
+        return style;
     }
 
     public int getListCounter() {
