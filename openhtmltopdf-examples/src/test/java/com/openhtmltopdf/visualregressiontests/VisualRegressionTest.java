@@ -1961,15 +1961,6 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("top-margin-inside-bfc-at-page-top", TestSupport.WITH_FONT));
     }
 
-    /**
-     * box-decoration-break: slice breaks a box with no border at the page break, clone wraps
-     * each fragment in its own border, radius, padding and background, also when nested.
-     */
-    @Test
-    public void testBoxDecorationBreak() throws IOException {
-        assertTrue(vt.runTest("box-decoration-break", TestSupport.WITH_FONT));
-    }
-
     @Test
     public void testFsTablePaginateMiddleSpace() throws IOException {
         assertTrue(vt.runTest("fs-table-paginate-middle-space", TestSupport.WITH_FONT));
@@ -2029,6 +2020,15 @@ public class VisualRegressionTest {
     public void testTargetCounterFloat() throws IOException {
         // Embedded font: see testTargetCounterCustomAttr.
         assertTrue(vt.runTest("target-counter-float", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * box-decoration-break: slice breaks a box with no border at the page break, clone wraps
+     * each fragment in its own border, radius, padding and background, also when nested.
+     */
+    @Test
+    public void testBoxDecorationBreak() throws IOException {
+        assertTrue(vt.runTest("box-decoration-break", TestSupport.WITH_FONT));
     }
 
     /**
