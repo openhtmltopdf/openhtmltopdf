@@ -1,0 +1,47 @@
+<html>
+<head>
+<style>
+    @page { size: 260px 150px; margin: 10px; }
+    body { font-family: 'TestFont'; font-size: 14px; line-height: 20px; margin: 0; }
+
+    /* Every box should be green; red means the layer order was not applied. */
+    @layer reset, theme;
+
+    div { padding: 2px 4px; margin-bottom: 4px; color: white; }
+
+    @layer theme {
+        .later { background-color: #00a000; }
+        .theme-important { background-color: #e00000 !important; }
+    }
+    @layer reset {
+        #b1.box { background-color: #e00000; }
+        #b2.box { background-color: #00a000 !important; }
+        .sub { background-color: #e00000; }
+        @layer inner {
+            #b3.box { background-color: #e00000; }
+        }
+    }
+    @layer reset.inner {
+        #b3.box.sub { background-color: #e00000; }
+    }
+    .unlayered { background-color: #00a000; }
+    @layer reset {
+        .sub { background-color: #00a000; }
+    }
+</style>
+</head>
+<body>
+
+<!--
+The layer statement orders reset before theme. 1: a later layer beats an earlier more
+specific rule. 2: an important declaration in an earlier layer beats one in a later layer.
+3: rules directly in reset beat its sublayer reset.inner. 4: unlayered rules beat layers.
+-->
+
+<div id="b1" class="box later">1 later layer</div>
+<div id="b2" class="box theme-important">2 reversed important</div>
+<div id="b3" class="box sub">3 sublayer</div>
+<div id="b4" class="unlayered">4 unlayered</div>
+
+</body>
+</html>

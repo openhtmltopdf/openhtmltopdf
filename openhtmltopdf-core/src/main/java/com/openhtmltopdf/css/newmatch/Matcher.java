@@ -79,6 +79,9 @@ public class Matcher {
     private final List<PageRule> _pageRules = new ArrayList<>();
     private final List<FontFaceRule> _fontFaceRules = new ArrayList<>();
 
+    /** Cascade layer name to rank: a higher rank wins for normal declarations. Empty without @layer. */
+    private final Map<String, Integer> _layerRanks = new HashMap<>();
+
     public Matcher(
             TreeResolver tr, AttributeResolver ar, StylesheetFactory factory, List<Stylesheet> stylesheets, String medium) {
         _treeRes = tr;
@@ -243,25 +246,31 @@ public class Matcher {
     private void addAllStylesheets(List<Stylesheet> stylesheets, TreeMap<String, Selector> sorter, String medium) {
         int count = 0;
         int pCount = 0;
+        List<Selector> selectors = new ArrayList<>();
+        // Layers in the order they are first declared, keyed by their parent layer ("" at the top).
+        Map<String, List<String>> sublayers = new HashMap<>();
         for (Stylesheet stylesheet : stylesheets) {
             for (Object obj : stylesheet.getContents()) {
                 if (obj instanceof Ruleset) {
+                    declareLayer(sublayers, ((Ruleset) obj).getLayer());
                     for (Selector selector : ((Ruleset) obj).getFSSelectors()) {
                         selector.setPos(++count);
-                        sorter.put(selector.getOrder(), selector);
+                        selectors.add(selector);
                     }
                 } else if (obj instanceof PageRule) {
                     ((PageRule) obj).setPos(++pCount);
                     _pageRules.add((PageRule) obj);
                 } else if (obj instanceof MediaRule) {
                     MediaRule mediaRule = (MediaRule) obj;
+                    // A layer in a media rule that does not apply is not declared.
                     if (mediaRule.matches(medium)) {
                         for (Object o : mediaRule.getContents()) {
                             Ruleset ruleset = (Ruleset) o;
+                            declareLayer(sublayers, ruleset.getLayer());
                             for (Object o1 : ruleset.getFSSelectors()) {
                                 Selector selector = (Selector) o1;
                                 selector.setPos(++count);
-                                sorter.put(selector.getOrder(), selector);
+                                selectors.add(selector);
                             }
                         }
                     }
@@ -269,6 +278,13 @@ public class Matcher {
             }
 
             _fontFaceRules.addAll(stylesheet.getFontFaceRules());
+        }
+
+        rankLayers(sublayers, "");
+        for (Selector selector : selectors) {
+            // Layers come before specificity in the cascade.
+            String layer = String.format("%05d", getLayerRank(selector.getRuleset()));
+            sorter.put(layer + selector.getOrder(), selector);
         }
         
         Collections.sort(_pageRules, new Comparator<PageRule>() {
@@ -283,6 +299,77 @@ public class Matcher {
                 }
             }
         });
+    }
+
+    private static void declareLayer(Map<String, List<String>> sublayers, String layer) {
+        if (layer == null) {
+            return;
+        }
+        int dot = layer.lastIndexOf('.');
+        String parent = dot < 0 ? "" : layer.substring(0, dot);
+        if (dot >= 0) {
+            declareLayer(sublayers, parent);
+        }
+        List<String> siblings = sublayers.computeIfAbsent(parent, k -> new ArrayList<>());
+        if (!siblings.contains(layer)) {
+            siblings.add(layer);
+        }
+    }
+
+    /**
+     * Ranks layers in declaration order, each after its own sublayers: the rules directly in
+     * a layer beat those in its sublayers, as unlayered rules beat all layers.
+     */
+    private void rankLayers(Map<String, List<String>> sublayers, String parent) {
+        List<String> layers = sublayers.get(parent);
+        if (layers == null) {
+            return;
+        }
+        for (String layer : layers) {
+            rankLayers(sublayers, layer);
+            _layerRanks.put(layer, _layerRanks.size());
+        }
+    }
+
+    private int getLayerRank(Ruleset ruleset) {
+        String layer = ruleset.getLayer();
+        return layer == null ? _layerRanks.size() : _layerRanks.get(layer);
+    }
+
+    /**
+     * Adds the declarations of the selectors' rules, which are in cascade order for normal
+     * declarations. Important declarations take the cascade layers in reverse order.
+     */
+    private void addRuleDeclarations(
+            List<Selector> selectors, List<PropertyDeclaration> propList, List<CustomPropertyDeclaration> customPropList) {
+        if (_layerRanks.isEmpty()) {
+            for (Selector sel : selectors) {
+                propList.addAll(sel.getRuleset().getPropertyDeclarations());
+                customPropList.addAll(sel.getRuleset().getCustomPropertyDeclarations());
+            }
+            return;
+        }
+
+        List<Selector> importantOrder = new ArrayList<>(selectors);
+        importantOrder.sort(Comparator.comparingInt((Selector sel) -> getLayerRank(sel.getRuleset())).reversed());
+        addRuleDeclarations(selectors, false, propList, customPropList);
+        addRuleDeclarations(importantOrder, true, propList, customPropList);
+    }
+
+    private static void addRuleDeclarations(List<Selector> selectors, boolean important,
+            List<PropertyDeclaration> propList, List<CustomPropertyDeclaration> customPropList) {
+        for (Selector sel : selectors) {
+            for (PropertyDeclaration decl : sel.getRuleset().getPropertyDeclarations()) {
+                if (decl.isImportant() == important) {
+                    propList.add(decl);
+                }
+            }
+            for (CustomPropertyDeclaration decl : sel.getRuleset().getCustomPropertyDeclarations()) {
+                if (decl.isImportant() == important) {
+                    customPropList.add(decl);
+                }
+            }
+        }
     }
 
     private void link(Object e, Mapper m) {
@@ -765,10 +852,7 @@ public class Matcher {
             }
 
             // These should have been returned in order of specificity
-            for (Selector sel : mappedSelectors) {
-                propList.addAll(sel.getRuleset().getPropertyDeclarations());
-                customPropList.addAll(sel.getRuleset().getCustomPropertyDeclarations());
-            }
+            addRuleDeclarations(mappedSelectors, propList, customPropList);
 
             // Specificity 1,0,0,0
             if (elementStyling != null) {
@@ -801,10 +885,7 @@ public class Matcher {
             List<PropertyDeclaration> propList = new ArrayList<>();
             List<CustomPropertyDeclaration> customPropList = new ArrayList<>();
 
-            for (Selector sel : pe) {
-                propList.addAll(sel.getRuleset().getPropertyDeclarations());
-                customPropList.addAll(sel.getRuleset().getCustomPropertyDeclarations());
-            }
+            addRuleDeclarations(pe, propList, customPropList);
 
             if (propList.isEmpty() && customPropList.isEmpty()) {
                 return CascadedStyle.emptyCascadedStyle;

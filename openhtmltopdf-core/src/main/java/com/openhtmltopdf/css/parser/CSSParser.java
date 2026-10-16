@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 public class CSSParser {
@@ -67,6 +68,10 @@ public class CSSParser {
 
     private Map<String, String> _namespaces = new HashMap<>();
     private boolean _supportCMYKColors;
+
+    /** The full name of the cascade layer being parsed, null outside @layer blocks. */
+    private String _layer;
+    private static final AtomicInteger ANONYMOUS_LAYERS = new AtomicInteger();
 
     public CSSParser(CSSErrorHandler errorHandler) {
         _lexer = new Lexer(new StringReader(""));
@@ -182,10 +187,12 @@ public class CSSParser {
             "An @import rule must be defined at the top of the stylesheet, before any other at-rule (except @charset and @layer) and style declarations, or it will be ignored." */
             while (true) {
                 token = nextWithSave();
-                /* todo: zach: Add awareness of @layer at-rule https://archive.is/Jy0Jp
-                @layer may appear before @import. If it does, the parser will ignore all @import rules. */
+                // @layer statements may come before @import (https://archive.is/Jy0Jp).
                 if (token == Token.TK_IMPORT_SYM) {
                     import_rule(stylesheet);
+                    skip_whitespace_and_cdocdc();
+                } else if (isLayerRule(token)) {
+                    layer(stylesheet, stylesheet);
                     skip_whitespace_and_cdocdc();
                 } else {
                     break;
@@ -196,9 +203,11 @@ public class CSSParser {
             "Any @namespace rules must follow all @charset and @import rules, and precede all other at-rules and style declarations in a style sheet." */
             while (true) {
                 token = nextWithSave();
-                // todo: zach: ignore @layer here too
                 if (token == Token.TK_NAMESPACE_SYM) {
                     namespace();
+                    skip_whitespace_and_cdocdc();
+                } else if (isLayerRule(token)) {
+                    layer(stylesheet, stylesheet);
                     skip_whitespace_and_cdocdc();
                 } else {
                     break;
@@ -233,6 +242,10 @@ public class CSSParser {
                         recover(false, false);
                         break;
                     case Token.AT_RULE:
+                        if (isLayerRule(token)) {
+                            layer(stylesheet, stylesheet);
+                            break;
+                        }
                         next();
                         error(new CSSParseException(
                                 "Invalid at-rule", getCurrentLine()), "at-rule", true);
@@ -419,6 +432,8 @@ public class CSSParser {
                             if (t.getType() == Token.RBRACE) {
                                 next();
                                 break;
+                            } else if (isLayerRule(t)) {
+                                layer(stylesheet, mediaRule);
                             } else {
                                 ruleset(mediaRule);
                             }
@@ -749,6 +764,122 @@ public class CSSParser {
         }
     }
 
+    //  layer
+//    : LAYER_SYM S* layer_name [ COMMA S* layer_name ]* ';' S*
+//    | LAYER_SYM S* [ layer_name ]? LBRACE S* [ ruleset | media | layer ]* '}' S*
+//    ;
+    private void layer(Stylesheet stylesheet, RulesetContainer container) throws IOException {
+        next();
+        try {
+            skip_whitespace();
+            List<String> names = new ArrayList<>();
+            Token t = nextWithSave();
+            if (t == Token.TK_IDENT) {
+                names.add(layer_name());
+                while (true) {
+                    t = nextWithSave();
+                    if (t != Token.TK_COMMA) {
+                        break;
+                    }
+                    next();
+                    skip_whitespace();
+                    names.add(layer_name());
+                }
+            }
+
+            t = next();
+            if (t == Token.TK_SEMICOLON && !names.isEmpty()) {
+                skip_whitespace();
+                for (String name : names) {
+                    declareLayer(container, qualifyLayerName(name));
+                }
+            } else if (t == Token.TK_LBRACE && names.size() <= 1) {
+                skip_whitespace();
+                String outerLayer = _layer;
+                // An anonymous layer gets a name no other rule can refer to.
+                _layer = qualifyLayerName(names.isEmpty() ? "\0" + ANONYMOUS_LAYERS.incrementAndGet() : names.get(0));
+                try {
+                    declareLayer(container, _layer);
+                    while (true) {
+                        t = nextWithSave();
+                        if (t == Token.TK_RBRACE) {
+                            next();
+                            break;
+                        } else if (t == Token.TK_EOF) {
+                            break;
+                        } else if (t == Token.TK_MEDIA_SYM && container == stylesheet) {
+                            media(stylesheet);
+                        } else if (t == Token.TK_PAGE_SYM && container == stylesheet) {
+                            // @page and @font-face rules keep their own cascade, unlayered.
+                            page(stylesheet);
+                        } else if (t == Token.TK_FONT_FACE_SYM && container == stylesheet) {
+                            font_face(stylesheet);
+                        } else if (isLayerRule(t)) {
+                            layer(stylesheet, container);
+                        } else {
+                            ruleset(container);
+                        }
+                    }
+                } finally {
+                    _layer = outerLayer;
+                }
+                skip_whitespace();
+            } else {
+                save(t);
+                throw new CSSParseException(
+                        t, new Token[]{Token.TK_SEMICOLON, Token.TK_LBRACE}, getCurrentLine());
+            }
+        } catch (CSSParseException e) {
+            error(e, "@layer rule", true);
+            recover(false, false);
+        }
+    }
+
+    //  layer_name
+//    : IDENT [ '.' IDENT ]* S*
+//    ;
+    private String layer_name() throws IOException {
+        Token t = next();
+        if (t != Token.TK_IDENT) {
+            save(t);
+            throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
+        }
+        StringBuilder name = new StringBuilder(getTokenValue(t, true));
+        while (true) {
+            t = nextWithSave();
+            if (t != Token.TK_PERIOD) {
+                break;
+            }
+            next();
+            t = next();
+            if (t != Token.TK_IDENT) {
+                save(t);
+                throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
+            }
+            name.append('.').append(getTokenValue(t, true));
+        }
+        skip_whitespace();
+        return name.toString();
+    }
+
+    private boolean isLayerRule(Token t) {
+        return t == Token.TK_AT_RULE && "layer".equals(getTokenValue(t));
+    }
+
+    private String qualifyLayerName(String name) {
+        return _layer == null ? name : _layer + "." + name;
+    }
+
+    /**
+     * Declares a layer at this point of the cascade order with a rule that has no selectors,
+     * so a layer named before any of its rules, as in "@layer base, theme;", keeps its rank.
+     */
+    private static void declareLayer(RulesetContainer container, String layer) {
+        Ruleset statement = new Ruleset(container.getOrigin());
+        statement.setLayer(layer);
+        container.addContent(statement);
+    }
+
     //  ruleset
 //    : selector [ COMMA S* selector ]*
 //      LBRACE S* [ declaration ';' S* ]* '}' S*
@@ -757,6 +888,7 @@ public class CSSParser {
         //System.out.println("ruleset()");
         try {
             Ruleset ruleset = new Ruleset(container.getOrigin());
+            ruleset.setLayer(_layer);
 
             selector(ruleset);
             Token t;
