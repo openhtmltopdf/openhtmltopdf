@@ -174,7 +174,7 @@ public class FlowingColumnContainerBox extends BlockBox {
         // These are all running values that change as we layout our boxes into columns.
         int pageIdx      = findPageIndex(c, startY);
         int colStart     = startY;
-        int colHeight    = pages.get(pageIdx).getBottom() - this.getChild().getAbsY();
+        int colHeight    = pages.get(pageIdx).getBottom(c) - this.getChild().getAbsY();
         int colIdx       = 0;
         int finalHeight  = 0;
 
@@ -260,7 +260,7 @@ public class FlowingColumnContainerBox extends BlockBox {
                     int pasteY = needNewPage ? page.getTop() : current.pasteY;
                     int copyY  = next.getAbsY();
                     
-                    current = new ColumnPosition(newColIdx, copyY, pasteY, page.getBottom() - pasteY, newPageIdx);
+                    current = new ColumnPosition(newColIdx, copyY, pasteY, page.getBottom(c) - pasteY, newPageIdx);
                     if (haveFloats) {
                         columnMap.put(copyY, current);
                     }
