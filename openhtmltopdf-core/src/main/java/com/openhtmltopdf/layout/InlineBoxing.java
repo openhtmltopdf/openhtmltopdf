@@ -160,8 +160,14 @@ public class InlineBoxing {
                     inlineBox.setText(hyphenator.hyphenateText(inlineBox.getText()));
                 }
 
-                if (inlineBox.hasFootnote() && c.isPrint()) {
-                    c.getFootnoteManager().addFootnoteBody(c, inlineBox.getFootnoteBody(), current.line);
+                if (inlineBox.hasFootnote()) {
+                    // Content of a multi-column box is laid out as one long column
+                    // with print mode off. Its lines only get their page once
+                    // FlowingColumnContainerBox moves them into columns, so it adds
+                    // their footnote bodies there.
+                    if (c.isPrint()) {
+                        c.getFootnoteManager().addFootnoteBody(c, inlineBox.getFootnoteBody(), current.line);
+                    }
 
                     // We also need to associate it with a line box in case the line moves
                     // pages.

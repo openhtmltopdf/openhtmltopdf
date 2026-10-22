@@ -1,0 +1,47 @@
+<html>
+<head>
+    <style>
+        @page {
+            size: 400px 120px;
+            margin: 10px;
+            @footnote {
+                float: bottom;
+                border-top: 1px solid black;
+            }
+        }
+
+        body {
+            margin: 0;
+            font-family: 'TestFont';
+            font-size: 14px;
+        }
+
+        .columns {
+            column-count: 2;
+        }
+
+        span.footnote {
+            float: footnote;
+            font-size: 10px;
+        }
+
+        ::footnote-call {
+            counter-increment: footnote;
+            content: counter(footnote);
+            vertical-align: super;
+        }
+
+        ::footnote-marker {
+            content: counter(footnote);
+            vertical-align: super;
+        }
+    </style>
+</head>
+<body>
+<div class="columns">
+    Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea right column call<span class="footnote">First footnote, called from the right column.</span>
+    consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo second page call<span class="footnote">Second footnote, called on the second page.</span>
+    do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris
+</div>
+</body>
+</html>

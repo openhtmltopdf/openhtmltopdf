@@ -249,6 +249,11 @@ public class FootnoteManager {
         for (BlockBox body : footnoteBodies) {
             FootnoteArea area = _containerMap.get(body);
 
+            if (area == null) {
+                // A footnote inside columns that has not been added yet.
+                continue;
+            }
+
             area.footnoteArea.removeChild(body);
             _containerMap.remove(body);
 

@@ -660,6 +660,15 @@ public class TextVisualRegressionTest {
         assertTrue(run("columns-footnote"));
     }
 
+    /**
+     * Tests footnote calls inside columns, including one in the right column
+     * whose footnote area would overlap the full left column.
+     */
+    @Test
+    public void testColumnsFootnoteInside() throws IOException {
+        assertTrue(run("columns-footnote-inside"));
+    }
+
     private static class WatermarkDrawer implements FSObjectDrawer {
         @Override
         public Map<Shape, String> drawObject(Element e, double x, double y, double width, double height,
