@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -183,13 +184,82 @@ public class FlowingColumnContainerBox extends BlockBox {
         }
     }
 
-    private static boolean hasFootnotes(Box box) {
-        return box instanceof LineBox && ((LineBox) box).hasFootnotes();
+    /**
+     * The footnote bodies called from a box, including from lines nested in it
+     * such as those of an inline-block.
+     */
+    private static List<BlockBox> footnoteBodies(Box box) {
+        Set<BlockBox> bodies = new LinkedHashSet<>();
+        collectFootnoteBodies(box, bodies);
+        return new ArrayList<>(bodies);
     }
 
-    private static void addFootnotes(LayoutContext c, LineBox line) {
-        for (BlockBox footnoteBody : line.getReferencedFootnoteBodies()) {
-            c.getFootnoteManager().addFootnoteBody(c, footnoteBody, line);
+    private static void collectFootnoteBodies(Box box, Set<BlockBox> bodies) {
+        if (box instanceof LineBox && ((LineBox) box).hasFootnotes()) {
+            bodies.addAll(((LineBox) box).getReferencedFootnoteBodies());
+        }
+
+        if (box instanceof InlineLayoutBox && ((InlineLayoutBox) box).getInlineChildren() != null) {
+            for (Object inlineChild : ((InlineLayoutBox) box).getInlineChildren()) {
+                if (inlineChild instanceof Box) {
+                    collectFootnoteBodies((Box) inlineChild, bodies);
+                }
+            }
+        }
+
+        for (Box child : box.getChildren()) {
+            collectFootnoteBodies(child, bodies);
+        }
+    }
+
+    /**
+     * Finds the footnote bodies called from each break opportunity. Footnotes called from
+     * floats go with the break opportunity they float beside, as floats are only moved
+     * into columns after the break opportunities.
+     */
+    private Map<Box, List<BlockBox>> findFootnotes(List<ColumnBreakOpportunity> breaks) {
+        Map<Box, List<BlockBox>> footnotes = new HashMap<>();
+        Set<BlockBox> seen = new HashSet<>();
+
+        for (ColumnBreakOpportunity br : breaks) {
+            List<BlockBox> bodies = footnoteBodies(br.box);
+            if (!bodies.isEmpty()) {
+                footnotes.put(br.box, bodies);
+                seen.addAll(bodies);
+            }
+        }
+
+        if (breaks.isEmpty()) {
+            return footnotes;
+        }
+
+        FloatManager floatManager = this.getPersistentBFC().getFloatManager();
+        List<BoxOffset> floats = new ArrayList<>(floatManager.getFloats(FloatManager.FloatDirection.LEFT));
+        floats.addAll(floatManager.getFloats(FloatManager.FloatDirection.RIGHT));
+
+        for (BoxOffset bo : floats) {
+            BlockBox floater = bo.getBox();
+            List<BlockBox> bodies = footnoteBodies(floater);
+            bodies.removeAll(seen);
+
+            if (!bodies.isEmpty()) {
+                Box anchor = breaks.get(0).box;
+                for (ColumnBreakOpportunity br : breaks) {
+                    if (br.box.getAbsY() <= floater.getAbsY()) {
+                        anchor = br.box;
+                    }
+                }
+                footnotes.computeIfAbsent(anchor, k -> new ArrayList<>()).addAll(bodies);
+                seen.addAll(bodies);
+            }
+        }
+
+        return footnotes;
+    }
+
+    private static void addFootnotes(LayoutContext c, List<BlockBox> bodies, PageBox page, int lineHeight) {
+        for (BlockBox footnoteBody : bodies) {
+            c.getFootnoteManager().addFootnoteBody(c, footnoteBody, page, lineHeight);
         }
     }
 
@@ -230,7 +300,11 @@ public class FlowingColumnContainerBox extends BlockBox {
 
         // Footnote calls in the columns are added to the page of their line once the line
         // is in its column. This grows the footnote area, so the page may have to be laid out again.
-        final boolean haveFootnotes = store.breaks.stream().anyMatch(br -> hasFootnotes(br.box));
+        // FIXME: Don't sort if we have in order - common case.
+        Collections.sort(store.breaks, 
+                Comparator.comparingInt(brk -> brk.box.getAbsY() + brk.box.getBorderBoxHeight(c)));
+        final Map<Box, List<BlockBox>> footnotes = findFootnotes(store.breaks);
+        final boolean haveFootnotes = !footnotes.isEmpty();
 
         if (child.getHeight() <= colHeight && !haveFootnotes) {
             // We fit in the first column.
@@ -241,7 +315,8 @@ public class FlowingColumnContainerBox extends BlockBox {
             // Nothing we can do except overflow.
             // The only break is at the start of the first child.
             if (haveFootnotes) {
-                addFootnotes(c, (LineBox) store.breaks.get(0).box);
+                Box only = store.breaks.get(0).box;
+                addFootnotes(c, footnotes.get(only), pages.get(pageIdx), only.getHeight());
             }
             return this.getChild().getHeight();
         }
@@ -256,7 +331,7 @@ public class FlowingColumnContainerBox extends BlockBox {
         // pushes its footnote area into content already placed on the page.
         final Map<Integer, Integer> footnoteReserve = new HashMap<>();
         final List<SavedPosition> pageMoves = new ArrayList<>();
-        final List<LineBox> pageFootnoteLines = new ArrayList<>();
+        final List<Box> pageFootnoteBreaks = new ArrayList<>();
         int pageStartBreak = 0;
         ColumnPosition pageStartColumn = current;
         int pageStartFinalHeight = finalHeight;
@@ -267,10 +342,6 @@ public class FlowingColumnContainerBox extends BlockBox {
         int reserveBreak = -1;
         int reserveBefore = 0;
         int pageEndBefore = -1;
-         
-        // FIXME: Don't sort if we have in order - common case.
-        Collections.sort(store.breaks, 
-                Comparator.comparingInt(brk -> brk.box.getAbsY() + brk.box.getBorderBoxHeight(c)));
         
         for (int i = 0; i < store.breaks.size(); i++) {
             ColumnBreakOpportunity br = store.breaks.get(i);
@@ -314,12 +385,10 @@ public class FlowingColumnContainerBox extends BlockBox {
 
             pageContentBottom = Math.max(pageContentBottom, yProposedFinal + ch.getBorderBoxHeight(c));
 
-            if (hasFootnotes(ch)) {
-                LineBox line = (LineBox) ch;
-                addFootnotes(c, line);
-                pageFootnoteLines.add(line);
-
+            if (haveFootnotes && footnotes.containsKey(ch)) {
                 PageBox page = pages.get(current.pageIdx);
+                addFootnotes(c, footnotes.get(ch), page, ch.getHeight());
+                pageFootnoteBreaks.add(ch);
                 int reserve = footnoteReserve.getOrDefault(current.pageIdx, 0);
 
                 if (pageContentBottom > page.getBottom(c) &&
@@ -390,7 +459,7 @@ public class FlowingColumnContainerBox extends BlockBox {
                             pageStartFinalHeight = finalHeight;
                             pageContentBottom = Integer.MIN_VALUE;
                             pageMoves.clear();
-                            pageFootnoteLines.clear();
+                            pageFootnoteBreaks.clear();
                             reserveBreak = -1;
                             pageEndBefore = -1;
                         }
@@ -402,11 +471,12 @@ public class FlowingColumnContainerBox extends BlockBox {
                 // Take back the footnotes and moves on this page and lay it out again.
                 pageRestarts++;
 
-                for (int k = pageFootnoteLines.size() - 1; k >= 0; k--) {
-                    LineBox placed = pageFootnoteLines.get(k);
-                    c.getFootnoteManager().removeFootnoteBodies(c, placed.getReferencedFootnoteBodies(), placed);
+                PageBox startPage = pages.get(pageStartColumn.pageIdx);
+                for (int k = pageFootnoteBreaks.size() - 1; k >= 0; k--) {
+                    Box placed = pageFootnoteBreaks.get(k);
+                    c.getFootnoteManager().removeFootnoteBodies(c, footnotes.get(placed), startPage, placed.getHeight());
                 }
-                pageFootnoteLines.clear();
+                pageFootnoteBreaks.clear();
 
                 for (int k = pageMoves.size() - 1; k >= 0; k--) {
                     pageMoves.get(k).restore();
