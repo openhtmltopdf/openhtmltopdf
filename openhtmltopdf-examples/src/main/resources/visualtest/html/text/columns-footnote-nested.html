@@ -1,0 +1,48 @@
+<html>
+<head>
+    <style>
+        @page {
+            size: 400px 120px;
+            margin: 10px;
+            @footnote {
+                float: bottom;
+                border-top: 1px solid black;
+            }
+        }
+
+        body {
+            margin: 0;
+            font-family: 'TestFont';
+            font-size: 14px;
+        }
+
+        .columns {
+            column-count: 2;
+        }
+
+        span.footnote {
+            float: footnote;
+            font-size: 10px;
+        }
+
+        ::footnote-call {
+            counter-increment: footnote;
+            content: counter(footnote);
+            vertical-align: super;
+        }
+
+        ::footnote-marker {
+            content: counter(footnote);
+            vertical-align: super;
+        }
+    </style>
+</head>
+<body>
+<div class="columns">
+    <div style="float: left; width: 60px;">float call<span class="footnote">Called from a float.</span></div>
+    Words filling the columns with text. Words filling the columns with text. Words filling the columns with text. 
+    <span style="display: inline-block;">inline-block call<span class="footnote">Called from an inline-block.</span></span>
+    Words filling the columns with text. Words filling the columns with text. Words filling the columns with text. Words filling the columns with text. Words filling the columns with text. Words filling the columns with text. 
+</div>
+</body>
+</html>

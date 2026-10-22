@@ -204,7 +204,15 @@ public class FootnoteManager {
      * and this method again after.
      **/
     public void addFootnoteBody(LayoutContext c, BlockBox footnoteBody, LineBox line) {
-        PageBox page = c.getRootLayer().getFirstPage(c, line);
+        addFootnoteBody(c, footnoteBody, c.getRootLayer().getFirstPage(c, line), line.getHeight());
+    }
+
+    /**
+     * Adds a footnote body to the given page, for a call in a line of the given height.
+     * Used for lines whose position is not final yet, such as those in columns.
+     * See {@link #addFootnoteBody(LayoutContext, BlockBox, LineBox)}.
+     */
+    public void addFootnoteBody(LayoutContext c, BlockBox footnoteBody, PageBox page, int lineHeight) {
         FootnoteArea footnote = _footnoteAreas.get(page);
 
         // We need to know that we are in the footnote area during layout so we
@@ -234,7 +242,7 @@ public class FootnoteManager {
         footnote.footnoteArea.layout(c);
         c.setIsPrintOverride(null);
 
-        positionFootnoteArea(c, footnote, page, line.getHeight(), true);
+        positionFootnoteArea(c, footnote, page, lineHeight, true);
 
         c.setIsInFloatBottom(false);
     }
@@ -245,6 +253,14 @@ public class FootnoteManager {
      */
     public void removeFootnoteBodies(
             LayoutContext c, List<BlockBox> footnoteBodies, LineBox line) {
+        removeFootnoteBodies(c, footnoteBodies, c.getRootLayer().getFirstPage(c, line), line.getHeight());
+    }
+
+    /**
+     * Removes footnotes added with {@link #addFootnoteBody(LayoutContext, BlockBox, PageBox, int)}.
+     */
+    public void removeFootnoteBodies(
+            LayoutContext c, List<BlockBox> footnoteBodies, PageBox page, int lineHeight) {
 
         for (BlockBox body : footnoteBodies) {
             FootnoteArea area = _containerMap.get(body);
@@ -260,15 +276,13 @@ public class FootnoteManager {
             if (area.footnoteArea.getChildCount() > 0) {
                 c.setIsInFloatBottom(true);
 
-                PageBox page = c.getRootLayer().getFirstPage(c, line);
-
                 area.footnoteArea.reset(c);
 
                 c.setIsPrintOverride(false);
                 area.footnoteArea.layout(c);
                 c.setIsPrintOverride(null);
 
-                positionFootnoteArea(c, area, page, line.getHeight(), true);
+                positionFootnoteArea(c, area, page, lineHeight, true);
 
                 c.setIsInFloatBottom(false);
             } else {
