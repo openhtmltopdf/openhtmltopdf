@@ -84,5 +84,15 @@ public interface TextRenderer {
     default float getKerning(FontContext context, FSFont font, String text, int index, byte direction) {
         return 0f;
     }
+
+    /**
+     * Whether the ASCII spaces at the end of a line of text in <code>font</code> hang:
+     * they do not count toward the width the line must fit in, as in CSS, except where
+     * the line ends at a soft-hyphen break. False by default, which keeps the line
+     * breaking this library has always done.
+     */
+    default boolean isTrailingWhitespaceHanging(FSFont font) {
+        return false;
+    }
 }
 

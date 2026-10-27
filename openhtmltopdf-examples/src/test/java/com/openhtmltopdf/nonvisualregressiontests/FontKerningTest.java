@@ -444,6 +444,137 @@ public class FontKerningTest {
     }
 
     /**
+     * Where text is kerned, trailing ASCII spaces at a line end do not count toward
+     * the fit, as in CSS: a line that fits only without the space after its last
+     * word stays on one line. Without kerning the break is as before.
+     */
+    @Test
+    public void testTrailingSpaceAtALineEndHangsWithKerning() throws IOException {
+        String text = "AVAV VAVA AVAV";
+        String firstLine = "AVAV VAVA";
+        float space = unkernedWidthPt(" ");
+        // Wide enough for the kerned first line plus half its trailing space.
+        float boxPt = kernedWidthPt(firstLine) + space / 2;
+        String css = "width: " + boxPt + "pt;";
+
+        assertEquals("kerning on: the first line keeps both words", "AVAVVAVA",
+                text(lines(true, css, text).get(0)));
+
+        assertTrue("the unkerned first line does not fit, so kerning off breaks earlier",
+                unkernedWidthPt(firstLine) > boxPt);
+        assertEquals("kerning off: the break after the first word", "AVAV",
+                text(lines(false, css, text).get(0)));
+    }
+
+    /**
+     * The hang follows <code>font-kerning</code> per element, as kerning does, even for
+     * text without a kerned pair: <code>normal</code> hangs with the builder off,
+     * <code>none</code> does not with it on.
+     */
+    @Test
+    public void testTrailingSpaceHangsWhereFontKerningIsOn() throws IOException {
+        String text = "mill mill mill";
+        String firstLine = "mill mill";
+        assertEquals("no pair in the first line is kerned", 0f, sumOfKerningPt(firstLine + " "), 0f);
+        float boxPt = unkernedWidthPt(firstLine) + unkernedWidthPt(" ") / 2;
+        String css = "width: " + boxPt + "pt;";
+
+        assertEquals("builder on", "millmill", text(lines(true, css, text).get(0)));
+        assertEquals("builder off", "mill", text(lines(false, css, text).get(0)));
+        assertEquals("normal, builder off", "millmill",
+                text(lines(false, css + " font-kerning: normal;", text).get(0)));
+        assertEquals("none, builder on", "mill",
+                text(lines(true, css + " font-kerning: none;", text).get(0)));
+    }
+
+    /**
+     * Only ASCII spaces hang, which is what is trimmed from a line's end: a line
+     * ending in another space character (here U+2003) still counts it, so a
+     * right-aligned line never starts left of its box.
+     */
+    @Test
+    public void testOnlyAsciiSpacesHang() throws IOException {
+        assertLinesStayInTheirBox("A\u2003AA\u2003BB", 40f);
+        assertLinesStayInTheirBox("aa\u2003bb\u2003cc", 55.869f);
+    }
+
+    /**
+     * A line that ends at a soft-hyphen break shows a hyphen, not a space; no
+     * whitespace hangs there, and the line stays in its box.
+     */
+    @Test
+    public void testNoHangAtASoftHyphenBreak() throws IOException {
+        assertLinesStayInTheirBox("A B\u00ADC", 26.26f);
+        assertLinesStayInTheirBox("aa bb\u00ADcc", 40.448f);
+        assertEquals("breaks after the first word, as without the hang", "aa",
+                text(lines(true, "width: 40.448pt;", "aa bb\u00ADcc").get(0)));
+    }
+
+    private static void assertLinesStayInTheirBox(String text, float boxPt) throws IOException {
+        String css = "width: " + boxPt + "pt; text-align: right;";
+        List<List<TextPosition>> lines = lines(true, css, text);
+        for (int i = 0; i < lines.size(); i++) {
+            for (TextPosition glyph : lines.get(i)) {
+                if (glyph.getUnicode().trim().isEmpty()) {
+                    continue;
+                }
+                assertTrue(text + ", line " + i + ": '" + glyph.getUnicode() + "' starts at " + glyph.getXDirAdj(),
+                        glyph.getXDirAdj() >= -0.05f);
+                assertTrue(text + ", line " + i + ": '" + glyph.getUnicode() + "' ends at "
+                        + (glyph.getXDirAdj() + glyph.getWidthDirAdj()) + ", the box at " + boxPt,
+                        glyph.getXDirAdj() + glyph.getWidthDirAdj() <= boxPt + 0.05f);
+            }
+        }
+    }
+
+    /**
+     * A hard break ends a line without a hanging space: the line before it is laid
+     * out as without the hang, and the line after it hangs its own trailing space.
+     */
+    @Test
+    public void testHardBreakIsUnaffectedByTheHang() throws IOException {
+        String firstLine = "AVAV VAVA";
+        float boxPt = kernedWidthPt(firstLine) + unkernedWidthPt(" ") / 2;
+        String css = "width: " + boxPt + "pt;";
+
+        List<List<TextPosition>> lines = lines(true, css, "AVAV<br/>VAVA AVAV");
+
+        assertEquals("lines", 2, lines.size());
+        assertEquals("before the break", "AVAV", text(lines.get(0)));
+        assertEquals("after the break, the hanging space keeps both words", "VAVAAVAV", text(lines.get(1)));
+    }
+
+    /**
+     * A justified line that fits only because its trailing space hangs is
+     * spread to the edge and no further.
+     */
+    @Test
+    public void testJustifiedLineThatFitsByTheHangEndsAtTheEdge() throws IOException {
+        String firstLine = "AVAV VAVA";
+        float boxPt = kernedWidthPt(firstLine) + unkernedWidthPt(" ") / 2;
+        String css = "width: " + boxPt + "pt; text-align: justify;";
+
+        List<List<TextPosition>> lines = lines(true, css, "AVAV VAVA AVAV");
+        List<Float> rightEdges = rightEdges(true, css, "AVAV VAVA AVAV");
+
+        assertEquals("first line", "AVAVVAVA", text(lines.get(0)));
+        assertEquals("the justified first line ends at the edge", boxPt, rightEdges.get(0), 0.1f);
+    }
+
+    /**
+     * The drawn characters of a line, without its spaces.
+     */
+    private static String text(List<TextPosition> line) {
+        StringBuilder text = new StringBuilder();
+        for (TextPosition glyph : line) {
+            if (!glyph.getUnicode().trim().isEmpty()) {
+                text.append(glyph.getUnicode());
+            }
+        }
+        return text.toString();
+    }
+
+    /**
      * Kerning composes with letter spacing: each advance gets both.
      */
     @Test
