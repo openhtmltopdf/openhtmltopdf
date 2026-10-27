@@ -20,6 +20,7 @@
 package com.openhtmltopdf.pdfboxout;
 
 import com.openhtmltopdf.bidi.BidiReorderer;
+import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.bidi.SimpleBidiReorderer;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.FSCMYKColor;
@@ -227,6 +228,14 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     // Whether we already warned that transparency is not allowed in PDF/A-1.
     private boolean _transparencyNotAllowedWarned;
 
+    // Whether to apply pair kerning from the fonts' kern tables to left-to-right runs.
+    private boolean _fontKerning;
+
+    // Set while drawText draws a left-to-right run with kerning on, and whether that
+    // run ends in the hyphen a soft hyphen displays.
+    private boolean _kernText;
+    private boolean _kernDisplayedHyphen;
+
     public PdfBoxFastOutputDevice(float dotsPerPoint, boolean testMode, boolean pdfUaConform, boolean pdfAConform) {
         // Without knowing the PDF/A part, conservatively assume PDF/A-1 which
         // does not allow transparency.
@@ -240,6 +249,36 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         _pdfUaConform = pdfUaConform;
         _pdfAConformance = pdfAConformance;
         _pdfAConform = pdfAConformance != PdfRendererBuilder.PdfAConformance.NONE;
+    }
+
+    /**
+     * Whether to draw left-to-right runs with pair kerning from the fonts' kern
+     * tables. Must match the setting of the {@link PdfBoxTextRenderer} that
+     * measured the text.
+     */
+    public void setFontKerning(boolean fontKerning) {
+        _fontKerning = fontKerning;
+    }
+
+    /**
+     * Kerning scope: pair kerning for LTR runs, except list markers; pairs touching a soft
+     * hyphen are never kerned; one direction-aware width path used by measure and
+     * draw alike; the shrink-to-fit width ignores kerning at word joins, so it can
+     * differ slightly from the drawn text (wider where a join pair is negative,
+     * narrower where it is positive).
+     * Only a left-to-right run drawn here is kerned, with the runs
+     * {@link PdfBoxTextRenderer} measured it with; all other text is drawn unkerned.
+     */
+    @Override
+    public void drawText(RenderingContext c, InlineText inlineText) {
+        _kernText = _fontKerning && inlineText.getTextDirection() == BidiSplitter.LTR;
+        _kernDisplayedHyphen = _kernText && inlineText.isEndsOnSoftHyphen();
+        try {
+            super.drawText(c, inlineText);
+        } finally {
+            _kernText = false;
+            _kernDisplayedHyphen = false;
+        }
     }
 
     @Override
@@ -439,6 +478,11 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     @Override
     public void drawString(String s, float x, float y, JustificationInfo info) {
+        if (_kernText) {
+            drawKernedString(s, x, y, info);
+            return;
+        }
+
         PDFont firstFont = _font.getFontDescriptions().get(0).getFont();
 
         String effectiveString = TextRenderer.getEffectivePrintableString(s);
@@ -474,8 +518,37 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         }
     }
 
+    /**
+     * A left-to-right run, drawn in the runs {@link PdfBoxTextRenderer#kernedRuns}
+     * measured it with. The hyphen a soft hyphen displays is appended to the run
+     * by drawText; it is given its soft hyphen back so that it is not kerned either.
+     */
+    private void drawKernedString(String s, float x, float y, JustificationInfo info) {
+        String raw = _kernDisplayedHyphen && s.endsWith("-") ?
+                s.substring(0, s.length() - 1) + "\u00ad-" : s;
+
+        float xOffset = 0f;
+        for (FontRun run : PdfBoxTextRenderer.kernedRuns(_font, raw, _reorderer)) {
+            drawStringFast(run.string, x + xOffset, y, info, run.description, _font.getSize2D(), run.kerning);
+            xOffset += (run.width() / 1000f) * _font.getSize2D();
+            if (info != null) {
+                xOffset += (run.spaceCharacterCount * info.getSpaceAdjust()) +
+                           (run.otherCharacterCount * info.getNonSpaceAdjust());
+            }
+        }
+    }
+
     @Override
     public void drawStringFast(String s, float x, float y, JustificationInfo info, FontDescription desc, float fontSize) {
+        drawStringFast(s, x, y, info, desc, fontSize, null);
+    }
+
+    /**
+     * As {@link #drawStringFast(String, float, float, JustificationInfo, FontDescription, float)},
+     * with the kerning after each character of <code>s</code>, or null.
+     */
+    private void drawStringFast(String s, float x, float y, JustificationInfo info, FontDescription desc, float fontSize,
+            float[] kerning) {
         if (s.length() == 0)
             return;
 
@@ -525,8 +598,10 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             // to implement letter-spacing CSS property.
             // Justification must be done through TJ rendering
             // because Tw param does not work for UNICODE fonts
-            Object[] array = makeJustificationArray(s, info);
+            Object[] array = makeJustificationArray(s, info, kerning);
             _cp.drawStringWithPositioning(array);
+        } else if (kerning != null) {
+            _cp.drawStringWithPositioning(makeKerningArray(s, kerning));
         } else {
             _cp.drawString(s);
         }
@@ -539,18 +614,30 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         }
     }
 
-    private Object[] makeJustificationArray(String s, JustificationInfo info) {
+    /**
+     * A TJ array placing every character with its justification offset and, when
+     * <code>kerning</code> is not null, its pair kerning.
+     */
+    private Object[] makeJustificationArray(String s, JustificationInfo info, float[] kerning) {
         List<Object> data = new ArrayList<>(s.length() * 2);
+        int[] codePoints = s.codePoints().toArray();
 
-        s.codePoints().forEachOrdered(cp -> {
+        for (int i = 0; i < codePoints.length; i++) {
+            int cp = codePoints[i];
             data.add(String.valueOf(Character.toChars(cp)));
 
             float offset = InlineText.isJustifySpaceCodePoint(cp) ?
                     info.getSpaceAdjust() :
                     info.getNonSpaceAdjust();
 
-            data.add(Float.valueOf((-offset / _dotsPerPoint) * 1000 / (_font.getSize2D() / _dotsPerPoint)));
-        });
+            float adjustment = (-offset / _dotsPerPoint) * 1000 / (_font.getSize2D() / _dotsPerPoint);
+            if (kerning != null) {
+                // A TJ number moves the next glyph left, a kern value moves it right.
+                adjustment -= kerning[i];
+            }
+
+            data.add(Float.valueOf(adjustment));
+        }
 
         if (data.size() > 0) {
             int lastIndex = data.size() - 1;
@@ -558,6 +645,32 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
                 // The array should not end with a spacing value.
                 data.remove(lastIndex);
             }
+        }
+
+        return data.toArray();
+    }
+
+    /**
+     * A TJ array that splits the string only where a pair is kerned.
+     */
+    private static Object[] makeKerningArray(String s, float[] kerning) {
+        List<Object> data = new ArrayList<>();
+        StringBuilder run = new StringBuilder();
+        int[] codePoints = s.codePoints().toArray();
+
+        for (int i = 0; i < codePoints.length; i++) {
+            run.appendCodePoint(codePoints[i]);
+
+            if (kerning[i] != 0f && i + 1 < codePoints.length) {
+                data.add(run.toString());
+                // A TJ number moves the next glyph left, a kern value moves it right.
+                data.add(Float.valueOf(-kerning[i]));
+                run.setLength(0);
+            }
+        }
+
+        if (run.length() > 0) {
+            data.add(run.toString());
         }
 
         return data.toArray();

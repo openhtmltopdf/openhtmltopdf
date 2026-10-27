@@ -514,10 +514,12 @@ public class InlineBoxing {
             int end = Math.min(nextText.length(), glueEnd - offset);
             if (end > 0) {
                 width += Breaker.getTextWidthWithSpacing(
-                        c, style.getFSFont(c), nextText.substring(0, end), TextSpacing.from(style, c));
+                        c, style.getFSFont(c), nextText.substring(0, end), TextSpacing.from(style, c),
+                        next.getTextDirection());
                 if (end == glueEnd - offset && nextText.charAt(end - 1) == Breaker.SOFT_HYPHEN) {
                     // A break at a soft hyphen shows a hyphen.
-                    width += Breaker.getTextWidthWithSpacing(c, style.getFSFont(c), "-", TextSpacing.from(style, c));
+                    width += Breaker.getTextWidthWithSpacing(c, style.getFSFont(c), "-", TextSpacing.from(style, c),
+                            next.getTextDirection());
                 }
             }
             offset += nextText.length();
@@ -1275,6 +1277,7 @@ public class InlineBoxing {
 
         InlineText result = new InlineText();
         String masterText = lbContext.getMaster();
+        lbContext.setTextDirection(textDirection);
 
         if (needFirstLetter) {
             masterText = TextUtil.transformFirstLetterText(masterText, style);

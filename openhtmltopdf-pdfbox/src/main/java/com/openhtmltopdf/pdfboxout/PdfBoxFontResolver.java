@@ -517,6 +517,8 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
         private PdfBoxRawPDFontMetrics _metrics;
         private final FSCacheEx<String, FSCacheValue> _metricsCache;
 
+        private PdfBoxKerning _kerning;
+
         @Override
         public String toString() {
             return String.format(
@@ -720,6 +722,18 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
             }
             
             return _metrics;
+        }
+
+        /**
+         * The pair kerning of this font, read once. Realizes the font if required.
+         */
+        PdfBoxKerning getKerning() {
+            if (_kerning == null) {
+                PDFont font = getFont();
+                _kerning = font != null ? PdfBoxKerning.of(font) : PdfBoxKerning.NONE;
+            }
+
+            return _kerning;
         }
     }
 }

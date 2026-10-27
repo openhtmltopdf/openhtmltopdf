@@ -134,7 +134,7 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         FSFontMetrics fm = iB.getStyle().getFSFontMetrics(null);
         int width = c.getTextRenderer().getWidth(
                 c.getFontContext(),
-                iB.getStyle().getFSFont(c), text);
+                iB.getStyle().getFSFont(c), text, inlineText.getTextDirection());
         int x = iB.getAbsX() + inlineText.getX();
         int y = iB.getAbsY() + iB.getBaseline();
 

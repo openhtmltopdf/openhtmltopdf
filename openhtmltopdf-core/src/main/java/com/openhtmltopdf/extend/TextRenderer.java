@@ -20,6 +20,7 @@
  */
 package com.openhtmltopdf.extend;
 
+import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.layout.Breaker;
 import com.openhtmltopdf.render.FSFont;
 import com.openhtmltopdf.render.FSFontMetrics;
@@ -59,5 +60,29 @@ public interface TextRenderer {
      * Instead, favor {@link Breaker} static method instead.
      */
     int getWidth(FontContext context, FSFont font, String string);
+
+    /**
+     * The width of <code>string</code> in a run of the given direction,
+     * {@link BidiSplitter#LTR} or {@link BidiSplitter#RTL}. The same as
+     * {@link #getWidth(FontContext, FSFont, String)} unless this text renderer
+     * kerns one direction and not the other.
+     */
+    default int getWidth(FontContext context, FSFont font, String string, byte direction) {
+        return getWidth(context, font, string);
+    }
+
+    /**
+     * The pair kerning between the character before <code>index</code> in
+     * <code>text</code> and the character at <code>index</code>, in a run of the
+     * given direction, in the units of {@link #getWidth(FontContext, FSFont, String)}:
+     * what the width of <code>text</code> drawn as one string differs by from the
+     * sum of the widths of its two parts. {@link Breaker} measures a line in parts
+     * but it is drawn as one string, so it adds this at each join.
+     * <p>
+     * Zero unless this text renderer applies kerning.
+     */
+    default float getKerning(FontContext context, FSFont font, String text, int index, byte direction) {
+        return 0f;
+    }
 }
 
