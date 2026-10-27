@@ -2,6 +2,8 @@ package com.openhtmltopdf.layout;
 
 import org.junit.Test;
 
+import com.openhtmltopdf.layout.LineBreakContext.LineBreakResult;
+
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -46,6 +48,26 @@ public class BreakerTest {
         assertThat(context.getWidth(), equalTo(3));
         assertThat(context.getEnd(), equalTo(3));
     }
+
+    /**
+     * The word-breaking attempt leaves needsNewLine set before handing the word to
+     * the character breaker; when the whole word then fits, the flag must be cleared.
+     */
+    @Test
+    public void testCharacterBreakerFinishedClearsStaleNeedsNewLine() {
+        String whole = "abc";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        context.setNeedsNewLine(true);
+
+        LineBreakResult res = Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
+
+        assertThat(res, equalTo(LineBreakResult.CHAR_BREAKING_FINISHED));
+        assertFalse(context.isNeedsNewLine());
+        assertThat(context.getEnd(), equalTo(3));
+    }
+
     @Test
     public void testCharacterBreakerSingleChar() {
         String whole = "A";
