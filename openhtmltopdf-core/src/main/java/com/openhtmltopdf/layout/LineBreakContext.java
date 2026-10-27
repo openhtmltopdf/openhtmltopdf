@@ -19,6 +19,7 @@
  */
 package com.openhtmltopdf.layout;
 
+import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.layout.Breaker.BreakTextResult;
 
 /**
@@ -55,6 +56,7 @@ public class LineBreakContext {
     private boolean _isFirstChar;
     private boolean _atomic;
     private int _followingGlueWidth;
+    private byte _textDirection = BidiSplitter.LTR;
 
     // These keep track of our attempts to move to a newline
     // before outputting the same content.
@@ -316,4 +318,17 @@ public class LineBreakContext {
         }
     }
 
+
+    /**
+     * The direction of the run being broken, {@link BidiSplitter#LTR} or
+     * {@link BidiSplitter#RTL}: text is measured with it, as a text renderer may
+     * kern one direction and not the other.
+     */
+    public byte getTextDirection() {
+        return _textDirection;
+    }
+
+    public void setTextDirection(byte textDirection) {
+        _textDirection = textDirection;
+    }
 }

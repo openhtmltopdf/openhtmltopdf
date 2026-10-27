@@ -214,6 +214,31 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
     }
 
     /**
+     * Whether text with <code>font-kerning: auto</code>, the initial value, is
+     * kerned. <code>font-kerning: normal</code> and <code>none</code> turn kerning
+     * on and off for an element regardless of this setting.
+     * <p>
+     * Kerning moves the glyphs of a kerned pair closer together or further apart,
+     * both when lines are laid out and when text is drawn, so lines may wrap
+     * differently with it. The pairs come from the font's OpenType <code>GPOS</code>
+     * table (pair adjustment lookups of the <code>kern</code> feature) or, without
+     * one, from its TrueType <code>kern</code> table (horizontal subtable, format 0).
+     * Only fonts with TrueType outlines added through this builder are kerned.
+     * <p>
+     * Scope: pair kerning for left-to-right runs, except list markers. Right-to-left
+     * runs are not kerned, and no pair touching a character that is not drawn (a
+     * soft hyphen, the object replacement character) is. The shrink-to-fit width
+     * ignores kerning at word joins, so it can differ slightly from the drawn text
+     * (wider where a join pair is negative, narrower where it is positive).
+     * <p>
+     * False by default, which leaves the output exactly as without this setting.
+     */
+    public PdfRendererBuilder useFontKerning(boolean fontKerning) {
+        this.state._useFontKerning = fontKerning;
+        return this;
+    }
+
+    /**
      * Sets the color profile, written to the PDF as an OutputIntent so
      * viewers know how to interpret the device colors (e.g. display them
      * like a browser displays the equivalent HTML). Needed for PDF/A

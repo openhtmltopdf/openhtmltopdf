@@ -20,6 +20,7 @@
 package com.openhtmltopdf.pdfboxout;
 
 import com.openhtmltopdf.bidi.BidiReorderer;
+import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.extend.FontContext;
 import com.openhtmltopdf.extend.OutputDevice;
 import com.openhtmltopdf.extend.TextRenderer;
@@ -36,7 +37,10 @@ import org.apache.pdfbox.pdmodel.font.PDType0Font;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 
@@ -407,6 +411,172 @@ public class PdfBoxTextRenderer implements TextRenderer {
             return (int) result;
         } else {
             return (int) Math.ceil(result);
+        }
+    }
+
+    /**
+     * A left-to-right run in a kerned font ({@link PdfBoxFSFont#isKerning()}) is
+     * measured with {@link #kernedRuns}, the runs the output device draws it with;
+     * every other width, including this class's directionless
+     * {@link #getWidth(FontContext, FSFont, String)}, is unkerned.
+     */
+    @Override
+    public int getWidth(FontContext context, FSFont font, String string, byte direction) {
+        PdfBoxFSFont pdfBoxFont = (PdfBoxFSFont) font;
+        if (!pdfBoxFont.isKerning() || direction != BidiSplitter.LTR) {
+            return getWidth(context, font, string);
+        }
+
+        if (pdfBoxFont.getFontDescriptions() == null || pdfBoxFont.getFontDescriptions().isEmpty()) {
+            XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_FONT_LIST_IS_EMPTY);
+            return 0;
+        }
+
+        float result = 0f;
+        for (FontRun run : kernedRuns(pdfBoxFont, string, _reorderer)) {
+            result += run.width() / 1000f * pdfBoxFont.getSize2D();
+        }
+
+        if (result - Math.floor(result) < TEXT_MEASURING_DELTA) {
+            return (int) result;
+        } else {
+            return (int) Math.ceil(result);
+        }
+    }
+
+    /**
+     * The kerning {@link #kernedRuns} applies between the characters on either side
+     * of <code>index</code>: none unless the text is a left-to-right run, both
+     * characters are drawn (a soft hyphen, or any other character that is not drawn,
+     * stops kerning) and both are drawn in the same font, the first font that has the
+     * character, as in {@link #divideIntoFontRuns(PdfBoxFSFont, String, BidiReorderer)}.
+     */
+    @Override
+    public float getKerning(FontContext context, FSFont font, String text, int index, byte direction) {
+        PdfBoxFSFont pdfBoxFont = (PdfBoxFSFont) font;
+        if (!pdfBoxFont.isKerning() || direction != BidiSplitter.LTR || index <= 0 || index >= text.length()) {
+            return 0f;
+        }
+
+        int left = text.codePointBefore(index);
+        int right = text.codePointAt(index);
+        if (!OpenUtil.isSafeFontCodePointToPrint(left) || !OpenUtil.isSafeFontCodePointToPrint(right)) {
+            return 0f;
+        }
+
+        FontDescription description = drawingFont(pdfBoxFont, left);
+        if (description == null || description != drawingFont(pdfBoxFont, right)) {
+            return 0f;
+        }
+
+        return description.getKerning().pair(left, right) / 1000f * pdfBoxFont.getSize2D();
+    }
+
+    private static FontDescription drawingFont(PdfBoxFSFont font, int codePoint) {
+        for (FontDescription description : font.getFontDescriptions()) {
+            PDFont pdFont = description.getFont();
+            if (pdFont != null && containsCodePoint(pdFont, codePoint)) {
+                return description;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * How a left-to-right run is drawn with kerning, and so how it is measured: the
+     * one width path for both. Characters that are not drawn (a soft hyphen, also
+     * the one the output device puts before a displayed hyphen) split the text, and no pair across a
+     * split is kerned. Each part is drawn in the first font when that font has every
+     * character of it, and otherwise in font runs, as unkerned text is; adjoining
+     * runs in one font are joined into one. Each run carries the font's pair
+     * kerning after each of its characters.
+     */
+    static List<FontRun> kernedRuns(PdfBoxFSFont font, String raw, BidiReorderer reorderer) {
+        List<FontRun> runs = new ArrayList<>();
+        Map<FontRun, List<Integer>> splits = new IdentityHashMap<>();
+        StringBuilder part = new StringBuilder();
+
+        for (int i = 0; i < raw.length(); ) {
+            int cp = raw.codePointAt(i);
+            i += Character.charCount(cp);
+
+            if (OpenUtil.isSafeFontCodePointToPrint(cp)) {
+                part.appendCodePoint(cp);
+            } else {
+                addPart(font, part.toString(), reorderer, runs, splits);
+                part.setLength(0);
+            }
+        }
+        addPart(font, part.toString(), reorderer, runs, splits);
+
+        for (FontRun run : runs) {
+            float[] kerning = run.description.getKerning().adjustments(run.string);
+            if (kerning != null) {
+                for (int split : splits.getOrDefault(run, Collections.emptyList())) {
+                    kerning[split] = 0f;
+                }
+            }
+            run.kerning = kerning;
+        }
+
+        return runs;
+    }
+
+    /**
+     * Appends the runs of one part. Where the part continues the previous run's font
+     * the two are joined, and the join is recorded as a split of that run: the index
+     * of the last character before it, whose kerning is zero.
+     */
+    private static void addPart(PdfBoxFSFont font, String part, BidiReorderer reorderer,
+            List<FontRun> runs, Map<FontRun, List<Integer>> splits) {
+        if (part.isEmpty()) {
+            return;
+        }
+
+        List<FontRun> partRuns;
+        FontDescription first = font.getFontDescriptions().get(0);
+        if (fitsEntirely(first, part)) {
+            FontRun run = new FontRun(first);
+            run.string = part;
+            part.codePoints().forEach(cp -> {
+                if (isJustificationSpace(cp)) {
+                    run.spaceCharacterCount++;
+                } else {
+                    run.otherCharacterCount++;
+                }
+            });
+            partRuns = new ArrayList<>();
+            partRuns.add(run);
+        } else {
+            partRuns = divideIntoFontRuns(font, part, reorderer);
+        }
+
+        for (int i = 0; i < partRuns.size(); i++) {
+            FontRun next = partRuns.get(i);
+            FontRun last = runs.isEmpty() ? null : runs.get(runs.size() - 1);
+
+            if (i == 0 && last != null && last.description == next.description) {
+                int lastIndex = last.string.codePointCount(0, last.string.length()) - 1;
+                splits.computeIfAbsent(last, run -> new ArrayList<>()).add(lastIndex);
+                last.string = last.string + next.string;
+                last.spaceCharacterCount += next.spaceCharacterCount;
+                last.otherCharacterCount += next.otherCharacterCount;
+            } else {
+                runs.add(next);
+            }
+        }
+    }
+
+    private static boolean fitsEntirely(FontDescription description, String part) {
+        try {
+            PDFont pdFont = description.getFont();
+            if (pdFont == null) {
+                return false;
+            }
+            pdFont.getStringWidth(part);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 

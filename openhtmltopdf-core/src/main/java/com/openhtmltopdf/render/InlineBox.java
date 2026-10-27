@@ -195,7 +195,8 @@ public class InlineBox implements Styleable {
         return c.getTextRenderer().getWidth(
                 c.getFontContext(),
                 c.getFont(getStyle().getFont(c)),
-                s);
+                s,
+                getTextDirection());
     }
 
     private int getMaxCharWidth(LayoutContext c, String s) {
@@ -251,7 +252,8 @@ public class InlineBox implements Styleable {
         return c.getTextRenderer().getWidth(
                 c.getFontContext(),
                 getStyle().getFSFont(c),
-                WhitespaceStripper.SPACE);
+                WhitespaceStripper.SPACE,
+                getTextDirection());
 
     }
 

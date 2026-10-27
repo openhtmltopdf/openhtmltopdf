@@ -464,6 +464,7 @@ public class CalculatedStyle {
 
             _font.fontStyle = getIdent(CSSName.FONT_STYLE);
             _font.variant = getIdent(CSSName.FONT_VARIANT);
+            _font.kerning = getIdent(CSSName.FONT_KERNING);
         }
         return _font;
     }

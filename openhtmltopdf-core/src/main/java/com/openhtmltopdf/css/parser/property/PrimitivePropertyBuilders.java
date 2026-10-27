@@ -52,6 +52,10 @@ public class PrimitivePropertyBuilders {
     public static final BitSet CHECKBOX_STYLES = setFor(
     		new IdentValue[] { IdentValue.SQUARE, IdentValue.CIRCLE, IdentValue.DIAMOND, IdentValue.CHECK, IdentValue.CROSS, IdentValue.STAR });
     
+    // auto | normal | none
+    public static final BitSet FONT_KERNINGS = setFor(
+            new IdentValue[] { IdentValue.AUTO, IdentValue.NORMAL, IdentValue.NONE });
+
     // normal | italic | oblique | inherit
     public static final BitSet FONT_STYLES = setFor(
             new IdentValue[] { IdentValue.NORMAL, IdentValue.ITALIC, IdentValue.OBLIQUE });
@@ -826,6 +830,13 @@ public class PrimitivePropertyBuilders {
         @Override
         protected BitSet getAllowed() {
             return FONT_STYLES;
+        }
+    }
+
+    public static class FontKerning extends SingleIdent {
+        @Override
+        protected BitSet getAllowed() {
+            return FONT_KERNINGS;
         }
     }
 

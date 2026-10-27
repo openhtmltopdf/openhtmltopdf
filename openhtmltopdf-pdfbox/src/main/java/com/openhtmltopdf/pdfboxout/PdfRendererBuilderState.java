@@ -28,6 +28,7 @@ public class PdfRendererBuilderState extends BaseRendererBuilder.BaseRendererBui
         public final Map<CacheStore, FSCacheEx<String, FSCacheValue>> _caches = new EnumMap<>(CacheStore.class);
 	public PdfAConformance _pdfAConformance = PdfAConformance.NONE;
 	public boolean _pdfUaConform = false;
+	public boolean _useFontKerning = false;
 	public byte[] _colorProfile;
 	public PageSupplier _pageSupplier;
 	public NamespaceHandler _namespaceHandler;

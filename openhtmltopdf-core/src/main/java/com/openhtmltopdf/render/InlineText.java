@@ -128,7 +128,8 @@ public class InlineText {
             setWidth(Breaker.getTextWidthWithSpacing(c,
                     getParent().getStyle().getFSFont(c),
                     getSubstring(),
-                    getTextSpacing()));
+                    getTextSpacing(),
+                    getTextDirection()));
             setTrimmedTrailingSpace(true);
         } 
     }
@@ -235,7 +236,8 @@ public class InlineText {
         setWidth(Breaker.getTextWidthWithSpacing(c,
                 getParent().getStyle().getFSFont(c),
                 value,
-                getTextSpacing()));
+                getTextSpacing(),
+                getTextDirection()));
     }
     
     @Override
