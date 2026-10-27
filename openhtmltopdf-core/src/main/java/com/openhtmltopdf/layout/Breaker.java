@@ -36,6 +36,27 @@ import com.openhtmltopdf.render.FSFont;
  */
 public class Breaker {
 
+    /**
+     * The kerning at the join of two parts of one line, which are measured
+     * separately but drawn as one string. See
+     * {@link com.openhtmltopdf.extend.TextRenderer#getKerning}.
+     */
+    @FunctionalInterface
+    interface PairKerning {
+        PairKerning NONE = (text, index) -> 0;
+
+        /**
+         * The kerning between the character before <code>index</code> in
+         * <code>text</code> and the one at <code>index</code>, in text renderer units.
+         */
+        int at(String text, int index);
+    }
+
+    private static PairKerning pairKerning(LayoutContext c, FSFont font, byte direction) {
+        return (text, index) ->
+            Math.round(c.getTextRenderer().getKerning(c.getFontContext(), font, text, index, direction));
+    }
+
     public static void breakFirstLetter(LayoutContext c, LineBreakContext context,
             int avail, CalculatedStyle style) {
         FSFont font = style.getFSFont(c);
@@ -43,7 +64,7 @@ public class Breaker {
 
         context.setEnd(getFirstLetterEnd(context.getMaster(), context.getStart()));
         context.setWidth(getTextWidthWithSpacing(
-                c, font, context.getCalculatedSubstring(), spacing));
+                c, font, context.getCalculatedSubstring(), spacing, context.getTextDirection()));
 
         if (context.getWidth() > avail) {
             context.setNeedsNewLine(true);
@@ -128,7 +149,7 @@ public class Breaker {
 
         // ====== handle nowrap
         if (whitespace == IdentValue.NOWRAP) {
-            int width = Breaker.getTextWidthWithSpacing(c, font, context.getMaster(), spacing);
+            int width = Breaker.getTextWidthWithSpacing(c, font, context.getMaster(), spacing, context.getTextDirection());
             if (width <= avail || forceOutput) {
                 c.setLineBreakedBecauseOfNoWrap(false);
                 context.setEnd(context.getLast());
@@ -158,12 +179,12 @@ public class Breaker {
             int n = context.getStartSubstring().indexOf(WhitespaceStripper.EOL);
             if (n > -1) {
                 context.setEnd(context.getStart() + n + 1);
-                context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing));
+                context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing, context.getTextDirection()));
                 context.setNeedsNewLine(true);
                 context.setEndsOnNL(true);
             } else if (whitespace == IdentValue.PRE) {
                 context.setEnd(context.getLast());
-                context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing));
+                context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing, context.getTextDirection()));
                 context.setNeedsNewLine(false);
             }
         }
@@ -185,6 +206,7 @@ public class Breaker {
         } else {
             int originalStart = context.getStart();
             int totalWidth = 0;
+            PairKerning kerning = pairKerning(c, font, context.getTextDirection());
 
             // The idea is we only break a word if it will not fit on a line by itself.
 
@@ -194,7 +216,19 @@ public class Breaker {
             LOOP:
             while (true) {
                 int savedEnd = context.getEnd();
-                result = doBreakText(c, context, avail, style, tryToBreakAnywhere);
+                int partStart = context.getStart();
+
+                // A part after the first one on this line is drawn in one string with
+                // the parts before it, so the pair across the join is kerned.
+                // Measured on this line only, so it never reaches into the previous one.
+                int join = partStart > originalStart ?
+                        kerning.at(context.getMaster().substring(originalStart), partStart - originalStart) : 0;
+
+                result = doBreakText(c, context, avail - join, style, tryToBreakAnywhere);
+
+                if (join != 0 && context.getEnd() > partStart) {
+                    context.setWidth(context.getWidth() + join);
+                }
 
                 switch (result) {
                 case WORD_BREAKING_FINISHED: /* Fallthru */
@@ -317,13 +351,14 @@ public class Breaker {
             TextSpacing spacing = TextSpacing.from(style, c);
 
             ToIntFunction<String> measurer = (str) ->
-                   c.getTextRenderer().getWidth(c.getFontContext(), font, str);
+                   c.getTextRenderer().getWidth(c.getFontContext(), font, str, context.getTextDirection());
 
             String currentString = context.getStartSubstring();
             FSTextBreaker lineIterator = STANDARD_LINE_BREAKER.getBreaker(currentString, c.getSharedContext());
             FSTextBreaker charIterator = STANDARD_CHARACTER_BREAKER.getBreaker(currentString, c.getSharedContext());
 
-            return doBreakCharacters(currentString, lineIterator, charIterator, context, avail, spacing, measurer);
+            return doBreakCharacters(currentString, lineIterator, charIterator, context, avail, spacing, measurer,
+                    pairKerning(c, font, context.getTextDirection()));
         }
     }
 
@@ -339,6 +374,19 @@ public class Breaker {
             int avail,
             TextSpacing spacing,
             ToIntFunction<String> measurer) {
+        return doBreakCharacters(currentString, lineIterator, charIterator, context, avail, spacing, measurer,
+                PairKerning.NONE);
+    }
+
+    static LineBreakResult doBreakCharacters(
+            String currentString,
+            FSTextBreaker lineIterator,
+            FSTextBreaker charIterator,
+            LineBreakContext context,
+            int avail,
+            TextSpacing spacing,
+            ToIntFunction<String> measurer,
+            PairKerning kerning) {
 
         // The next word break opportunity. We don't want to go past this
         // because we want to resume (if possible) normal word breaking after this
@@ -380,13 +428,14 @@ public class Breaker {
             float extraSpacing = spacing.extra(currentString, left, nextCharBreak);
             
             int splitWidth = (int) (measurer.applyAsInt(subString) + extraSpacing);
+            int join = left > 0 ? kerning.at(currentString, left) : 0;
             
             lastGoodWrap = left;
             left = nextCharBreak;
             
             lastGoodGraphicsLength = graphicsLength;
             
-            graphicsLength += splitWidth;
+            graphicsLength += join + splitWidth;
             nextCharBreak = charIterator.next();
         }
         
@@ -422,8 +471,9 @@ public class Breaker {
             
             float extraSpacing = spacing.extra(currentString, left, nextCharBreak);
             int splitWidth = (int) (measurer.applyAsInt(currentString.substring(left, nextCharBreak)) + extraSpacing);
+            int join = left > 0 && left < nextCharBreak ? kerning.at(currentString, left) : 0;
 
-            graphicsLength += splitWidth;
+            graphicsLength += join + splitWidth;
         }
 
         if (graphicsLength <= avail &&
@@ -515,12 +565,13 @@ public class Breaker {
         TextSpacing spacing = TextSpacing.from(style, c);
 
         ToIntFunction<String> measurer = (str) ->
-               c.getTextRenderer().getWidth(c.getFontContext(), font, str);
+               c.getTextRenderer().getWidth(c.getFontContext(), font, str, context.getTextDirection());
 
         String currentString = context.getStartSubstring();
         FSTextBreaker lineIterator = lineBreaker.getBreaker(currentString, c.getSharedContext());
 
-        return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer);
+        return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer,
+                pairKerning(c, font, context.getTextDirection()));
     }
 
     static LineBreakResult doBreakTextWords(
@@ -530,6 +581,17 @@ public class Breaker {
             FSTextBreaker iterator,
             TextSpacing spacing,
             ToIntFunction<String> measurer) {
+        return doBreakTextWords(currentString, context, avail, iterator, spacing, measurer, PairKerning.NONE);
+    }
+
+    static LineBreakResult doBreakTextWords(
+            String currentString,
+            LineBreakContext context,
+            int avail,
+            FSTextBreaker iterator,
+            TextSpacing spacing,
+            ToIntFunction<String> measurer,
+            PairKerning kerning) {
 
         int lastWrap = 0;
         
@@ -550,9 +612,12 @@ public class Breaker {
             float extraSpacing = spacing.extra(currentString, current.left, current.right);
             
             int normalSplitWidth = (int) (measurer.applyAsInt(subString) + extraSpacing);
+            // The pair across the break opportunity is kerned when the line is drawn,
+            // but belongs to neither piece; a piece that starts the next line has none.
+            int join = current.left > 0 ? kerning.at(currentString, current.left) : 0;
 
             if (current.right == currentString.length()) {
-                normalSplitWidth += followingGlueIfOverflowing(context, current.graphicsLength + normalSplitWidth, avail);
+                normalSplitWidth += followingGlueIfOverflowing(context, current.graphicsLength + join + normalSplitWidth, avail);
             }
 
             if (currentString.charAt(current.right - 1) == SOFT_HYPHEN) {
@@ -560,7 +625,7 @@ public class Breaker {
                 int withTrailingHyphenSplitWidth = (int)
                      (measurer.applyAsInt(subString + '-') + 
                         extraSpacing + spacing.getLetterSpacing());
-                current.withHyphenGraphicsLength = current.graphicsLength + withTrailingHyphenSplitWidth;
+                current.withHyphenGraphicsLength = current.graphicsLength + join + withTrailingHyphenSplitWidth;
                 
                 if (current.withHyphenGraphicsLength >= avail &&
                     current.right != currentString.length()) {
@@ -572,10 +637,10 @@ public class Breaker {
                 }
             } else {
                 current.isSoftHyphenBreak = false;
-                current.withHyphenGraphicsLength += normalSplitWidth;
+                current.withHyphenGraphicsLength += join + normalSplitWidth;
             }
             
-            current.graphicsLength += normalSplitWidth;
+            current.graphicsLength += join + normalSplitWidth;
             nextUnfittableSplitWidth = normalSplitWidth;
             lastWrap = current.left;
             current.left = current.right;
@@ -590,10 +655,12 @@ public class Breaker {
             float extraSpacing = spacing.extra(currentString, current.left, current.right);
             int splitWidth = (int) (measurer.applyAsInt(
                     currentString.substring(current.left)) + extraSpacing);
+            int join = current.left > 0 && current.left < currentString.length() ?
+                    kerning.at(currentString, current.left) : 0;
             if (current.left < currentString.length()) {
-                splitWidth += followingGlueIfOverflowing(context, current.graphicsLength + splitWidth, avail);
+                splitWidth += followingGlueIfOverflowing(context, current.graphicsLength + join + splitWidth, avail);
             }
-            current.graphicsLength += splitWidth;
+            current.graphicsLength += join + splitWidth;
             nextUnfittableSplitWidth = splitWidth;
         }
 
@@ -693,6 +760,15 @@ public class Breaker {
 	 */
     public static int getTextWidthWithSpacing(CssContext c, FSFont font, String text, TextSpacing spacing) {
         return (int) (c.getTextRenderer().getWidth(c.getFontContext(), font, text) + spacing.extra(text));
+    }
+
+    /**
+     * As {@link #getTextWidthWithSpacing(CssContext, FSFont, String, TextSpacing)}, for text in a
+     * run of the given direction ({@link com.openhtmltopdf.bidi.BidiSplitter#LTR} or
+     * {@link com.openhtmltopdf.bidi.BidiSplitter#RTL}).
+     */
+    public static int getTextWidthWithSpacing(CssContext c, FSFont font, String text, TextSpacing spacing, byte direction) {
+        return (int) (c.getTextRenderer().getWidth(c.getFontContext(), font, text, direction) + spacing.extra(text));
     }
 
 	/**

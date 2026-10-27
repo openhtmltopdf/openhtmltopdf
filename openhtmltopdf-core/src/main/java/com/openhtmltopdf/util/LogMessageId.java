@@ -174,6 +174,7 @@ public interface LogMessageId {
         EXCEPTION_CANT_READ_IMAGE_FILE_FOR_URI(XRLog.EXCEPTION, "Can't read image file; unexpected problem for URI '{}'"),
         EXCEPTION_CANT_READ_IMAGE_FILE_FOR_URI_NOT_FOUND(XRLog.EXCEPTION, "Can't read image file; image at URI '{}' not found"),
         EXCEPTION_COULD_NOT_LOAD_FONT(XRLog.EXCEPTION, "Couldn't load font ({}). Please check that it is a valid truetype font."),
+        EXCEPTION_COULD_NOT_READ_FONT_KERNING(XRLog.EXCEPTION, "Couldn't read the kerning of font ({}). The font is used without kerning."),
         EXCEPTION_COULD_NOT_CACHE_VALUE_FOR_KEY(XRLog.EXCEPTION, "Could not load cache value for key({})"),
         EXCEPTION_UNHANDLED(XRLog.EXCEPTION, "Unhandled exception. {}"),
         EXCEPTION_MALFORMED_URL(XRLog.EXCEPTION, "Bad URL given: {}"),

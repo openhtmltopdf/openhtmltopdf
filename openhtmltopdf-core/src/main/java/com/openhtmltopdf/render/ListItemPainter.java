@@ -22,6 +22,7 @@ package com.openhtmltopdf.render;
 
 import java.awt.RenderingHints;
 
+import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.style.CalculatedStyle;
@@ -138,6 +139,9 @@ public class ListItemPainter {
             text.setMasterText(displayText);
             text.setSubstring(0, displayText.length());
             text.setTextSpacing(TextSpacing.from(box.getStyle(), c));
+            // A marker is not part of a bidi run: it is drawn as written, and a text
+            // renderer that kerns runs of a known direction does not kern it.
+            text.setTextDirection(BidiSplitter.NEUTRAL);
             text.setWidth(Breaker.getTextWidthWithSpacing(c, 
                     box.getStyle().getFSFont(c),
                     displayText, // text

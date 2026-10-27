@@ -10,6 +10,42 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static com.openhtmltopdf.layout.BreakerTestSupport.*;
 
 public class BreakerTest {
+    /**
+     * Characters are measured one by one, but the pair kerning between them is
+     * drawn, so it counts towards what fits: four characters of width one with a
+     * kerning of -1 between "b" and "c" take three.
+     */
+    @Test
+    public void testCharacterBreakerCountsKerningBetweenCharacters() {
+        String whole = "abcd";
+        int avail = 3;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        Breaker.PairKerning kerning = (text, index) -> text.charAt(index - 1) == 'b' && text.charAt(index) == 'c' ? -1 : 0;
+
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER, kerning);
+
+        assertFalse(context.isNeedsNewLine());
+        assertThat(context.getWidth(), equalTo(3));
+        assertThat(context.getEnd(), equalTo(4));
+    }
+
+    /**
+     * Without kerning the same four characters need a new line after three.
+     */
+    @Test
+    public void testCharacterBreakerWithoutKerning() {
+        String whole = "abcd";
+        int avail = 3;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        Breaker.doBreakCharacters(whole, createLine(whole), createChar(whole), context, avail, spacing, MEASURER);
+
+        assertTrue(context.isNeedsNewLine());
+        assertThat(context.getWidth(), equalTo(3));
+        assertThat(context.getEnd(), equalTo(3));
+    }
     @Test
     public void testCharacterBreakerSingleChar() {
         String whole = "A";

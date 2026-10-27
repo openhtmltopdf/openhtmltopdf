@@ -10,6 +10,7 @@ public class FontSpecification {
     public String[] families;
     public IdentValue fontStyle;
     public IdentValue variant;
+    public IdentValue kerning;
 
     @Override
     public String toString() {
@@ -20,6 +21,7 @@ public class FontSpecification {
                 .append(" weight: ").append(fontWeight)
                 .append(" style: ").append(fontStyle)
                 .append(" variant: ").append(variant)
+                .append(" kerning: ").append(kerning)
                 .toString();
     }
 }

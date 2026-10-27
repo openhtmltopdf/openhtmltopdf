@@ -11,6 +11,44 @@ import com.openhtmltopdf.layout.LineBreakContext.LineBreakResult;
 import static com.openhtmltopdf.layout.BreakerTestSupport.ContextIs.*;
 
 public class WordBreakerTest {
+    /**
+     * Words are measured one by one, but the line is drawn as one string, so the
+     * kerning at each join (here -1 before "b") is part of the line's width and
+     * of what fits.
+     */
+    @Test
+    public void testKerningAtTheJoinOfTwoWordsCounts() {
+        String whole = "aa bb";
+        int avail = 4;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        Breaker.PairKerning kerning = (text, index) -> text.charAt(index) == 'b' && text.charAt(index - 1) == ' ' ? -1 : 0;
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER, kerning);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
+        assertThat(context.getWidth(), equalTo(4));
+        assertThat(context.getEnd(), equalTo(5));
+    }
+
+    /**
+     * The word that moves to the next line takes no join with it: it starts that line.
+     */
+    @Test
+    public void testKerningAtABreakIsNotCarriedToTheNextLine() {
+        String whole = "aa bb";
+        int avail = 3;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+        Breaker.PairKerning kerning = (text, index) -> text.charAt(index) == 'b' && text.charAt(index - 1) == ' ' ? -1 : 0;
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER, kerning);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
+        assertThat(context.getWidth(), equalTo(3));
+        assertThat(context.getEnd(), equalTo(3));
+        assertThat(context.getNextWidth(), equalTo(2));
+    }
     @Test
     public void testSingleCharFits() {
         String whole = "A";

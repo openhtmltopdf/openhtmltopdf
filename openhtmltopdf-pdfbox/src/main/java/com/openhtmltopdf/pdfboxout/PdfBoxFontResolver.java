@@ -70,6 +70,9 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
     private final AbstractFontStore _builtinFonts;
     private final FallbackFontStore _finalFallbackFonts;
 
+    // Whether font-kerning: auto kerns, see PdfRendererBuilder.useFontKerning.
+    private boolean _defaultFontKerning;
+
     public PdfBoxFontResolver(SharedContext sharedContext, PDDocument doc, FSCacheEx<String, FSCacheValue> pdfMetricsCache, PdfAConformance pdfAConformance, boolean pdfUaConform) {
         this._doc = doc;
 
@@ -88,7 +91,20 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
 
     @Override
     public FSFont resolveFont(SharedContext renderingContext, FontSpecification spec) {
-        return resolveFont(renderingContext, spec.families, spec.size, spec.fontWeight, spec.fontStyle, spec.variant);
+        PdfBoxFSFont font = (PdfBoxFSFont) resolveFont(renderingContext, spec.families, spec.size, spec.fontWeight, spec.fontStyle, spec.variant);
+
+        boolean kerning = spec.kerning == IdentValue.NORMAL ||
+                (spec.kerning != IdentValue.NONE && _defaultFontKerning);
+
+        return kerning ? new PdfBoxFSFont(font.getFontDescriptions(), font.getSize2D(), true) : font;
+    }
+
+    /**
+     * Whether text with <code>font-kerning: auto</code>, the initial value, is
+     * kerned. See {@link PdfRendererBuilder#useFontKerning(boolean)}.
+     */
+    public void setDefaultFontKerning(boolean kerning) {
+        _defaultFontKerning = kerning;
     }
 
     /**
@@ -517,6 +533,8 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
         private PdfBoxRawPDFontMetrics _metrics;
         private final FSCacheEx<String, FSCacheValue> _metricsCache;
 
+        private PdfBoxKerning _kerning;
+
         @Override
         public String toString() {
             return String.format(
@@ -720,6 +738,18 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
             }
             
             return _metrics;
+        }
+
+        /**
+         * The pair kerning of this font, read once. Realizes the font if required.
+         */
+        PdfBoxKerning getKerning() {
+            if (_kerning == null) {
+                PDFont font = getFont();
+                _kerning = font != null ? PdfBoxKerning.of(font) : PdfBoxKerning.NONE;
+            }
+
+            return _kerning;
         }
     }
 }
