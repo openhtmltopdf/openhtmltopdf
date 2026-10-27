@@ -435,6 +435,10 @@ public class Breaker {
             context.setUnbreakable(false);
             
             if (nextCharBreak >= currentString.length()) {
+                // The word-breaking attempt that handed us this word may have left
+                // needsNewLine set; the whole word has been consumed, so nothing is
+                // pending (see LineBreakContext.checkConsistency, FINISHED).
+                context.setNeedsNewLine(false);
                 return LineBreakResult.CHAR_BREAKING_FINISHED;
             } else if (nextCharBreak >= nextWordBreak) {
                 return LineBreakResult.CHAR_BREAKING_FOUND_WORD_BREAK;
