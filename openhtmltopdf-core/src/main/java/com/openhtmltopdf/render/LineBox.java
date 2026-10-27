@@ -514,6 +514,10 @@ public class LineBox extends Box implements InlinePaintable {
     }
     
     public InlineText findTrailingText() {
+        return findTrailingText(false);
+    }
+
+    private InlineText findTrailingText(boolean skipLineFeeds) {
         if (getChildCount() == 0) {
             return null;
         }
@@ -521,8 +525,8 @@ public class LineBox extends Box implements InlinePaintable {
         for (int offset = getChildCount() - 1; offset >= 0; offset--) {
             Box child = getChild(offset);
             if (child instanceof InlineLayoutBox) {
-                InlineText result = ((InlineLayoutBox)child).findTrailingText();
-                if (result != null && result.isEmpty()) {
+                InlineText result = ((InlineLayoutBox)child).findTrailingText(skipLineFeeds);
+                if (result != null && (result.isEmpty() || (skipLineFeeds && result.isLineFeedOnly()))) {
                     continue;
                 }
                 return result;
@@ -538,11 +542,26 @@ public class LineBox extends Box implements InlinePaintable {
         InlineText text = findTrailingText();
         
         if (text != null) {
-            InlineLayoutBox iB = text.getParent();
-            IdentValue whitespace = iB.getStyle().getWhitespace();
-            if (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) {
-                text.trimTrailingSpace(c);
+            trimTrailingSpace(c, text);
+
+            if (text.isLineFeedOnly()) {
+                // A line that ends at a hard break ends with the break's line feed, so the
+                // space before it is not found above. Where trailing spaces hang, that
+                // space did not count toward the fit, so it is trimmed here too.
+                InlineText before = findTrailingText(true);
+                if (before != null && c.getTextRenderer().isTrailingWhitespaceHanging(
+                        before.getParent().getStyle().getFSFont(c))) {
+                    trimTrailingSpace(c, before);
+                }
             }
+        }
+    }
+
+    private static void trimTrailingSpace(LayoutContext c, InlineText text) {
+        InlineLayoutBox iB = text.getParent();
+        IdentValue whitespace = iB.getStyle().getWhitespace();
+        if (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) {
+            text.trimTrailingSpace(c);
         }
     }    
     

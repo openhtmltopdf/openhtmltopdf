@@ -744,6 +744,14 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
 
     public InlineText findTrailingText() {
+        return findTrailingText(false);
+    }
+
+    /**
+     * As {@link #findTrailingText()}, passing over a text that is only a line feed
+     * when <code>skipLineFeeds</code> is set.
+     */
+    public InlineText findTrailingText(boolean skipLineFeeds) {
         if (getInlineChildCount() == 0) {
             return null;
         }
@@ -754,13 +762,13 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
             Object child = getInlineChild(offset);
             if (child instanceof InlineText) {
                 result = (InlineText)child;
-                if (result.isEmpty()) {
+                if (result.isEmpty() || (skipLineFeeds && result.isLineFeedOnly())) {
                     continue;
                 }
                 return result;
             } else if (child instanceof InlineLayoutBox) {
-                result = ((InlineLayoutBox)child).findTrailingText();
-                if (result != null && result.isEmpty()) {
+                result = ((InlineLayoutBox)child).findTrailingText(skipLineFeeds);
+                if (result != null && (result.isEmpty() || (skipLineFeeds && result.isLineFeedOnly()))) {
                     continue;
                 }
                 return result;

@@ -527,7 +527,8 @@ public class FontKerningTest {
 
     /**
      * A space that ends a text run hangs where only it overflows, and a hard break
-     * right after it ends that same line: the space before the break adds no line.
+     * right after it ends that same line: the space before the break adds no line,
+     * and it is trimmed with the line's end, so a right-aligned line stays in its box.
      */
     @Test
     public void testASpaceBeforeAHardBreakAddsNoLine() throws IOException {
@@ -539,6 +540,7 @@ public class FontKerningTest {
 
         assertEquals("lines without the space", 2, without.size());
         assertEquals("the same lines, at the same baselines, with the space", without, with);
+        assertLinesStayInTheirBox("mill mill <br/>mill", boxPt);
     }
 
     private static List<Float> baselines(List<List<TextPosition>> lines) {

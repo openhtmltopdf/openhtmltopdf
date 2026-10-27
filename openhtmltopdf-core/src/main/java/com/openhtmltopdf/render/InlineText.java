@@ -137,6 +137,13 @@ public class InlineText {
     public boolean isEmpty() {
         return _start == _end && ! _containedLF;
     }
+
+    /**
+     * Whether this text is a line feed and nothing else, as a hard break (<code>&lt;br&gt;</code>) lays out.
+     */
+    public boolean isLineFeedOnly() {
+        return _start == _end && _containedLF;
+    }
     
     public String getSubstring() {
         if (getMasterText() != null) {
