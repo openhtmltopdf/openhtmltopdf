@@ -118,7 +118,7 @@ public class BlockBoxing {
 
                     if (tryToAvoidPageBreak || needPageClear || keepWithInline) {
                         c.restoreStateForRelayout(savedChildLayoutState);
-                        child.reset(c);
+                        child.resetForRelayout(c);
 
                         c.setBlockBoxingState(BlockBoxingState.DENY);
                         // Our second attempt with page clear beforehand.
@@ -130,7 +130,7 @@ public class BlockBoxing {
 
                         if (tryToAvoidPageBreak && pageBreakAfterRetry && ! keepWithInline) {
                             c.restoreStateForRelayout(savedChildLayoutState);
-                            child.reset(c);
+                            child.resetForRelayout(c);
 
                             c.setBlockBoxingState(BlockBoxingState.ALLOW);
                             // Our second attempt failed, so reset with no page break beforehand.
@@ -338,14 +338,14 @@ public class BlockBoxing {
 
                 if (tryToAvoidPageBreak || needPageClear || keepWithInline) {
                     c.restoreStateForRelayout(restoredChildLayoutState);
-                    child.reset(c);
+                    child.resetForRelayout(c);
 
                     layoutBlockChild(
                             c, block, child, true, childOffset, pageCount, restoredChildLayoutState);
 
                     if (tryToAvoidPageBreak && child.crossesPageBreak(c) && ! keepWithInline) {
                         c.restoreStateForRelayout(restoredChildLayoutState);
-                        child.reset(c);
+                        child.resetForRelayout(c);
 
                         layoutBlockChild(
                                 c, block, child, false, childOffset, pageCount, restoredChildLayoutState);
@@ -420,7 +420,7 @@ public class BlockBoxing {
         if (bContext != null) {
             c.setBreakAtLineContext(bContext);
             c.restoreStateForRelayout(layoutState);
-            child.reset(c);
+            child.resetForRelayout(c);
             layoutBlockChild0(c, parent, child, needPageClear, childOffset, trimmedPageCount);
             c.setBreakAtLineContext(null);
         }

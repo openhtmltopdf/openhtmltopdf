@@ -1,0 +1,35 @@
+<html>
+<head>
+<style>
+    @page { size: 300px 200px; margin: 0; }
+    body { font-family: 'TestFont'; font-size: 12px; line-height: 16px; margin: 0; }
+    .case { page-break-before: always; }
+    .case:first-child { page-break-before: auto; }
+    p { margin: 0; }
+    ul { margin: 0 0 20px 0; }
+</style>
+</head>
+<body>
+<!--
+A: The first line of the list does not fit, so the whole list moves to the next
+   page. Its bottom margin collapses with the wrapper's and the next paragraph's:
+   "After" starts 20px below "Item 2", not 40px (issue 257).
+-->
+<div class="case"><div style="height: 170px"></div>
+<div>
+  <p>Intro A</p>
+  <ul><li>Item 1</li><li>Item 2</li></ul>
+</div>
+<p>After A</p></div>
+
+<!--
+B: The same with page-break-inside: avoid, where the list would otherwise split.
+-->
+<div class="case"><div style="height: 160px"></div>
+<div>
+  <p>Intro B</p>
+  <ul style="page-break-inside: avoid;"><li>Item 1</li><li>Item 2</li></ul>
+</div>
+<p>After B</p></div>
+</body>
+</html>
