@@ -1941,6 +1941,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a last child moved to the next page as a whole, or laid out again to
+     * avoid a break inside it, keeps its bottom margin collapsed with its parent's
+     * instead of adding it a second time.
+     */
+    @Test
+    public void testIssue257RelayoutCollapsedMargin() throws IOException {
+        assertTrue(vt.runTest("issue-257-relayout-collapsed-margin", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that content ending exactly at the bottom of a page stays on that page,
      * for a plain paragraph, a page-break-inside: avoid block, and a heading kept
      * with the first line of a list. Two further cases record where pagination

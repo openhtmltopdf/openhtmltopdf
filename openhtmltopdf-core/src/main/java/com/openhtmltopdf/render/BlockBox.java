@@ -127,6 +127,8 @@ public class BlockBox extends Box {
 
     private boolean _topMarginCalculated;
     private boolean _bottomMarginCalculated;
+    private boolean _topMarginCollapsedIntoAncestor;
+    private boolean _bottomMarginCollapsedIntoAncestor;
     private MarginCollapseResult _pendingCollapseCalculation;
 
     private int _minWidth;
@@ -709,6 +711,8 @@ public class BlockBox extends Box {
         super.reset(c);
         setTopMarginCalculated(false);
         setBottomMarginCalculated(false);
+        _topMarginCollapsedIntoAncestor = false;
+        _bottomMarginCollapsedIntoAncestor = false;
         setDimensionsCalculated(false);
         setMinMaxCalculated(false);
         setChildrenHeight(0);
@@ -730,6 +734,25 @@ public class BlockBox extends Box {
 
         if (getStyle().isRunning()) {
             c.getRootLayer().removeRunningBlock(this);
+        }
+    }
+
+    /**
+     * Resets this box so its parent can lay it out again on its own. A margin an
+     * ancestor already collapsed into its own stays collapsed, as the ancestor does not
+     * calculate its margins again; otherwise it would be counted twice.
+     */
+    public void resetForRelayout(LayoutContext c) {
+        boolean topCollapsed = _topMarginCollapsedIntoAncestor;
+        boolean bottomCollapsed = _bottomMarginCollapsedIntoAncestor;
+
+        reset(c);
+
+        if (topCollapsed) {
+            collapseTopMargin(c, false, new MarginCollapseResult());
+        }
+        if (bottomCollapsed) {
+            collapseBottomMargin(c, false, new MarginCollapseResult());
         }
     }
 
@@ -1695,8 +1718,11 @@ public class BlockBox extends Box {
                 RectPropertySet margin = getMargin(c);
                 result.update((int) margin.top());
 
-                if (! calculationRoot && (int) margin.top() != 0) {
-                    setMarginTop(c, 0);
+                if (! calculationRoot) {
+                    _topMarginCollapsedIntoAncestor = true;
+                    if ((int) margin.top() != 0) {
+                        setMarginTop(c, 0);
+                    }
                 }
 
                 if (isMayCollapseMarginsWithChildren() && isNoTopPaddingOrBorder(c)) {
@@ -1732,8 +1758,11 @@ public class BlockBox extends Box {
                 RectPropertySet margin = getMargin(c);
                 result.update((int) margin.bottom());
 
-                if (! calculationRoot && (int) margin.bottom() != 0) {
-                    setMarginBottom(c, 0);
+                if (! calculationRoot) {
+                    _bottomMarginCollapsedIntoAncestor = true;
+                    if ((int) margin.bottom() != 0) {
+                        setMarginBottom(c, 0);
+                    }
                 }
 
                 if (isMayCollapseMarginsWithChildren() &&
