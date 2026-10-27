@@ -228,14 +228,6 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     // Whether we already warned that transparency is not allowed in PDF/A-1.
     private boolean _transparencyNotAllowedWarned;
 
-    // Whether to apply pair kerning from the fonts' kern tables to left-to-right runs.
-    private boolean _fontKerning;
-
-    // Set while drawText draws a left-to-right run with kerning on, and whether that
-    // run ends in the hyphen a soft hyphen displays.
-    private boolean _kernText;
-    private boolean _kernDisplayedHyphen;
-
     public PdfBoxFastOutputDevice(float dotsPerPoint, boolean testMode, boolean pdfUaConform, boolean pdfAConform) {
         // Without knowing the PDF/A part, conservatively assume PDF/A-1 which
         // does not allow transparency.
@@ -252,32 +244,21 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     }
 
     /**
-     * Whether to draw left-to-right runs with pair kerning from the fonts' kern
-     * tables. Must match the setting of the {@link PdfBoxTextRenderer} that
-     * measured the text.
-     */
-    public void setFontKerning(boolean fontKerning) {
-        _fontKerning = fontKerning;
-    }
-
-    /**
-     * Kerning scope: pair kerning for LTR runs, except list markers; pairs touching a soft
-     * hyphen are never kerned; one direction-aware width path used by measure and
-     * draw alike; the shrink-to-fit width ignores kerning at word joins, so it can
-     * differ slightly from the drawn text (wider where a join pair is negative,
-     * narrower where it is positive).
-     * Only a left-to-right run drawn here is kerned, with the runs
-     * {@link PdfBoxTextRenderer} measured it with; all other text is drawn unkerned.
+     * A left-to-right run in a kerned font is drawn with the runs
+     * {@link PdfBoxTextRenderer} measured it with; all other text as before.
+     * The hyphen a soft hyphen displays was measured without kerning, also where
+     * <code>word-wrap: break-word</code> broke the line after the soft hyphen, so
+     * it is drawn behind a soft hyphen, which stops kerning.
      */
     @Override
-    public void drawText(RenderingContext c, InlineText inlineText) {
-        _kernText = _fontKerning && inlineText.getTextDirection() == BidiSplitter.LTR;
-        _kernDisplayedHyphen = _kernText && inlineText.isEndsOnSoftHyphen();
-        try {
-            super.drawText(c, inlineText);
-        } finally {
-            _kernText = false;
-            _kernDisplayedHyphen = false;
+    protected void drawInlineTextString(RenderingContext c, InlineText inlineText, String text,
+            float x, float y, JustificationInfo info) {
+        if (_font.isKerning() && inlineText.getTextDirection() == BidiSplitter.LTR) {
+            String runs = inlineText.isEndsOnSoftHyphen() ?
+                    text.substring(0, text.length() - 1) + "\u00ad-" : text;
+            drawKernedString(runs, x, y, info);
+        } else {
+            super.drawInlineTextString(c, inlineText, text, x, y, info);
         }
     }
 
@@ -478,11 +459,6 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     @Override
     public void drawString(String s, float x, float y, JustificationInfo info) {
-        if (_kernText) {
-            drawKernedString(s, x, y, info);
-            return;
-        }
-
         PDFont firstFont = _font.getFontDescriptions().get(0).getFont();
 
         String effectiveString = TextRenderer.getEffectivePrintableString(s);
@@ -520,15 +496,11 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     /**
      * A left-to-right run, drawn in the runs {@link PdfBoxTextRenderer#kernedRuns}
-     * measured it with. The hyphen a soft hyphen displays is appended to the run
-     * by drawText; it is given its soft hyphen back so that it is not kerned either.
+     * measured it with.
      */
     private void drawKernedString(String s, float x, float y, JustificationInfo info) {
-        String raw = _kernDisplayedHyphen && s.endsWith("-") ?
-                s.substring(0, s.length() - 1) + "\u00ad-" : s;
-
         float xOffset = 0f;
-        for (FontRun run : PdfBoxTextRenderer.kernedRuns(_font, raw, _reorderer)) {
+        for (FontRun run : PdfBoxTextRenderer.kernedRuns(_font, s, _reorderer)) {
             drawStringFast(run.string, x + xOffset, y, info, run.description, _font.getSize2D(), run.kerning);
             xOffset += (run.width() / 1000f) * _font.getSize2D();
             if (info != null) {

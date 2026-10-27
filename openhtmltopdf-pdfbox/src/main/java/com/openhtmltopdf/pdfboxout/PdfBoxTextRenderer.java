@@ -52,9 +52,6 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
     private BidiReorderer _reorderer;
 
-    // Whether left-to-right text is measured with pair kerning, see kernedRuns.
-    private final boolean _fontKerning;
-
     // These will mean only first missing font/metrics
     // is logged but they should have already got a loading warning.
     // Quiet the font is missing log message.
@@ -62,19 +59,6 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
     // Quiet the font metrics not available message.
     private boolean _loggedMissingMetrics = false;
-
-    public PdfBoxTextRenderer() {
-        this(false);
-    }
-
-    /**
-     * @param fontKerning whether left-to-right text is measured with pair kerning
-     * from the fonts' kern tables; must match the output device that draws it, see
-     * {@link PdfBoxFastOutputDevice#setFontKerning(boolean)}.
-     */
-    public PdfBoxTextRenderer(boolean fontKerning) {
-        this._fontKerning = fontKerning;
-    }
 
     public void setup(FontContext context, BidiReorderer reorderer) {
         this._reorderer = reorderer;
@@ -431,22 +415,18 @@ public class PdfBoxTextRenderer implements TextRenderer {
     }
 
     /**
-     * Kerning scope: pair kerning for LTR runs, except list markers; pairs touching a soft
-     * hyphen are never kerned; one direction-aware width path used by measure and
-     * draw alike; the shrink-to-fit width ignores kerning at word joins, so it can
-     * differ slightly from the drawn text (wider where a join pair is negative,
-     * narrower where it is positive).
-     * A left-to-right run is measured with {@link #kernedRuns}, the runs the
-     * output device draws it with; every other width, including this class's
-     * directionless {@link #getWidth(FontContext, FSFont, String)}, is unkerned.
+     * A left-to-right run in a kerned font ({@link PdfBoxFSFont#isKerning()}) is
+     * measured with {@link #kernedRuns}, the runs the output device draws it with;
+     * every other width, including this class's directionless
+     * {@link #getWidth(FontContext, FSFont, String)}, is unkerned.
      */
     @Override
     public int getWidth(FontContext context, FSFont font, String string, byte direction) {
-        if (!_fontKerning || direction != BidiSplitter.LTR) {
+        PdfBoxFSFont pdfBoxFont = (PdfBoxFSFont) font;
+        if (!pdfBoxFont.isKerning() || direction != BidiSplitter.LTR) {
             return getWidth(context, font, string);
         }
 
-        PdfBoxFSFont pdfBoxFont = (PdfBoxFSFont) font;
         if (pdfBoxFont.getFontDescriptions() == null || pdfBoxFont.getFontDescriptions().isEmpty()) {
             XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_FONT_LIST_IS_EMPTY);
             return 0;
@@ -473,7 +453,8 @@ public class PdfBoxTextRenderer implements TextRenderer {
      */
     @Override
     public float getKerning(FontContext context, FSFont font, String text, int index, byte direction) {
-        if (!_fontKerning || direction != BidiSplitter.LTR || index <= 0 || index >= text.length()) {
+        PdfBoxFSFont pdfBoxFont = (PdfBoxFSFont) font;
+        if (!pdfBoxFont.isKerning() || direction != BidiSplitter.LTR || index <= 0 || index >= text.length()) {
             return 0f;
         }
 
@@ -483,7 +464,6 @@ public class PdfBoxTextRenderer implements TextRenderer {
             return 0f;
         }
 
-        PdfBoxFSFont pdfBoxFont = (PdfBoxFSFont) font;
         FontDescription description = drawingFont(pdfBoxFont, left);
         if (description == null || description != drawingFont(pdfBoxFont, right)) {
             return 0f;
@@ -504,12 +484,12 @@ public class PdfBoxTextRenderer implements TextRenderer {
 
     /**
      * How a left-to-right run is drawn with kerning, and so how it is measured: the
-     * one width path for both. Characters that are not drawn (a soft hyphen, and the
-     * soft hyphen the output device puts before a displayed hyphen) split the text,
-     * and no pair across a split is kerned. Each part is drawn in the first font
-     * when that font has every character of it, and otherwise in font runs, as
-     * unkerned text is; adjoining runs in one font are joined into one. Each run
-     * carries the kern table's adjustment after each of its characters.
+     * one width path for both. Characters that are not drawn (a soft hyphen, also
+     * the one the output device puts before a displayed hyphen) split the text, and no pair across a
+     * split is kerned. Each part is drawn in the first font when that font has every
+     * character of it, and otherwise in font runs, as unkerned text is; adjoining
+     * runs in one font are joined into one. Each run carries the font's pair
+     * kerning after each of its characters.
      */
     static List<FontRun> kernedRuns(PdfBoxFSFont font, String raw, BidiReorderer reorderer) {
         List<FontRun> runs = new ArrayList<>();

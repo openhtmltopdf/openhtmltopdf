@@ -651,6 +651,18 @@ public final class CSSName implements Comparable<CSSName> {
             );
 
     /**
+     * Unique CSSName instance for CSS3 property.
+     */
+    public final static CSSName FONT_KERNING =
+            addProperty(
+                    "font-kerning",
+                    PRIMITIVE,
+                    "auto",
+                    INHERITS,
+                    new PrimitivePropertyBuilders.FontKerning()
+            );
+
+    /**
      * Unique CSSName instance for CSS2 property.
      */
     public final static CSSName FONT_WEIGHT =

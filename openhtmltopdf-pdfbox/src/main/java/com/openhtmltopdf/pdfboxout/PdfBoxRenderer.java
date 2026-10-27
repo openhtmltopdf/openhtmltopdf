@@ -177,12 +177,10 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
 
             _dotsPerPoint = DEFAULT_DOTS_PER_POINT;
             _testMode = state._testMode;
-            PdfBoxFastOutputDevice outputDevice =
+            _outputDevice =
                     new PdfBoxFastOutputDevice(DEFAULT_DOTS_PER_POINT, _testMode,
                             state._pdfUaConform || state._pdfAConformance.getConformanceValue().equals("A"),
                             state._pdfAConformance);
-            outputDevice.setFontKerning(state._useFontKerning);
-            _outputDevice = outputDevice;
             _outputDevice.setWriter(_pdfDoc);
             _outputDevice.setStartPageNo(_pdfDoc.getNumberOfPages());
 
@@ -215,12 +213,13 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             _outputDevice.setSharedContext(_sharedContext);
 
             fontResolver = new PdfBoxFontResolver(_sharedContext, _pdfDoc, state._caches.get(CacheStore.PDF_FONT_METRICS), state._pdfAConformance, state._pdfUaConform);
+            fontResolver.setDefaultFontKerning(state._useFontKerning);
             _sharedContext.setFontResolver(fontResolver);
 
             PdfBoxReplacedElementFactory replacedElementFactory = new PdfBoxReplacedElementFactory(_outputDevice, state._svgImpl, state._objectDrawerFactory, state._mathmlImpl);
             _sharedContext.setReplacedElementFactory(replacedElementFactory);
 
-            _sharedContext.setTextRenderer(new PdfBoxTextRenderer(state._useFontKerning));
+            _sharedContext.setTextRenderer(new PdfBoxTextRenderer());
             _sharedContext.setDPI(DEFAULT_PDF_POINTS_PER_INCH * _dotsPerPoint);
             _sharedContext.setDotsPerPixel(DEFAULT_DOTS_PER_PIXEL);
             _sharedContext.setPrint(true);

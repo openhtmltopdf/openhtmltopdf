@@ -78,22 +78,27 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             setFont(iB.getStyle().getFSFont(c));
             JustificationInfo info = createSpacingInfo(inlineText);
 
-            if (info != null) {
-                c.getTextRenderer().drawString(
-                        c.getOutputDevice(),
-                        text,
-                        iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline(),
-                        info);
-            } else {
-                c.getTextRenderer().drawString(
-                        c.getOutputDevice(),
-                        text,
-                        iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline());
-            }
+            drawInlineTextString(c, inlineText, text,
+                    iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline(), info);
         }
 
         if (c.debugDrawFontMetrics()) {
             drawFontMetrics(c, inlineText);
+        }
+    }
+
+    /**
+     * Draws the text of <code>inlineText</code>, in visual order and with the
+     * hyphen a soft hyphen displays, in the current font.
+     *
+     * @param info the per-character adjustment, or null
+     */
+    protected void drawInlineTextString(RenderingContext c, InlineText inlineText, String text,
+            float x, float y, JustificationInfo info) {
+        if (info != null) {
+            c.getTextRenderer().drawString(c.getOutputDevice(), text, x, y, info);
+        } else {
+            c.getTextRenderer().drawString(c.getOutputDevice(), text, x, y);
         }
     }
 

@@ -34,8 +34,9 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.testlistener.PrintingRunner;
 
 /**
- * Tests pair kerning from a font's <code>kern</code> table, switched on with
- * {@link PdfRendererBuilder#useFontKerning(boolean)}.
+ * Tests pair kerning from a font's <code>kern</code> table or <code>GPOS</code>
+ * table, switched on with {@link PdfRendererBuilder#useFontKerning(boolean)} or
+ * the <code>font-kerning</code> property.
  *
  * <p>The expected values are read from the test font's kern table here, with
  * fontbox, rather than written down, and every test renders the same text with
@@ -46,6 +47,8 @@ public class FontKerningTest {
     private static final String TEST_FONT = "org/apache/pdfbox/resources/ttf/LiberationSans-Regular.ttf";
     private static final String CJK_FONT = "visualtest/html/fonts/NotoSansJP-Regular.ttf";
     private static final String FUZZ_FONT = "demos/fonts/fuzz.ttf";
+    // Kerning only in GPOS, no kern table.
+    private static final String GPOS_FONT = "visualtest/html/fonts/SourceSansPro-Regular.ttf";
 
     private static final float PT_PER_PX = 0.75f;
     private static final float FONT_SIZE_PX = 20;
@@ -513,6 +516,65 @@ public class FontKerningTest {
         assertArrayEquals(pageContent(render(false, "", text)), pageContent(render(true, "", text)));
     }
 
+    /**
+     * <code>font-kerning: normal</code> kerns and <code>none</code> does not,
+     * whatever the builder says; <code>auto</code>, the initial value, follows it.
+     */
+    @Test
+    public void testFontKerningPropertyOverridesTheBuilder() throws IOException {
+        String text = "AVATAR Today";
+
+        float[] plain = advances(false, "", text);
+        float[] kerned = advances(true, "", text);
+
+        assertArrayEquals("normal, builder default", kerned, advancesOf(render(null, "font-kerning: normal;", text)), TOLERANCE);
+        assertArrayEquals("normal, builder off", kerned, advancesOf(render(false, "font-kerning: normal;", text)), TOLERANCE);
+        assertArrayEquals("none, builder on", plain, advancesOf(render(true, "font-kerning: none;", text)), TOLERANCE);
+        assertArrayEquals("auto, builder on", kerned, advancesOf(render(true, "font-kerning: auto;", text)), TOLERANCE);
+        assertArrayEquals("auto, builder default", plain, advancesOf(render(null, "font-kerning: auto;", text)), TOLERANCE);
+    }
+
+    /**
+     * <code>font-kerning</code> is inherited, and the width used for line breaking
+     * follows it, so a line only fits where it is kerned.
+     */
+    @Test
+    public void testFontKerningPropertyIsInheritedAndMeasured() throws IOException {
+        String text = "AVAVAV AVAVAV";
+
+        float plainPt = lineWidths(false, "", text).get(0);
+        float kernedPt = lineWidths(true, "", text).get(0);
+        String width = "width: " + ((plainPt + kernedPt) / 2 / PT_PER_PX) + "px";
+
+        String styles = "p { margin: 0; " + width + " } .on { font-kerning: normal; } .off { font-kerning: none; }";
+
+        assertEquals("kerned by an ancestor", 1, linesOf(renderDocument(null, styles,
+                "<div class=\"on\"><p>" + text + "</p></div>", false)).size());
+        assertEquals("unkerned by an ancestor", 2, linesOf(renderDocument(true, styles,
+                "<div class=\"off\"><p>" + text + "</p></div>", false)).size());
+    }
+
+    /**
+     * A font whose kerning is only in its GPOS table is kerned. The expected
+     * values are the font's own, as HarfBuzz applies them (units per em: 1000).
+     */
+    @Test
+    public void testGposKerning() throws IOException {
+        String css = "font-family: 'GposFont';";
+        String text = "AVATAR Today";
+        int[] units = { -14, -14, -55, -40, 0, 0, 0, -66, 0, 0, 0 };
+
+        float[] plain = advances(false, css, text);
+        float[] kerned = advances(true, css, text);
+
+        assertEquals("advance count", units.length, kerned.length);
+
+        for (int i = 0; i < units.length; i++) {
+            assertEquals("advance after '" + text.charAt(i) + "' (" + i + ")",
+                    units[i] * FONT_SIZE_PX * PT_PER_PX / 1000, kerned[i] - plain[i], TOLERANCE);
+        }
+    }
+
     private static float kerningPt(char left, char right) {
         int units = kernPairs.getKerning(cmap.getGlyphId(left), cmap.getGlyphId(right));
         try {
@@ -551,7 +613,11 @@ public class FontKerningTest {
      * single line.
      */
     private static float[] advances(boolean kerning, String css, String text) throws IOException {
-        List<List<TextPosition>> lines = lines(kerning, css, text);
+        return advancesOf(render(kerning, css, text));
+    }
+
+    private static float[] advancesOf(byte[] pdf) throws IOException {
+        List<List<TextPosition>> lines = linesOf(pdf);
 
         assertEquals("laid out on one line", 1, lines.size());
 
@@ -662,6 +728,7 @@ public class FontKerningTest {
         builder.useFont(() -> resource(TEST_FONT), "TestFont");
         builder.useFont(() -> resource(CJK_FONT), "CjkFont");
         builder.useFont(() -> resource(FUZZ_FONT), "FuzzFont");
+        builder.useFont(() -> resource(GPOS_FONT), "GposFont");
         if (kerning != null) {
             builder.useFontKerning(kerning);
         }

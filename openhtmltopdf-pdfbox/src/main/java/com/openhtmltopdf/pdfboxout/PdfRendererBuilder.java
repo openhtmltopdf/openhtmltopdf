@@ -214,20 +214,22 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
     }
 
     /**
-     * Whether to apply pair kerning from the <code>kern</code> table of fonts
-     * that have one (horizontal subtable, format 0). Kerning moves the glyphs
-     * of a kerned pair closer together or further apart, both when lines are
-     * laid out and when text is drawn, so lines may wrap differently with it.
+     * Whether text with <code>font-kerning: auto</code>, the initial value, is
+     * kerned. <code>font-kerning: normal</code> and <code>none</code> turn kerning
+     * on and off for an element regardless of this setting.
      * <p>
-     * Scope: pair kerning for LTR runs, except list markers; pairs touching a soft
-     * hyphen are never kerned; one direction-aware width path used by measure and
-     * draw alike; the shrink-to-fit width ignores kerning at word joins, so it can
-     * differ slightly from the drawn text (wider where a join pair is negative,
-     * narrower where it is positive).
-     * Right-to-left runs and text measured or drawn outside a run of known
-     * direction are not kerned; the object replacement character, which is not
-     * drawn either, stops kerning like a soft hyphen. Kerning held only in an
-     * OpenType <code>GPOS</code> table is not applied.
+     * Kerning moves the glyphs of a kerned pair closer together or further apart,
+     * both when lines are laid out and when text is drawn, so lines may wrap
+     * differently with it. The pairs come from the font's OpenType <code>GPOS</code>
+     * table (pair adjustment lookups of the <code>kern</code> feature) or, without
+     * one, from its TrueType <code>kern</code> table (horizontal subtable, format 0).
+     * Only fonts with TrueType outlines added through this builder are kerned.
+     * <p>
+     * Scope: pair kerning for left-to-right runs, except list markers. Right-to-left
+     * runs are not kerned, and no pair touching a character that is not drawn (a
+     * soft hyphen, the object replacement character) is. The shrink-to-fit width
+     * ignores kerning at word joins, so it can differ slightly from the drawn text
+     * (wider where a join pair is negative, narrower where it is positive).
      * <p>
      * False by default, which leaves the output exactly as without this setting.
      */

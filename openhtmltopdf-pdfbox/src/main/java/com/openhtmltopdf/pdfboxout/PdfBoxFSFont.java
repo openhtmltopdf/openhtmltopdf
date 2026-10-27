@@ -27,10 +27,20 @@ import java.util.List;
 public class PdfBoxFSFont implements FSFont {
     private final List<FontDescription> _fonts;
     private final float _size;
+    private final boolean _kerning;
 
     public PdfBoxFSFont(List<FontDescription> fonts, float size) {
+        this(fonts, size, false);
+    }
+
+    /**
+     * @param kerning whether left-to-right runs in this font are measured and
+     * drawn with the pair kerning of its fonts
+     */
+    public PdfBoxFSFont(List<FontDescription> fonts, float size, boolean kerning) {
         _fonts = fonts;
         _size = size;
+        _kerning = kerning;
     }
 
     @Override
@@ -40,5 +50,13 @@ public class PdfBoxFSFont implements FSFont {
 
     public List<FontDescription> getFontDescriptions() {
         return _fonts;
+    }
+
+    /**
+     * Whether left-to-right runs in this font are kerned, as resolved from the
+     * <code>font-kerning</code> property, see {@link PdfBoxKerning}.
+     */
+    public boolean isKerning() {
+        return _kerning;
     }
 }
