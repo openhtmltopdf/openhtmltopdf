@@ -748,8 +748,8 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
 
     /**
-     * As {@link #findTrailingText()}, passing over a text that is only a line feed
-     * when <code>skipLineFeeds</code> is set.
+     * As {@link #findTrailingText()}, passing over a text that is only a line feed,
+     * and an inline box without content, when <code>skipLineFeeds</code> is set.
      */
     public InlineText findTrailingText(boolean skipLineFeeds) {
         if (getInlineChildCount() == 0) {
@@ -767,6 +767,9 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
                 }
                 return result;
             } else if (child instanceof InlineLayoutBox) {
+                if (skipLineFeeds && ((InlineLayoutBox) child).isWithoutContent()) {
+                    continue;
+                }
                 result = ((InlineLayoutBox)child).findTrailingText(skipLineFeeds);
                 if (result != null && (result.isEmpty() || (skipLineFeeds && result.isLineFeedOnly()))) {
                     continue;
@@ -780,6 +783,24 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         return result;
     }
     
+    /**
+     * Whether this box lays out nothing but empty texts and boxes like itself, as an
+     * empty <code>&lt;span&gt;&lt;/span&gt;</code> does.
+     */
+    boolean isWithoutContent() {
+        for (int i = 0; i < getInlineChildCount(); i++) {
+            Object child = getInlineChild(i);
+            if (child instanceof InlineText) {
+                if (! ((InlineText) child).isEmpty()) {
+                    return false;
+                }
+            } else if (! (child instanceof InlineLayoutBox) || ! ((InlineLayoutBox) child).isWithoutContent()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public void calculateTextDecoration(LayoutContext c) {
         List<TextDecoration> decorations =
             InlineBoxing.calculateTextDecorations(c, this, getBaseline(),

@@ -525,6 +525,9 @@ public class LineBox extends Box implements InlinePaintable {
         for (int offset = getChildCount() - 1; offset >= 0; offset--) {
             Box child = getChild(offset);
             if (child instanceof InlineLayoutBox) {
+                if (skipLineFeeds && ((InlineLayoutBox) child).isWithoutContent()) {
+                    continue;
+                }
                 InlineText result = ((InlineLayoutBox)child).findTrailingText(skipLineFeeds);
                 if (result != null && (result.isEmpty() || (skipLineFeeds && result.isLineFeedOnly()))) {
                     continue;

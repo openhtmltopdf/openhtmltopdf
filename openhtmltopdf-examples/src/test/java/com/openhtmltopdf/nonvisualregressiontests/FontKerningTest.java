@@ -541,6 +541,7 @@ public class FontKerningTest {
         assertEquals("lines without the space", 2, without.size());
         assertEquals("the same lines, at the same baselines, with the space", without, with);
         assertLinesStayInTheirBox("mill mill <br/>mill", boxPt);
+        assertLinesStayInTheirBox("<span>mill mill <span></span><br/></span>mill", boxPt);
     }
 
     private static List<Float> baselines(List<List<TextPosition>> lines) {
