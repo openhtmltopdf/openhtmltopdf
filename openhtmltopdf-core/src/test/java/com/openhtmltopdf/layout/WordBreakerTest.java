@@ -69,6 +69,27 @@ public class WordBreakerTest {
     }
 
     /**
+     * When only the spaces that end the text overflow, the text finishes on this line,
+     * spaces included: whatever follows starts the next line, or a hard break ends this
+     * one, and the spaces are trimmed with the line's end. No line ends inside the text.
+     */
+    @Test
+    public void testTextWhoseEndingSpaceAloneOverflowsFinishesOnTheLine() {
+        String whole = "aa bb ";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER,
+                Breaker.PairKerning.NONE, true);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
+        assertContextIs(context, FINISHED);
+        assertThat(context.getEnd(), equalTo(6));
+        assertThat(context.getWidth(), equalTo(6));
+    }
+
+    /**
      * Without the hang the same line breaks after the first word, as it always has.
      */
     @Test

@@ -173,6 +173,7 @@ public class Breaker {
         }
 
         // Check if we should break on the next newline
+        boolean bareNewline = false;
         if (whitespace == IdentValue.PRE ||
             whitespace == IdentValue.PRE_WRAP ||
             whitespace == IdentValue.PRE_LINE) {
@@ -182,6 +183,7 @@ public class Breaker {
                 context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing, context.getTextDirection()));
                 context.setNeedsNewLine(true);
                 context.setEndsOnNL(true);
+                bareNewline = n == 0;
             } else if (whitespace == IdentValue.PRE) {
                 context.setEnd(context.getLast());
                 context.setWidth(Breaker.getTextWidthWithSpacing(c, font, context.getCalculatedSubstring(), spacing, context.getTextDirection()));
@@ -189,9 +191,15 @@ public class Breaker {
             }
         }
 
+        // Where trailing spaces hang, a line can overflow by its trailing space alone,
+        // so a hard break with nothing before it (a <br>) ends the line it is on even
+        // when no width is left on it, rather than moving to a new line and leaving an
+        // empty one.
+        boolean endsAnOverflowingLine = bareNewline && c.getTextRenderer().isTrailingWhitespaceHanging(font);
+
         // Check if we may wrap
         if (whitespace == IdentValue.PRE ||
-            (context.isNeedsNewLine() && context.getWidth() <= avail)) {
+            (context.isNeedsNewLine() && (context.getWidth() <= avail || endsAnOverflowingLine))) {
             return context.isNeedsNewLine() ?
                 BreakTextResult.CONTINUE_WORD_BREAKING_ON_NL :
                 BreakTextResult.FINISHED;
@@ -598,9 +606,14 @@ public class Breaker {
         String currentString = context.getStartSubstring();
         FSTextBreaker lineIterator = lineBreaker.getBreaker(currentString, c.getSharedContext());
 
+        // Spaces hang only where they are trimmed from the end of a line, which
+        // LineBox.trimTrailingSpace does for these two modes alone.
+        IdentValue whitespace = style.getWhitespace();
+        boolean hangTrailingWhitespace = (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) &&
+                c.getTextRenderer().isTrailingWhitespaceHanging(font);
+
         return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer,
-                pairKerning(c, font, context.getTextDirection()),
-                c.getTextRenderer().isTrailingWhitespaceHanging(font));
+                pairKerning(c, font, context.getTextDirection()), hangTrailingWhitespace);
     }
 
     static LineBreakResult doBreakTextWords(
@@ -705,21 +718,26 @@ public class Breaker {
             current.copyTo(prev);
             current.right = currentString.length();
             float extraSpacing = spacing.extra(currentString, current.left, current.right);
-            int splitWidth = (int) (measurer.applyAsInt(
-                    currentString.substring(current.left)) + extraSpacing);
+            String lastBit = currentString.substring(current.left);
+            int splitWidth = (int) (measurer.applyAsInt(lastBit) + extraSpacing);
             int join = current.left > 0 && current.left < currentString.length() ?
                     kerning.at(currentString, current.left) : 0;
             if (current.left < currentString.length()) {
+                // The spaces that end this text hang like those that end a piece; with
+                // none left over, those of the last piece still do.
+                current.hangingWidth = hangTrailingWhitespace ?
+                        trailingWhitespaceWidth(lastBit, splitWidth, spacing, measurer) : 0;
                 splitWidth += followingGlueIfOverflowing(context, current.graphicsLength + join + splitWidth, avail);
             }
             current.graphicsLength += join + splitWidth;
-            // The end of this text is not necessarily the end of the line: more inline
-            // content may follow, so its whitespace does not hang here.
-            current.hangingWidth = 0;
             nextUnfittableSplitWidth = splitWidth;
         }
 
-        if (current.graphicsLength <= avail) {
+        // When only the spaces that end the text overflow, the text still finishes on
+        // this line, spaces included: whatever follows it then starts the next line, or a
+        // hard break ends this one, and the spaces are trimmed with the line's end. Ending
+        // the line inside the text here would add a line break before a hard break.
+        if (current.fitLength() <= avail) {
             context.setWidth(current.graphicsLength);
             context.setEnd(context.getMaster().length());
             context.setNeedsNewLine(false);

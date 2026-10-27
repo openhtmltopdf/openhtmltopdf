@@ -510,8 +510,51 @@ public class FontKerningTest {
                 text(lines(true, "width: 40.448pt;", "aa bb\u00ADcc").get(0)));
     }
 
+    /**
+     * Under <code>white-space: pre-line</code> and <code>pre-wrap</code> a line keeps
+     * its trailing space, so nothing hangs there: a right-aligned line that would fit
+     * only without that space breaks before its last word and stays in its box.
+     */
+    @Test
+    public void testNoHangWhereTheTrailingSpaceIsKept() throws IOException {
+        float boxPt = unkernedWidthPt("mill mill") + unkernedWidthPt(" ") / 2;
+        for (String whiteSpace : new String[] { "pre-line", "pre-wrap" }) {
+            assertLinesStayInTheirBox("mill mill mill", boxPt, "white-space: " + whiteSpace + ";");
+            assertEquals(whiteSpace + ": the first line", "mill",
+                    text(lines(true, "width: " + boxPt + "pt; white-space: " + whiteSpace + ";", "mill mill mill").get(0)));
+        }
+    }
+
+    /**
+     * A space that ends a text run hangs where only it overflows, and a hard break
+     * right after it ends that same line: the space before the break adds no line.
+     */
+    @Test
+    public void testASpaceBeforeAHardBreakAddsNoLine() throws IOException {
+        float boxPt = unkernedWidthPt("mill mill") + unkernedWidthPt(" ") / 2;
+        String css = "width: " + boxPt + "pt;";
+
+        List<Float> without = baselines(lines(true, css, "mill mill<br/>mill"));
+        List<Float> with = baselines(lines(true, css, "mill mill <br/>mill"));
+
+        assertEquals("lines without the space", 2, without.size());
+        assertEquals("the same lines, at the same baselines, with the space", without, with);
+    }
+
+    private static List<Float> baselines(List<List<TextPosition>> lines) {
+        List<Float> baselines = new ArrayList<>();
+        for (List<TextPosition> line : lines) {
+            baselines.add(line.get(0).getYDirAdj());
+        }
+        return baselines;
+    }
+
     private static void assertLinesStayInTheirBox(String text, float boxPt) throws IOException {
-        String css = "width: " + boxPt + "pt; text-align: right;";
+        assertLinesStayInTheirBox(text, boxPt, "");
+    }
+
+    private static void assertLinesStayInTheirBox(String text, float boxPt, String moreCss) throws IOException {
+        String css = "width: " + boxPt + "pt; text-align: right; " + moreCss;
         List<List<TextPosition>> lines = lines(true, css, text);
         for (int i = 0; i < lines.size(); i++) {
             for (TextPosition glyph : lines.get(i)) {
