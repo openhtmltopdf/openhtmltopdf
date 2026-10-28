@@ -90,7 +90,8 @@ public class WordBreakerTest {
     }
 
     /**
-     * Without the hang the same line breaks after the first word, as it always has.
+     * Without the hang, as under <code>white-space: pre-line</code> and <code>pre-wrap</code>
+     * where a line keeps its trailing space, the same line breaks after the first word.
      */
     @Test
     public void testTrailingSpaceCountsWithoutTheHang() {

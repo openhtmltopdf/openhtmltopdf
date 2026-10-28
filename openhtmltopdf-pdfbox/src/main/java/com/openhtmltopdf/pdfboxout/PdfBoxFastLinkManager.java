@@ -474,6 +474,11 @@ public class PdfBoxFastLinkManager {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean placeAnnotation(AffineTransform transform, Shape linkShape, Rectangle2D targetArea,
                                     AnnotationContainer annot) {
+        // A link box without width or height, such as one holding only the space
+        // trimmed from the end of a line, has nothing to click on.
+        if (targetArea.getWidth() <= 0 || targetArea.getHeight() <= 0)
+            return false;
+
         annot.setRectangle(new PDRectangle((float) targetArea.getMinX(), (float) targetArea.getMinY(),
                 (float) targetArea.getWidth(), (float) targetArea.getHeight()));
 

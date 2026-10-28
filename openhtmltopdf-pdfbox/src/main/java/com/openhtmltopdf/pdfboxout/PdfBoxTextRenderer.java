@@ -472,17 +472,6 @@ public class PdfBoxTextRenderer implements TextRenderer {
         return description.getKerning().pair(left, right) / 1000f * pdfBoxFont.getSize2D();
     }
 
-    /**
-     * Where a font is kerned ({@link PdfBoxFSFont#isKerning()}), the ASCII spaces at
-     * the end of a line do not count toward the fit, except at a soft-hyphen break,
-     * as in CSS: a line that fits only without its trailing space keeps its last
-     * word. Elsewhere the line breaking is unchanged.
-     */
-    @Override
-    public boolean isTrailingWhitespaceHanging(FSFont font) {
-        return ((PdfBoxFSFont) font).isKerning();
-    }
-
     private static FontDescription drawingFont(PdfBoxFSFont font, int codePoint) {
         for (FontDescription description : font.getFontDescriptions()) {
             PDFont pdFont = description.getFont();

@@ -549,11 +549,10 @@ public class LineBox extends Box implements InlinePaintable {
 
             if (text.isLineFeedOnly()) {
                 // A line that ends at a hard break ends with the break's line feed, so the
-                // space before it is not found above. Where trailing spaces hang, that
-                // space did not count toward the fit, so it is trimmed here too.
+                // space before it is not found above. That space hangs, it did not count
+                // toward the fit, so it is trimmed here too.
                 InlineText before = findTrailingText(true);
-                if (before != null && c.getTextRenderer().isTrailingWhitespaceHanging(
-                        before.getParent().getStyle().getFSFont(c))) {
+                if (before != null) {
                     trimTrailingSpace(c, before);
                 }
             }

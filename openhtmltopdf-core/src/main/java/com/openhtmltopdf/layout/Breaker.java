@@ -172,7 +172,10 @@ public class Breaker {
             }
         }
 
-        // Check if we should break on the next newline
+        // Check if we should break on the next newline. Trailing spaces hang, so a line
+        // can overflow by its trailing space alone: a hard break with nothing before it
+        // (a <br>) ends the line it is on even when no width is left on it, rather than
+        // moving to a new line and leaving an empty one.
         boolean bareNewline = false;
         if (whitespace == IdentValue.PRE ||
             whitespace == IdentValue.PRE_WRAP ||
@@ -191,15 +194,9 @@ public class Breaker {
             }
         }
 
-        // Where trailing spaces hang, a line can overflow by its trailing space alone,
-        // so a hard break with nothing before it (a <br>) ends the line it is on even
-        // when no width is left on it, rather than moving to a new line and leaving an
-        // empty one.
-        boolean endsAnOverflowingLine = bareNewline && c.getTextRenderer().isTrailingWhitespaceHanging(font);
-
         // Check if we may wrap
         if (whitespace == IdentValue.PRE ||
-            (context.isNeedsNewLine() && (context.getWidth() <= avail || endsAnOverflowingLine))) {
+            (context.isNeedsNewLine() && (context.getWidth() <= avail || bareNewline))) {
             return context.isNeedsNewLine() ?
                 BreakTextResult.CONTINUE_WORD_BREAKING_ON_NL :
                 BreakTextResult.FINISHED;
@@ -613,8 +610,7 @@ public class Breaker {
         // Spaces hang only where they are trimmed from the end of a line, which
         // LineBox.trimTrailingSpace does for these two modes alone.
         IdentValue whitespace = style.getWhitespace();
-        boolean hangTrailingWhitespace = (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) &&
-                c.getTextRenderer().isTrailingWhitespaceHanging(font);
+        boolean hangTrailingWhitespace = whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP;
 
         return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer,
                 pairKerning(c, font, context.getTextDirection()), hangTrailingWhitespace);

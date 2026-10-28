@@ -444,9 +444,9 @@ public class FontKerningTest {
     }
 
     /**
-     * Where text is kerned, trailing ASCII spaces at a line end do not count toward
-     * the fit, as in CSS: a line that fits only without the space after its last
-     * word stays on one line. Without kerning the break is as before.
+     * Trailing ASCII spaces at a line end do not count toward the fit, as in CSS: a
+     * kerned line that fits only without the space after its last word stays on one
+     * line. Unkerned, the same words are wider than the box, so the line breaks earlier.
      */
     @Test
     public void testTrailingSpaceAtALineEndHangsWithKerning() throws IOException {
@@ -467,12 +467,12 @@ public class FontKerningTest {
     }
 
     /**
-     * The hang follows <code>font-kerning</code> per element, as kerning does, even for
-     * text without a kerned pair: <code>normal</code> hangs with the builder off,
-     * <code>none</code> does not with it on.
+     * The hang does not depend on kerning: a line that fits only without its trailing
+     * space keeps its last word with the builder on or off, and under any
+     * <code>font-kerning</code>.
      */
     @Test
-    public void testTrailingSpaceHangsWhereFontKerningIsOn() throws IOException {
+    public void testTrailingSpaceHangsWithOrWithoutKerning() throws IOException {
         String text = "mill mill mill";
         String firstLine = "mill mill";
         assertEquals("no pair in the first line is kerned", 0f, sumOfKerningPt(firstLine + " "), 0f);
@@ -480,10 +480,10 @@ public class FontKerningTest {
         String css = "width: " + boxPt + "pt;";
 
         assertEquals("builder on", "millmill", text(lines(true, css, text).get(0)));
-        assertEquals("builder off", "mill", text(lines(false, css, text).get(0)));
+        assertEquals("builder off", "millmill", text(lines(false, css, text).get(0)));
         assertEquals("normal, builder off", "millmill",
                 text(lines(false, css + " font-kerning: normal;", text).get(0)));
-        assertEquals("none, builder on", "mill",
+        assertEquals("none, builder on", "millmill",
                 text(lines(true, css + " font-kerning: none;", text).get(0)));
     }
 

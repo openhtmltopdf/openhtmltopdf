@@ -231,11 +231,6 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
      * ignores kerning at word joins, so it can differ slightly from the drawn text
      * (wider where a join pair is negative, narrower where it is positive).
      * <p>
-     * Where text is kerned, the ASCII spaces at the end of a line do not count
-     * toward the fit, as in CSS: a line that fits only without its trailing space
-     * keeps its last word. Other space characters, and a line that ends at a
-     * soft-hyphen break, are measured as before.
-     * <p>
      * False by default, which leaves the output exactly as without this setting.
      */
     public PdfRendererBuilder useFontKerning(boolean fontKerning) {
