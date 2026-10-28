@@ -119,6 +119,22 @@ public class TrailingSpaceHangTest {
     }
 
     /**
+     * A line that holds only an inline-block is as high as a line of text: the strut
+     * takes part in its height (CSS 2.1, 10.8), so a box smaller than the font sits
+     * on the baseline inside the line, not below it.
+     */
+    @Test
+    public void testLineWithOnlyAnInlineBlockHasTheStrutsHeight() throws IOException {
+        String styles = "p { margin: 0; }";
+        List<List<TextPosition>> afterBlock = renderLines(styles,
+                "<p><span style=\"display: inline-block; width: 10px; height: 10px\"></span></p><p>mill</p>");
+        List<List<TextPosition>> afterText = renderLines(styles, "<p>x</p><p>mill</p>");
+
+        assertEquals("the next paragraph's baseline",
+                afterText.get(1).get(0).getYDirAdj(), afterBlock.get(0).get(0).getYDirAdj(), TOLERANCE);
+    }
+
+    /**
      * An element with content and padding after the hung space starts the next
      * line, laid out in that line's style, not in the <code>::first-line</code> style.
      */

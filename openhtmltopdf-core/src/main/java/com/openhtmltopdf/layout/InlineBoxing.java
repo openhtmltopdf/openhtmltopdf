@@ -951,6 +951,14 @@ public class InlineBoxing {
             VerticalAlignContext vaContext = new VerticalAlignContext();
             InlineBoxMeasurements measurements = getInitialMeasurements(c, container, strutM);
             vaContext.setInitialMeasurements(measurements);
+            if (current.isContainsOnlyBlockLevelContent()) {
+                // The strut takes part in the line's height (CSS 2.1, 10.8). Text brings
+                // it along; a line of only inline-blocks or images must add it, or the
+                // line is no higher than its content and a box smaller than the font's
+                // ascent, aligned to the strut's baseline, is painted below the line.
+                vaContext.updateInlineTop(measurements.getInlineTop());
+                vaContext.updateInlineBottom(measurements.getInlineBottom());
+            }
 
             List<TextDecoration> lBDecorations = calculateTextDecorations(
                     c, container, measurements.getBaseline(), strutM);
