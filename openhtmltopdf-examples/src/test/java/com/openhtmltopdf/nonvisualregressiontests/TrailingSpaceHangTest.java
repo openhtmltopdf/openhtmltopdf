@@ -79,24 +79,28 @@ public class TrailingSpaceHangTest {
     }
 
     /**
-     * An element with horizontal margin, border or padding takes width, so after the
-     * hung space it starts the next line. Where it fits, the space before it stays.
+     * An element without content stays with the text before it, as in browsers, even
+     * with padding: the space before it still ends the line and is trimmed, and only
+     * the padding counts, whether or not it fits.
      */
     @Test
-    public void testElementWithPaddingAfterAHungSpaceStartsTheNextLine() throws IOException {
-        assertFirstLineInBox("mill mill <span style=\"padding-left: 1px\"></span>");
-        assertFirstLineInBox("mill mill <span style=\"padding-left: 20px\"></span>");
+    public void testEmptyElementWithPaddingStaysWithTheTextBeforeIt() throws IOException {
+        for (int paddingPx : new int[] { 1, 20 }) {
+            List<List<TextPosition>> lines = lines("", "mill mill <span style=\"padding-left: " + paddingPx + "px\"></span>");
+            assertEquals(paddingPx + "px: lines", 1, lines.size());
+            assertEquals(paddingPx + "px: the space is trimmed, the padding ends the line",
+                    boxPt - widthPt("mill mill") - paddingPx * 0.75f, lines.get(0).get(0).getXDirAdj(), TOLERANCE);
+        }
 
         List<List<TextPosition>> lines = renderLines("p { margin: 0; width: 150pt; text-align: right; }",
                 "<p>mill <span style=\"padding-left: 20px; border-left: 1px solid red\"></span></p>");
-        float element = 21 * 0.75f;
-        assertEquals("the space before an element that fits is kept",
-                150 - element - widthPt("mill "), lines.get(0).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("where the element fits, the space before it is trimmed too",
+                150 - 21 * 0.75f - widthPt("mill"), lines.get(0).get(0).getXDirAdj(), TOLERANCE);
     }
 
     /**
-     * The element that starts the next line is laid out in that line's style, not
-     * in the <code>::first-line</code> style.
+     * An element with content and padding after the hung space starts the next
+     * line, laid out in that line's style, not in the <code>::first-line</code> style.
      */
     @Test
     public void testElementMovedToTheNextLineLeavesTheFirstLineStyle() throws IOException {

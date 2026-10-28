@@ -744,16 +744,16 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
 
     public InlineText findTrailingText() {
-        return findTrailingText(null);
+        return findTrailingText(false);
     }
 
     /**
-     * As {@link #findTrailingText()}, but when <code>cssCtx</code> is given, passing over
-     * what takes no width at the end of a line: a text that is only a line feed, and an
-     * inline box that lays out nothing and has no left or right margin, border or padding.
+     * As {@link #findTrailingText()}, passing over a text that is only a line feed,
+     * and an inline box without content, when <code>skipWithoutContent</code> is set:
+     * the space before them still ends the line, as in browsers, even where the box
+     * has margin, border or padding.
      */
-    public InlineText findTrailingText(CssContext cssCtx) {
-        boolean skipWidthless = cssCtx != null;
+    public InlineText findTrailingText(boolean skipWithoutContent) {
         if (getInlineChildCount() == 0) {
             return null;
         }
@@ -764,16 +764,16 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
             Object child = getInlineChild(offset);
             if (child instanceof InlineText) {
                 result = (InlineText)child;
-                if (result.isEmpty() || (skipWidthless && result.isLineFeedOnly())) {
+                if (result.isEmpty() || (skipWithoutContent && result.isLineFeedOnly())) {
                     continue;
                 }
                 return result;
             } else if (child instanceof InlineLayoutBox) {
-                if (skipWidthless && ((InlineLayoutBox) child).isWithoutWidth(cssCtx)) {
+                if (skipWithoutContent && ((InlineLayoutBox) child).isWithoutContent()) {
                     continue;
                 }
-                result = ((InlineLayoutBox)child).findTrailingText(cssCtx);
-                if (result != null && (result.isEmpty() || (skipWidthless && result.isLineFeedOnly()))) {
+                result = ((InlineLayoutBox)child).findTrailingText(skipWithoutContent);
+                if (result != null && (result.isEmpty() || (skipWithoutContent && result.isLineFeedOnly()))) {
                     continue;
                 }
                 return result;
@@ -786,21 +786,17 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
     
     /**
-     * Whether this box takes no width on its line: it has no left or right margin,
-     * border or padding there, and lays out nothing but empty texts and boxes like
-     * itself, as an empty <code>&lt;span&gt;&lt;/span&gt;</code> does.
+     * Whether this box lays out nothing but empty texts and boxes like itself, as an
+     * empty <code>&lt;span&gt;&lt;/span&gt;</code> does.
      */
-    boolean isWithoutWidth(CssContext cssCtx) {
-        if (getLeftMarginBorderPadding(cssCtx) != 0 || getRightMarginPaddingBorder(cssCtx) != 0) {
-            return false;
-        }
+    boolean isWithoutContent() {
         for (int i = 0; i < getInlineChildCount(); i++) {
             Object child = getInlineChild(i);
             if (child instanceof InlineText) {
                 if (! ((InlineText) child).isEmpty()) {
                     return false;
                 }
-            } else if (! (child instanceof InlineLayoutBox) || ! ((InlineLayoutBox) child).isWithoutWidth(cssCtx)) {
+            } else if (! (child instanceof InlineLayoutBox) || ! ((InlineLayoutBox) child).isWithoutContent()) {
                 return false;
             }
         }

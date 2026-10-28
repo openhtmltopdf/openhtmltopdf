@@ -72,7 +72,7 @@ public class InlineBoxing {
         int pendingLeftMBP;
         int pendingRightMBP;
         // The line is full: its last text finished on it only because the spaces
-        // that end it hang, so anything that takes width must start the next line.
+        // that end it hang, so text that can not wrap must start the next line.
         boolean lineEndsInHangingSpace;
         
         SpaceVariables(int maxWidth) {
@@ -178,17 +178,6 @@ public class InlineBoxing {
                 }
 
                 if (inlineBox.isStartsHere()) {
-                    if (space.lineEndsInHangingSpace && hasHorizontalMarginBorderPadding(c, style, space.maxAvailableWidth)) {
-                        wrapLine(c, box, breakAtLine, blockLayoutDirection, space, current, previous,
-                                contentStart, openInlineBoxes, iBMap, minimumLineHeight, markerData, pendingFloats,
-                                hasFirstLinePEs, lineOffset);
-
-                        lineOffset++;
-                        markerData = null;
-                        contentStart = 0;
-                        // Saving the first line may have changed the style (::first-line).
-                        style = inlineBox.getStyle();
-                    }
                     startInlineBox(c, space, current, previous, openInlineBoxes, iBMap, inlineBox, style);
                 }
 
@@ -409,11 +398,6 @@ public class InlineBoxing {
             (align != IdentValue.START || direction != BidiSplitter.LTR)) {
             line.trimTrailingSpace(c);
         }
-    }
-
-    private static boolean hasHorizontalMarginBorderPadding(LayoutContext c, CalculatedStyle style, int cbWidth) {
-        return style.getMarginBorderPadding(c, cbWidth, CalculatedStyle.LEFT) > 0 ||
-               style.getMarginBorderPadding(c, cbWidth, CalculatedStyle.RIGHT) > 0;
     }
 
     private static void endInlineBox(
