@@ -205,6 +205,12 @@ public class LineBox extends Box implements InlinePaintable {
         int calcX = 0;
         byte dir = -1;
 
+        // Content too wide for the line is aligned to the line's start and overflows
+        // its end edge (CSS Text 3, text-align).
+        if (isWiderThanAvailable()) {
+            align = IdentValue.START;
+        }
+
         if (align == IdentValue.START) {
             dir = direction == BidiSplitter.RTL ? BidiSplitter.RTL : BidiSplitter.LTR; 
         }
@@ -242,6 +248,12 @@ public class LineBox extends Box implements InlinePaintable {
         }
     }
     
+    private boolean isWiderThanAvailable() {
+        int available = getParent().getContentWidth() -
+            getFloatDistances().getLeftFloatDistance() - getFloatDistances().getRightFloatDistance() - getContentStart();
+        return getContentWidth() > available;
+    }
+
     public void justify(CssContext c) {
         // NOTE: letter-spacing and word-spacing are already part of the content
         // width, so what we distribute here is whatever room is left over.
@@ -514,6 +526,13 @@ public class LineBox extends Box implements InlinePaintable {
     }
     
     public InlineText findTrailingText() {
+        return findTrailingText(false);
+    }
+
+    /**
+     * As {@link InlineLayoutBox#findTrailingText(boolean)}.
+     */
+    private InlineText findTrailingText(boolean skipWithoutContent) {
         if (getChildCount() == 0) {
             return null;
         }
@@ -521,8 +540,11 @@ public class LineBox extends Box implements InlinePaintable {
         for (int offset = getChildCount() - 1; offset >= 0; offset--) {
             Box child = getChild(offset);
             if (child instanceof InlineLayoutBox) {
-                InlineText result = ((InlineLayoutBox)child).findTrailingText();
-                if (result != null && result.isEmpty()) {
+                if (skipWithoutContent && ((InlineLayoutBox) child).isWithoutContent()) {
+                    continue;
+                }
+                InlineText result = ((InlineLayoutBox)child).findTrailingText(skipWithoutContent);
+                if (result != null && (result.isEmpty() || (skipWithoutContent && result.isLineFeedOnly()))) {
                     continue;
                 }
                 return result;
@@ -535,7 +557,10 @@ public class LineBox extends Box implements InlinePaintable {
     }
     
     public void trimTrailingSpace(LayoutContext c) {
-        InlineText text = findTrailingText();
+        // The space that ends a line hangs: it did not count toward the fit. It is
+        // found past the line feed of a hard break and past elements without content,
+        // so that it is trimmed there too.
+        InlineText text = findTrailingText(true);
         
         if (text != null) {
             InlineLayoutBox iB = text.getParent();

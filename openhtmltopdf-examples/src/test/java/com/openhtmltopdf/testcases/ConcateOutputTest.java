@@ -50,7 +50,7 @@ public class ConcateOutputTest {
                 renderPDF(testCaseFile, doc);
             }
 
-            assertEquals(27, doc.getNumberOfPages());
+            assertEquals(26, doc.getNumberOfPages());
 
             doc.save(targetFile);
         }

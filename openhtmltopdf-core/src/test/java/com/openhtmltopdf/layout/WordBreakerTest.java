@@ -49,6 +49,103 @@ public class WordBreakerTest {
         assertThat(context.getEnd(), equalTo(3));
         assertThat(context.getNextWidth(), equalTo(2));
     }
+    /**
+     * With the trailing space hanging, a line that fits only without the space after
+     * its last word keeps that word: "aa bb " is 6 wide, but without its trailing
+     * space 5, which fits.
+     */
+    @Test
+    public void testTrailingSpaceHangsAtTheLineEnd() {
+        String whole = "aa bb cc";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER,
+                Breaker.PairKerning.NONE, true);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
+        assertThat(context.getEnd(), equalTo(6));
+    }
+
+    /**
+     * When only the spaces that end the text overflow, the text finishes on this line,
+     * spaces included: whatever follows starts the next line, or a hard break ends this
+     * one, and the spaces are trimmed with the line's end. No line ends inside the text.
+     */
+    @Test
+    public void testTextWhoseEndingSpaceAloneOverflowsFinishesOnTheLine() {
+        String whole = "aa bb ";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER,
+                Breaker.PairKerning.NONE, true);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_FINISHED));
+        assertContextIs(context, FINISHED);
+        assertThat(context.getEnd(), equalTo(6));
+        assertThat(context.getWidth(), equalTo(6));
+    }
+
+    /**
+     * Without the hang, as under <code>white-space: pre-line</code> and <code>pre-wrap</code>
+     * where a line keeps its trailing space, the same line breaks after the first word.
+     */
+    @Test
+    public void testTrailingSpaceCountsWithoutTheHang() {
+        String whole = "aa bb cc";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER,
+                Breaker.PairKerning.NONE, false);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
+        assertThat(context.getEnd(), equalTo(3));
+    }
+
+    /**
+     * Only ASCII spaces hang, as only they are trimmed from a line's end: the
+     * em space (U+2003) before the trailing space still counts, so the first two
+     * words need 6, not 5.
+     */
+    @Test
+    public void testOnlyAsciiSpacesHang() {
+        String whole = "aa bb\u2003 cc";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing, MEASURER,
+                Breaker.PairKerning.NONE, true);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
+        assertThat(context.getEnd(), equalTo(3));
+    }
+
+    /**
+     * A line that would end at a soft-hyphen break shows a hyphen, and the space
+     * before that piece is inside the line: nothing hangs, so "aa bb-" (6) does not
+     * fit in 5 and the line breaks after the first word.
+     */
+    @Test
+    public void testNoHangAtASoftHyphenBreak() {
+        String whole = "aa bb\u00adcc";
+        int avail = 5;
+        TextSpacing spacing = TextSpacing.NONE;
+        LineBreakContext context = createContext(whole);
+
+        LineBreakResult res = Breaker.doBreakTextWords(whole, context, avail, createLine(whole), spacing,
+                MEASURER_WITH_ZERO_WIDTH_SOFT_HYPHEN, Breaker.PairKerning.NONE, true);
+
+        assertThat(res, equalTo(LineBreakResult.WORD_BREAKING_NEED_NEW_LINE));
+        assertThat(context.getEnd(), equalTo(3));
+        assertThat(context.getWidth() <= avail, equalTo(true));
+    }
+
     @Test
     public void testSingleCharFits() {
         String whole = "A";

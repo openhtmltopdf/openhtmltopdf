@@ -71,6 +71,9 @@ public class InlineBoxing {
         int remainingWidth;
         int pendingLeftMBP;
         int pendingRightMBP;
+        // The line is full: its last text finished on it only because the spaces
+        // that end it hang, so text that can not wrap must start the next line.
+        boolean lineEndsInHangingSpace;
         
         SpaceVariables(int maxWidth) {
             this.remainingWidth = maxWidth;
@@ -201,6 +204,26 @@ public class InlineBoxing {
                 do {
                     lbContext.reset();
 
+                    if (space.lineEndsInHangingSpace && style.getWhitespace() == IdentValue.PRE &&
+                        !lbContext.getStartSubstring().isEmpty() &&
+                        lbContext.getStartSubstring().charAt(0) != WhitespaceStripper.EOLC) {
+                        // Pre text does not wrap: it is placed up to its next line feed
+                        // whatever width is left, so it starts the next line here. A line
+                        // feed first ends the full line instead, as a <br> does.
+                        boolean wasFirstLine = current.line.isFirstLine();
+                        wrapLine(c, box, breakAtLine, blockLayoutDirection, space, current, previous,
+                                contentStart, openInlineBoxes, iBMap, minimumLineHeight, markerData, pendingFloats,
+                                hasFirstLinePEs, lineOffset);
+
+                        lineOffset++;
+                        markerData = null;
+                        contentStart = 0;
+                        style = inlineBox.getStyle();
+                        if (wasFirstLine && hasFirstLinePEs) {
+                            lbContext.setMaster(TextUtil.transformText(inlineBox.getText(), style));
+                        }
+                    }
+
                     lbContext.setFirstCharInLine(lbContext.getStart() == 0 && !current.line.isContainsContent());
 
                     int fit = 0;
@@ -241,6 +264,8 @@ public class InlineBoxing {
                                 continue;
                             }                        }
                     }
+
+                    space.lineEndsInHangingSpace = lbContext.isEndsInHangingSpace();
 
                     if (lbContext.isNeedsNewLine()) {
                         lbContext.newLine();
@@ -307,20 +332,9 @@ public class InlineBoxing {
            layoutInlineBlockContent(c, box, child, initialY);
 
            if (child.getWidth() > space.remainingWidth && current.line.isContainsContent()) {
-               saveLine(current.line, c, box, minimumLineHeight,
-                       space.maxAvailableWidth, pendingFloats,  hasFirstLinePEs,
-                       markerData, contentStart,
-                       isAlwaysBreak(c, box, breakAtLine, lineOffset));
-
-               previous.line = current.line;
-               current.line = newLine(c, previous.line, box);
-               current.line.setDirectionality(blockLayoutDirection);
-               current.layoutBox = addOpenInlineBoxes(
-                       c, current.line, openInlineBoxes, space.maxAvailableWidth, iBMap);
-               previous.layoutBox = current.layoutBox == null || current.layoutBox.getParent() instanceof LineBox ?
-                       null : (InlineLayoutBox) current.layoutBox.getParent();
-               space.remainingWidth = space.maxAvailableWidth;
-               space.remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, current.line, space.remainingWidth);
+               wrapLine(c, box, breakAtLine, blockLayoutDirection, space, current, previous,
+                       contentStart, openInlineBoxes, iBMap, minimumLineHeight, markerData, pendingFloats,
+                       hasFirstLinePEs, lineOffset);
 
                child.reset(c);
                layoutInlineBlockContent(c, box, child, initialY);
@@ -336,11 +350,54 @@ public class InlineBoxing {
            current.line.setContainsBlockLevelContent(true);
 
            space.remainingWidth -= child.getWidth();
+           space.lineEndsInHangingSpace = false;
 
            if (current.layoutBox != null && current.layoutBox.isStartsHere()) {
                space.pendingLeftMBP -= current.layoutBox.getStyle().getMarginBorderPadding(
                        c, space.maxAvailableWidth, CalculatedStyle.LEFT);
            }
+    }
+
+    /**
+     * Ends the current line where it is, its trailing space trimmed as at any wrap,
+     * and starts the next one with the inline boxes that are still open.
+     */
+    private static void wrapLine(LayoutContext c, BlockBox box, int breakAtLine, byte blockLayoutDirection,
+            SpaceVariables space, StateVariables current, StateVariables previous, int contentStart,
+            List<InlineBox> openInlineBoxes, Map<InlineBox, InlineLayoutBox> iBMap, int minimumLineHeight,
+            MarkerData markerData, List<FloatLayoutResult> pendingFloats, boolean hasFirstLinePEs,
+            int lineOffset) {
+
+        trimTrailingSpaceUnlessStartAligned(c, current.line, box.getStyle(), blockLayoutDirection);
+        saveLine(current.line, c, box, minimumLineHeight,
+                space.maxAvailableWidth, pendingFloats,  hasFirstLinePEs,
+                markerData, contentStart,
+                isAlwaysBreak(c, box, breakAtLine, lineOffset));
+
+        previous.line = current.line;
+        current.line = newLine(c, previous.line, box);
+        current.line.setDirectionality(blockLayoutDirection);
+        current.layoutBox = addOpenInlineBoxes(
+                c, current.line, openInlineBoxes, space.maxAvailableWidth, iBMap);
+        previous.layoutBox = current.layoutBox == null || current.layoutBox.getParent() instanceof LineBox ?
+                null : (InlineLayoutBox) current.layoutBox.getParent();
+        space.remainingWidth = space.maxAvailableWidth;
+        space.remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, current.line, space.remainingWidth);
+        space.lineEndsInHangingSpace = false;
+    }
+
+    /**
+     * Trims the trailing space of a line that wraps, except where the line is aligned
+     * to its start, where the space keeps the text apart from what follows it in the
+     * content stream and moves nothing.
+     */
+    private static void trimTrailingSpaceUnlessStartAligned(LayoutContext c, LineBox line,
+            CalculatedStyle style, byte direction) {
+        IdentValue align = style.getIdent(CSSName.TEXT_ALIGN);
+        if (align != IdentValue.LEFT &&
+            (align != IdentValue.START || direction != BidiSplitter.LTR)) {
+            line.trimTrailingSpace(c);
+        }
     }
 
     private static void endInlineBox(
@@ -376,11 +433,7 @@ public class InlineBoxing {
             MarkerData markerData, List<FloatLayoutResult> pendingFloats, boolean hasFirstLinePEs,
             int lineOffset, InlineBox inlineBox, LineBreakContext lbContext) {
 
-        IdentValue align = inlineBox.getStyle().getIdent(CSSName.TEXT_ALIGN);
-        if (align != IdentValue.LEFT &&
-            (align != IdentValue.START || inlineBox.getTextDirection() != BidiSplitter.LTR)) {
-            current.line.trimTrailingSpace(c);
-        }
+        trimTrailingSpaceUnlessStartAligned(c, current.line, inlineBox.getStyle(), inlineBox.getTextDirection());
 
         current.line.setEndsOnNL(lbContext.isEndsOnNL());
 
@@ -405,6 +458,7 @@ public class InlineBoxing {
         
         space.remainingWidth = space.maxAvailableWidth;
         space.remainingWidth -= c.getBlockFormattingContext().getFloatDistance(c, current.line, space.remainingWidth);
+        space.lineEndsInHangingSpace = false;
     }
 
     private enum StartInlineTextResult {
@@ -897,6 +951,14 @@ public class InlineBoxing {
             VerticalAlignContext vaContext = new VerticalAlignContext();
             InlineBoxMeasurements measurements = getInitialMeasurements(c, container, strutM);
             vaContext.setInitialMeasurements(measurements);
+            if (current.isContainsOnlyBlockLevelContent()) {
+                // The strut takes part in the line's height (CSS 2.1, 10.8). Text brings
+                // it along; a line of only inline-blocks or images must add it, or the
+                // line is no higher than its content and a box smaller than the font's
+                // ascent, aligned to the strut's baseline, is painted below the line.
+                vaContext.updateInlineTop(measurements.getInlineTop());
+                vaContext.updateInlineBottom(measurements.getInlineBottom());
+            }
 
             List<TextDecoration> lBDecorations = calculateTextDecorations(
                     c, container, measurements.getBaseline(), strutM);

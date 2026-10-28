@@ -360,12 +360,13 @@ public class LinkRegressionTest {
     public void testIssue364LinkToFootnoteContent() throws IOException {
         try (TestDocument doc = support.run("issue-364-link-to-footnote-content")) {
             assertEquals(2, doc.pd.getPage(0).getAnnotations().size());
-            assertEquals(2, doc.pd.getPage(1).getAnnotations().size());
+            // The footnote call's leading space ends a line on its own; trimmed to no
+            // width, it gets no link annotation.
+            assertEquals(1, doc.pd.getPage(1).getAnnotations().size());
 
             assertThat(linkArea(doc.pd, 0, 0), pdRectEquals(0, 0, 133.31f, 151.50f, 42.56f, 13.50f));
             assertThat(linkArea(doc.pd, 0, 1), pdRectEquals(0, 1, 42.00f, 135.00f, 97.95f, 13.50f));
-            assertThat(linkArea(doc.pd, 1, 0), pdRectEquals(1, 0, 171.60f, 157.50f, 0.00f, 13.50f));
-            assertThat(linkArea(doc.pd, 1, 1), pdRectEquals(1, 1, 42.00f, 141.00f, 22.50f, 13.50f));
+            assertThat(linkArea(doc.pd, 1, 0), pdRectEquals(1, 0, 42.00f, 141.00f, 22.50f, 13.50f));
 
             assertThat(linkDestinationPageNo(doc.pd, 0, 0), equalTo(1));
             assertThat(linkDestinationTop(doc.pd, 0, 0), equalTo(51));
@@ -375,9 +376,6 @@ public class LinkRegressionTest {
 
             assertThat(linkDestinationPageNo(doc.pd, 1, 0), equalTo(1));
             assertThat(linkDestinationTop(doc.pd, 1, 0), equalTo(100));
-
-            assertThat(linkDestinationPageNo(doc.pd, 1, 1), equalTo(1));
-            assertThat(linkDestinationTop(doc.pd, 1, 1), equalTo(100));
         }
     }
 
@@ -390,17 +388,17 @@ public class LinkRegressionTest {
             assertEquals(3, doc.pd.getPage(0).getAnnotations().size());
 
             assertThat(linkArea(doc.pd, 0, 0), pdRectEquals(0, 0, 42.00f, 168.00f, 91.76f, 13.50f));
-            assertThat(linkArea(doc.pd, 0, 1), pdRectEquals(0, 1, 72.00f, 118.50f, 22.50f, 13.50f));
+            assertThat(linkArea(doc.pd, 0, 1), pdRectEquals(0, 1, 42.00f, 118.50f, 22.50f, 13.50f));
             assertThat(linkArea(doc.pd, 0, 2), pdRectEquals(0, 2, 42.00f, 37.50f, 97.58f, 13.50f));
 
             assertThat(linkDestinationPageNo(doc.pd, 0, 0), equalTo(1));
-            assertThat(linkDestinationTop(doc.pd, 0, 0), equalTo(171));
+            assertThat(linkDestinationTop(doc.pd, 0, 0), equalTo(187));
 
             assertThat(linkDestinationPageNo(doc.pd, 0, 1), equalTo(0));
             assertThat(linkDestinationTop(doc.pd, 0, 1), equalTo(100));
 
             assertThat(linkDestinationPageNo(doc.pd, 0, 2), equalTo(1));
-            assertThat(linkDestinationTop(doc.pd, 0, 2), equalTo(171));
+            assertThat(linkDestinationTop(doc.pd, 0, 2), equalTo(187));
         }
     }
 

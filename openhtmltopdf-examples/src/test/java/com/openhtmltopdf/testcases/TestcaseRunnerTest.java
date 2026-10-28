@@ -172,7 +172,7 @@ public class TestcaseRunnerTest {
          */
         String test = "multi-column-layout";
         runTestCase(test);
-        confirmPages(test, 7);
+        confirmPages(test, 6);
     }
 
     @Test
