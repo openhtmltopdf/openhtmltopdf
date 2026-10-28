@@ -81,21 +81,41 @@ public class TrailingSpaceHangTest {
     /**
      * An element without content stays with the text before it, as in browsers, even
      * with padding: the space before it still ends the line and is trimmed, and only
-     * the padding counts, whether or not it fits.
+     * the padding counts, whether or not it fits. A line too wide for its box is
+     * aligned to its start, as in CSS.
      */
     @Test
     public void testEmptyElementWithPaddingStaysWithTheTextBeforeIt() throws IOException {
-        for (int paddingPx : new int[] { 1, 20 }) {
-            List<List<TextPosition>> lines = lines("", "mill mill <span style=\"padding-left: " + paddingPx + "px\"></span>");
-            assertEquals(paddingPx + "px: lines", 1, lines.size());
-            assertEquals(paddingPx + "px: the space is trimmed, the padding ends the line",
-                    boxPt - widthPt("mill mill") - paddingPx * 0.75f, lines.get(0).get(0).getXDirAdj(), TOLERANCE);
-        }
+        List<List<TextPosition>> fits = lines("", "mill mill <span style=\"padding-left: 1px\"></span>");
+        assertEquals("1px: lines", 1, fits.size());
+        assertEquals("1px: the space is trimmed, the padding ends the line",
+                boxPt - widthPt("mill mill") - 0.75f, fits.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> overflows = lines("", "mill mill <span style=\"padding-left: 20px\"></span>");
+        assertEquals("20px: lines", 1, overflows.size());
+        assertEquals("20px: the line overflows, so it starts at the box's start",
+                0, overflows.get(0).get(0).getXDirAdj(), TOLERANCE);
 
         List<List<TextPosition>> lines = renderLines("p { margin: 0; width: 150pt; text-align: right; }",
                 "<p>mill <span style=\"padding-left: 20px; border-left: 1px solid red\"></span></p>");
         assertEquals("where the element fits, the space before it is trimmed too",
                 150 - 21 * 0.75f - widthPt("mill"), lines.get(0).get(0).getXDirAdj(), TOLERANCE);
+    }
+
+    /**
+     * A line that holds only an element with padding does not collapse (CSS 2.1,
+     * 9.4.2): it is as high as a line of text, so the paragraph after it starts
+     * where it would after a line of text.
+     */
+    @Test
+    public void testLineWithOnlyAPaddedElementHasHeight() throws IOException {
+        String styles = "p { margin: 0; }";
+        List<List<TextPosition>> afterPadded = renderLines(styles,
+                "<p><span style=\"padding-left: 20px\"></span></p><p>mill</p>");
+        List<List<TextPosition>> afterText = renderLines(styles, "<p>x</p><p>mill</p>");
+
+        assertEquals("the next paragraph's baseline",
+                afterText.get(1).get(0).getYDirAdj(), afterPadded.get(0).get(0).getYDirAdj(), TOLERANCE);
     }
 
     /**

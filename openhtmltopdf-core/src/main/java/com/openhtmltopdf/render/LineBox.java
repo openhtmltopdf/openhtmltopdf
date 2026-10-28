@@ -205,6 +205,12 @@ public class LineBox extends Box implements InlinePaintable {
         int calcX = 0;
         byte dir = -1;
 
+        // Content too wide for the line is aligned to the line's start and overflows
+        // its end edge (CSS Text 3, text-align).
+        if (isWiderThanAvailable()) {
+            align = IdentValue.START;
+        }
+
         if (align == IdentValue.START) {
             dir = direction == BidiSplitter.RTL ? BidiSplitter.RTL : BidiSplitter.LTR; 
         }
@@ -242,6 +248,12 @@ public class LineBox extends Box implements InlinePaintable {
         }
     }
     
+    private boolean isWiderThanAvailable() {
+        int available = getParent().getContentWidth() -
+            getFloatDistances().getLeftFloatDistance() - getFloatDistances().getRightFloatDistance() - getContentStart();
+        return getContentWidth() > available;
+    }
+
     public void justify(CssContext c) {
         // NOTE: letter-spacing and word-spacing are already part of the content
         // width, so what we distribute here is whatever room is left over.

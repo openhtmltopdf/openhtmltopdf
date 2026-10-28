@@ -447,6 +447,12 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
     }
     
     public boolean isContainsVisibleContent() {
+        // A box with margin, border or padding keeps its line from collapsing, even
+        // without content (CSS 2.1, 9.4.2). Its inline width, set when the line was
+        // positioned horizontally, holds them.
+        if (getInlineWidth() > 0) {
+            return true;
+        }
         for (int i = 0; i < getInlineChildCount(); i++) {
             Object child = getInlineChild(i);
             if (child instanceof InlineText) {
