@@ -741,6 +741,7 @@ public class Breaker {
             context.setWidth(current.graphicsLength);
             context.setEnd(context.getMaster().length());
             context.setNeedsNewLine(false);
+            context.setEndsInHangingSpace(current.graphicsLength > avail);
             // It all fit!
             return LineBreakResult.WORD_BREAKING_FINISHED;
         }

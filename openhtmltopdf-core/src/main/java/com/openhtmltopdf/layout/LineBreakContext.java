@@ -53,6 +53,7 @@ public class LineBreakContext {
     private int _nextWidth;
     private boolean _endsOnWordBreak;
     private boolean _finishedInCharBreakingMode;
+    private boolean _endsInHangingSpace;
     private boolean _isFirstChar;
     private boolean _atomic;
     private int _followingGlueWidth;
@@ -75,6 +76,7 @@ public class LineBreakContext {
         _nextWidth = 0;
         _endsOnWordBreak = false;
         _finishedInCharBreakingMode = false;
+        _endsInHangingSpace = false;
         _isFirstChar = false;
     }
 
@@ -249,6 +251,19 @@ public class LineBreakContext {
 
     public void setFinishedInCharBreakingMode(boolean mode) {
         this._finishedInCharBreakingMode = mode;
+    }
+
+    public void setEndsInHangingSpace(boolean endsInHangingSpace) {
+        this._endsInHangingSpace = endsInHangingSpace;
+    }
+
+    /**
+     * If this is true, the text finished on the line only because the spaces that
+     * end it hang: the line is full, and anything after it that takes width must
+     * start the next line.
+     */
+    public boolean isEndsInHangingSpace() {
+        return _endsInHangingSpace;
     }
 
     /**

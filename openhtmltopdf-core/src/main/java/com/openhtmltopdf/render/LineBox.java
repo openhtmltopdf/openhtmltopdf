@@ -514,10 +514,15 @@ public class LineBox extends Box implements InlinePaintable {
     }
     
     public InlineText findTrailingText() {
-        return findTrailingText(false);
+        return findTrailingText(null);
     }
 
-    private InlineText findTrailingText(boolean skipLineFeeds) {
+    /**
+     * As {@link InlineLayoutBox#findTrailingText(CssContext)}: with <code>cssCtx</code>,
+     * passes over line feeds and inline boxes that take no width.
+     */
+    private InlineText findTrailingText(CssContext cssCtx) {
+        boolean skipWidthless = cssCtx != null;
         if (getChildCount() == 0) {
             return null;
         }
@@ -525,11 +530,11 @@ public class LineBox extends Box implements InlinePaintable {
         for (int offset = getChildCount() - 1; offset >= 0; offset--) {
             Box child = getChild(offset);
             if (child instanceof InlineLayoutBox) {
-                if (skipLineFeeds && ((InlineLayoutBox) child).isWithoutContent()) {
+                if (skipWidthless && ((InlineLayoutBox) child).isWithoutWidth(cssCtx)) {
                     continue;
                 }
-                InlineText result = ((InlineLayoutBox)child).findTrailingText(skipLineFeeds);
-                if (result != null && (result.isEmpty() || (skipLineFeeds && result.isLineFeedOnly()))) {
+                InlineText result = ((InlineLayoutBox)child).findTrailingText(cssCtx);
+                if (result != null && (result.isEmpty() || (skipWidthless && result.isLineFeedOnly()))) {
                     continue;
                 }
                 return result;
@@ -542,28 +547,17 @@ public class LineBox extends Box implements InlinePaintable {
     }
     
     public void trimTrailingSpace(LayoutContext c) {
-        InlineText text = findTrailingText();
+        // The space that ends a line hangs: it did not count toward the fit. It is
+        // found past what takes no width after it, such as the line feed of a hard
+        // break or an empty element, so that it is trimmed there too.
+        InlineText text = findTrailingText(c);
         
         if (text != null) {
-            trimTrailingSpace(c, text);
-
-            if (text.isLineFeedOnly()) {
-                // A line that ends at a hard break ends with the break's line feed, so the
-                // space before it is not found above. That space hangs, it did not count
-                // toward the fit, so it is trimmed here too.
-                InlineText before = findTrailingText(true);
-                if (before != null) {
-                    trimTrailingSpace(c, before);
-                }
+            InlineLayoutBox iB = text.getParent();
+            IdentValue whitespace = iB.getStyle().getWhitespace();
+            if (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) {
+                text.trimTrailingSpace(c);
             }
-        }
-    }
-
-    private static void trimTrailingSpace(LayoutContext c, InlineText text) {
-        InlineLayoutBox iB = text.getParent();
-        IdentValue whitespace = iB.getStyle().getWhitespace();
-        if (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) {
-            text.trimTrailingSpace(c);
         }
     }    
     
