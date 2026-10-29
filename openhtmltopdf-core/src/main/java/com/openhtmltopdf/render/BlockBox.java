@@ -1017,11 +1017,17 @@ public class BlockBox extends Box {
             RectPropertySet padding = getPadding(c);
             BorderPropertySet border = getBorder(c);
 
-            if (cssWidth != -1 && !isAnonymous() &&
+            // A replaced element's used width (intrinsic size, max-width,
+            // border-box) is only known once it is created, so auto margins
+            // are resolved against that rather than the specified width.
+            createReplaced(c);
+            int autoMarginWidth = isReplaced() ? getContentWidth() : cssWidth;
+
+            if (autoMarginWidth != -1 && !isAnonymous() &&
                     (getStyle().isIdent(CSSName.MARGIN_LEFT, IdentValue.AUTO) ||
                             getStyle().isIdent(CSSName.MARGIN_RIGHT, IdentValue.AUTO)) &&
                     getStyle().isNeedAutoMarginResolution()) {
-                resolveAutoMargins(c, cssWidth, padding, border);
+                resolveAutoMargins(c, autoMarginWidth, padding, border);
             }
 
             recalcMargin(c);
@@ -1030,8 +1036,7 @@ public class BlockBox extends Box {
             // CLEAN: cast to int
             setLeftMBP((int) margin.left() + (int) border.left() + (int) padding.left());
             setRightMBP((int) padding.right() + (int) border.right() + (int) margin.right());
-            
-            createReplaced(c);
+
             if (isReplaced()) {
                 setDimensionsCalculated(true);
                 return;

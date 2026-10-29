@@ -1,0 +1,33 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 600px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+}
+div {
+  width: 260px;
+  background: #ddd;
+  margin-bottom: 10px;
+}
+img {
+  display: block;
+  border: 1px solid red;
+}
+</style>
+</head>
+<body>
+<!-- Auto width: auto margins use the intrinsic width. -->
+<div><img src="../../demos/images/flyingsaucer.png" style="margin: auto;"/></div>
+<div><img src="../../demos/images/flyingsaucer.png" style="margin-left: auto;"/></div>
+<!-- Auto width clamped by max-width. -->
+<div><img src="../../demos/images/flyingsaucer.png" style="max-width: 80px; margin: auto;"/></div>
+<!-- border-box: padding and border are part of the width. -->
+<div><img src="../../demos/images/flyingsaucer.png" style="box-sizing: border-box; width: 100px; padding: 10px; margin: auto;"/></div>
+<!-- Control: explicit width already worked. -->
+<div><img src="../../demos/images/flyingsaucer.png" style="width: 100px; margin: auto;"/></div>
+</body>
+</html>
