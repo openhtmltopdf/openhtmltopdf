@@ -757,6 +757,16 @@ public class VisualRegressionTest {
     public void testIssue74ReplacedWidthBelowMax() throws IOException {
         assertTrue(vt.runTest("issue-74-replaced-width-below-max"));
     }
+
+    /**
+     * Tests that auto margins on a block image use its used width
+     * (intrinsic, max-width clamped or border-box), not just an explicit width.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/267
+     */
+    @Test
+    public void testIssue267ReplacedAutoMargins() throws IOException {
+        assertTrue(vt.runTest("issue-267-replaced-auto-margins"));
+    }
     
     /**
      * Tests that a fixed position element correctly resizes to the sum of its child boxes
