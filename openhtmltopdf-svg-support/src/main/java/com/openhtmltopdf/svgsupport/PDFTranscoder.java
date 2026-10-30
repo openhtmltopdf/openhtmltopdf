@@ -147,7 +147,7 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 				fontStyle == IdentValue.OBLIQUE)
 				return TextAttribute.POSTURE_OBLIQUE;
 			
-			return null;
+			return TextAttribute.POSTURE_REGULAR;
 		}
 
         private Float getStyle(FontStyle style) {
@@ -200,7 +200,7 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 	        } else if (weight == IdentValue.FONT_WEIGHT_300) {
 	            return TextAttribute.WEIGHT_LIGHT;
 	        } else if (weight == IdentValue.FONT_WEIGHT_400) {
-	            return TextAttribute.WEIGHT_MEDIUM;
+	            return TextAttribute.WEIGHT_REGULAR;
 	        } else if (weight == IdentValue.FONT_WEIGHT_500) {
 	            return TextAttribute.WEIGHT_SEMIBOLD;
 	        } else if (weight == IdentValue.FONT_WEIGHT_600) {
@@ -256,8 +256,8 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 		         }
 		         
 		         String fontFamily = null;
-		         IdentValue fontWeight = null;
-		         IdentValue fontStyle = null;
+		         IdentValue fontWeight = IdentValue.NORMAL;
+		         IdentValue fontStyle = IdentValue.NORMAL;
 
 		         if (rule.hasFontFamily()) {
 		            fontFamily = style.valueByName(CSSName.FONT_FAMILY).asString();
