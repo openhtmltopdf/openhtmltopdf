@@ -5,6 +5,7 @@ import java.awt.font.TextAttribute;
 import java.io.File;
 import java.io.IOException;
 import java.text.AttributedCharacterIterator;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -93,10 +94,34 @@ public class OpenHtmlGvtFontFamily implements GVTFontFamily {
                 return fnt.font.deriveFont(size);
             }
         } else {
-            // We don't have any matches for this style, weight so
-            // just use the first font in the family.
-            return fonts.values().iterator().next().font.deriveFont(size);
+            return nearest(fontWeight, fontStyle).font.deriveFont(size);
         }
+    }
+
+    private FontEntry nearest(Float fontWeight, Float fontStyle) {
+        float requestedWeight = orDefault(fontWeight, TextAttribute.WEIGHT_REGULAR);
+        boolean requestedUpright = orDefault(fontStyle, TextAttribute.POSTURE_REGULAR) == TextAttribute.POSTURE_REGULAR;
+
+        return fonts.entrySet().stream()
+                .min(Comparator
+                        .comparing((Map.Entry<FontDescriptor, FontEntry> e) ->
+                                isUpright(e.getKey()) != requestedUpright)
+                        .thenComparingDouble(e -> Math.abs(weightOf(e.getKey()) - requestedWeight))
+                        .thenComparingDouble(e -> weightOf(e.getKey())))
+                .orElseThrow(() -> new IllegalStateException("Font family " + fontFamily + " has no faces"))
+                .getValue();
+    }
+
+    private static boolean isUpright(FontDescriptor descriptor) {
+        return orDefault(descriptor.style, TextAttribute.POSTURE_REGULAR) == TextAttribute.POSTURE_REGULAR;
+    }
+
+    private static float weightOf(FontDescriptor descriptor) {
+        return orDefault(descriptor.weight, TextAttribute.WEIGHT_REGULAR);
+    }
+
+    private static float orDefault(Float value, float defaultValue) {
+        return value != null ? value : defaultValue;
     }
 
 	@Override
