@@ -106,11 +106,11 @@ public class LayoutUtil {
             final LayoutContext c, LineBox currentLine, BlockBox block,
             boolean movedVertically) {
         if (block.getStyle().isForcePageBreakBefore() || block.isPageBreakNeededBecauseOfMinHeight(c)) {
-            block.forcePageBreakBefore(c, block.getStyle().getIdent(CSSName.PAGE_BREAK_BEFORE), false);
+            block.forcePageBreakBefore(c, block.getStyle().getIdent(CSSName.BREAK_BEFORE), false);
             block.calcCanvasLocation();
             resetAndFloatBlock(c, currentLine, block);
         } else if (block.getStyle().isAvoidPageBreakInside() && block.crossesPageBreak(c)) {
-            int clearDelta = block.forcePageBreakBefore(c, block.getStyle().getIdent(CSSName.PAGE_BREAK_BEFORE), false);
+            int clearDelta = block.forcePageBreakBefore(c, block.getStyle().getIdent(CSSName.BREAK_BEFORE), false);
 
             block.calcCanvasLocation();
             resetAndFloatBlock(c, currentLine, block);

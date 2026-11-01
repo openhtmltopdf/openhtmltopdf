@@ -943,41 +943,18 @@ public final class CSSName implements Comparable<CSSName> {
             );
 
     /**
-     * Unique CSSName instance for CSS2 property.
+     * Inherited, unlike in the specification: page-break-inside always was here, and
+     * documents rely on an avoid on a table section or list reaching its rows and items.
      */
-    public final static CSSName PAGE_BREAK_AFTER =
+    public final static CSSName BREAK_INSIDE =
             addProperty(
-                    "page-break-after",
-                    PRIMITIVE,
-                    "auto",
-                    NOT_INHERITED,
-                    new PrimitivePropertyBuilders.PageBreakAfter()
-            );
-
-    /**
-     * Unique CSSName instance for CSS2 property.
-     */
-    public final static CSSName PAGE_BREAK_BEFORE =
-            addProperty(
-                    "page-break-before",
-                    PRIMITIVE,
-                    "auto",
-                    NOT_INHERITED,
-                    new PrimitivePropertyBuilders.PageBreakBefore()
-            );
-
-    /**
-     * Unique CSSName instance for CSS2 property.
-     */
-    public final static CSSName PAGE_BREAK_INSIDE =
-            addProperty(
-                    "page-break-inside",
+                    "break-inside",
                     PRIMITIVE,
                     "auto",
                     INHERITS,
-                    new PrimitivePropertyBuilders.PageBreakInside()
+                    new PrimitivePropertyBuilders.BreakInside()
             );
-    
+
     public final static CSSName BREAK_AFTER =
             addProperty(
                     "break-after",
@@ -1648,6 +1625,44 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.FSOverflowPagesDirection()
              );
 
+
+    /**
+     * Legacy shorthand for {@link #BREAK_AFTER}, as in CSS Fragmentation Level 3:
+     * <code>always</code> sets <code>page</code>, the other values carry over unchanged.
+     */
+    public final static CSSName PAGE_BREAK_AFTER =
+            addProperty(
+                    "page-break-after",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.PageBreakAfter()
+            );
+
+    /**
+     * Legacy shorthand for {@link #BREAK_BEFORE}, as in CSS Fragmentation Level 3:
+     * <code>always</code> sets <code>page</code>, the other values carry over unchanged.
+     */
+    public final static CSSName PAGE_BREAK_BEFORE =
+            addProperty(
+                    "page-break-before",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.PageBreakBefore()
+            );
+
+    /**
+     * Legacy shorthand for {@link #BREAK_INSIDE}, as in CSS Fragmentation Level 3.
+     */
+    public final static CSSName PAGE_BREAK_INSIDE =
+            addProperty(
+                    "page-break-inside",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.PageBreakInside()
+            );
 
     /**
      * Unique CSSName instance for CSS2 property.

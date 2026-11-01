@@ -1187,8 +1187,74 @@ public class PrimitivePropertyBuilders {
     public static class PaddingLeft extends NonNegativeLengthLike {
     }
 
-    public static class PageBreakBefore extends SingleIdent {
-        // auto | always | avoid | left | right | inherit
+    // auto | avoid | always | page | left | right | avoid-page | column | avoid-column
+    private static final BitSet BREAK_BETWEEN = setFor(
+            new IdentValue[] {
+                    IdentValue.AUTO, IdentValue.AVOID, IdentValue.ALWAYS,
+                    IdentValue.PAGE, IdentValue.LEFT, IdentValue.RIGHT,
+                    IdentValue.AVOID_PAGE, IdentValue.COLUMN, IdentValue.AVOID_COLUMN });
+
+    public static class BreakBefore extends SingleIdent {
+        @Override
+        protected BitSet getAllowed() {
+            return BREAK_BETWEEN;
+        }
+    }
+
+    public static class BreakAfter extends SingleIdent {
+        @Override
+        protected BitSet getAllowed() {
+            return BREAK_BETWEEN;
+        }
+    }
+
+    public static class BreakInside extends SingleIdent {
+        // auto | avoid | avoid-page | avoid-column
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] {
+                        IdentValue.AUTO, IdentValue.AVOID,
+                        IdentValue.AVOID_PAGE, IdentValue.AVOID_COLUMN });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
+    /**
+     * The CSS 2 page-break-* properties, legacy shorthands for the break-* longhand
+     * they name (CSS Fragmentation Level 3, section 3.4): <code>always</code> sets
+     * <code>page</code>, every other value carries over unchanged.
+     */
+    static abstract class LegacyPageBreak extends AbstractPropertyBuilder {
+        protected abstract CSSName getLonghand();
+
+        protected abstract BitSet getAllowed();
+
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, values.size());
+            PropertyValue value = values.get(0);
+            checkInheritAllowed(value, inheritAllowed);
+            if (value.getCssValueType() != CSSValue.CSS_INHERIT) {
+                checkIdentType(cssName, value);
+                IdentValue ident = checkIdent(cssName, value);
+
+                checkValidity(cssName, getAllowed(), ident);
+
+                if (ident == IdentValue.ALWAYS) {
+                    value = new PropertyValue(IdentValue.PAGE);
+                }
+            }
+
+            return Collections.singletonList(
+                    new PropertyDeclaration(getLonghand(), value, important, origin));
+        }
+    }
+
+    public static class PageBreakBefore extends LegacyPageBreak {
+        // auto | always | avoid | left | right
         private static final BitSet ALLOWED = setFor(
                 new IdentValue[] {
                         IdentValue.AUTO, IdentValue.ALWAYS,
@@ -1196,31 +1262,47 @@ public class PrimitivePropertyBuilders {
                         IdentValue.RIGHT });
 
         @Override
-        protected BitSet getAllowed() {
-            return ALLOWED;
+        protected CSSName getLonghand() {
+            return CSSName.BREAK_BEFORE;
         }
-    }
-    
-    public static class BreakBefore extends SingleIdent {
-        private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.AUTO, IdentValue.COLUMN });
-        
+
         @Override
         protected BitSet getAllowed() {
             return ALLOWED;
         }
     }
 
-    public static class BreakAfter extends SingleIdent {
-        private static final BitSet ALLOWED = setFor(
-                new IdentValue[] { IdentValue.AUTO, IdentValue.COLUMN });
-        
+    public static class PageBreakAfter extends LegacyPageBreak {
+        // auto | always | avoid | left | right
+        private static final BitSet ALLOWED = PageBreakBefore.ALLOWED;
+
+        @Override
+        protected CSSName getLonghand() {
+            return CSSName.BREAK_AFTER;
+        }
+
         @Override
         protected BitSet getAllowed() {
             return ALLOWED;
         }
     }
-    
+
+    public static class PageBreakInside extends LegacyPageBreak {
+        // auto | avoid
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.AVOID });
+
+        @Override
+        protected CSSName getLonghand() {
+            return CSSName.BREAK_INSIDE;
+        }
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class Page extends AbstractPropertyBuilder {
         @Override
         public List<PropertyDeclaration> buildDeclarations(
@@ -1242,32 +1324,6 @@ public class PrimitivePropertyBuilders {
                     new PropertyDeclaration(cssName, value, important, origin));
 
 
-        }
-    }
-
-    public static class PageBreakAfter extends SingleIdent {
-        // auto | always | avoid | left | right | inherit
-        private static final BitSet ALLOWED = setFor(
-                new IdentValue[] {
-                        IdentValue.AUTO, IdentValue.ALWAYS,
-                        IdentValue.AVOID, IdentValue.LEFT,
-                        IdentValue.RIGHT });
-
-        @Override
-        protected BitSet getAllowed() {
-            return ALLOWED;
-        }
-    }
-
-    public static class PageBreakInside extends SingleIdent {
-        // avoid | auto | inherit
-        private static final BitSet ALLOWED = setFor(
-                new IdentValue[] {
-                        IdentValue.AVOID, IdentValue.AUTO });
-
-        @Override
-        protected BitSet getAllowed() {
-            return ALLOWED;
         }
     }
 
