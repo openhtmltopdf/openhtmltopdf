@@ -281,9 +281,13 @@ public class TableBox extends BlockBox {
             prevExtraTop = c.getExtraSpaceTop();
             prevExtraBottom = c.getExtraSpaceBottom();
 
+            // The collapsed top border of the repeated header sticks out above it on a
+            // continuation page just as it does on the first, where calcPageClearance
+            // makes room for it. Issue #271.
             c.setExtraSpaceTop(c.getExtraSpaceTop() +
                     (int)getPadding(c).top() +
                     (int)getBorder(c).top() +
+                    getCollapsedTopSpill() +
                     getStyle().getBorderVSpacing(c));
             c.setExtraSpaceBottom(c.getExtraSpaceBottom() +
                     (int)getPadding(c).bottom() +
@@ -620,15 +624,7 @@ public class TableBox extends BlockBox {
             if (page != null) {
                 TableRowBox row = getFirstRow();
                 if (row != null) {
-                    int spill = 0;
-                    for (Iterator<TableCellBox> i = row.getChildIteratorOfType(TableCellBox.class); i.hasNext(); ) {
-                        TableCellBox cell = i.next();
-                        BorderPropertySet collapsed = cell.getCollapsedPaintingBorder();
-                        int tmp = (int)collapsed.top() / 2;
-                        if (tmp > spill) {
-                            spill = tmp;
-                        }
-                    }
+                    int spill = getCollapsedTopSpill();
 
                     int borderTop = getAbsY() + (int)getMargin(c).top() - spill;
                     int delta = page.getTop() - borderTop;
@@ -641,6 +637,33 @@ public class TableBox extends BlockBox {
                 }
             }
         }
+    }
+
+    /**
+     * How far the collapsed top border of the first row reaches above the table: a
+     * collapsed border is centred on the grid line, and the table itself has no border
+     * of its own to reserve that space.
+     */
+    private int getCollapsedTopSpill() {
+        if (!getStyle().isCollapseBorders()) {
+            return 0;
+        }
+
+        TableRowBox row = getFirstRow();
+        if (row == null) {
+            return 0;
+        }
+
+        int spill = 0;
+        for (Iterator<TableCellBox> i = row.getChildIteratorOfType(TableCellBox.class); i.hasNext(); ) {
+            TableCellBox cell = i.next();
+            BorderPropertySet collapsed = cell.getCollapsedPaintingBorder();
+            int tmp = (int)collapsed.top() / 2;
+            if (tmp > spill) {
+                spill = tmp;
+            }
+        }
+        return spill;
     }
 
     private void calcWidth() {

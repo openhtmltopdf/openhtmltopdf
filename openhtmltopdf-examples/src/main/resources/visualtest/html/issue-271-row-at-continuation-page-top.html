@@ -31,6 +31,9 @@ td {
  * of a continuation page must still move below the repeated header; otherwise its text
  * is pushed down inside it, the row grows by the header's height, and the header is
  * drawn on the previous page instead.
+ *
+ * The continuation pages also reserve the half of the header's collapsed top border that
+ * sticks out above the table, as the first page does: 10 rows on every page, as in Chrome.
  */
 </style>
 </head>
