@@ -2170,6 +2170,16 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("issue-62-generated-content-inside-inline", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that SVG text draws an @font-face face as the font file is, without synthetic
+     * bold or slant for a face declared 900 or italic.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/270
+     */
+    @Test
+    public void testSvgFontFaceNoSyntheticStyle() throws IOException {
+        assertTrue(vt.runTest("svg-font-face-no-synthetic-style", TestSupport.WITH_SVG));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
