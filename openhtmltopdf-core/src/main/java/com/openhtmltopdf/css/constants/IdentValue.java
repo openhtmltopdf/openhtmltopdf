@@ -262,9 +262,12 @@ public class IdentValue implements FSDerivedValue {
     public static final IdentValue CONTENT_BOX = addValue("content-box");
 
     /*
-     * Column break.
+     * Fragmentation breaks: break-before, break-after, break-inside.
      */
     public static final IdentValue COLUMN = addValue("column");
+    public static final IdentValue PAGE = addValue("page");
+    public static final IdentValue AVOID_PAGE = addValue("avoid-page");
+    public static final IdentValue AVOID_COLUMN = addValue("avoid-column");
 
     /**
      * CSS footnotes for use in float: footnote

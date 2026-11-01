@@ -690,7 +690,7 @@ public class BlockBox extends Box {
     public void positionAbsoluteOnPage(LayoutContext c) {
         if (c.isPrint() &&
                 (getStyle().isForcePageBreakBefore() || isNeedPageClear() || isPageBreakNeededBecauseOfMinHeight(c))) {
-            forcePageBreakBefore(c, getStyle().getIdent(CSSName.PAGE_BREAK_BEFORE), false);
+            forcePageBreakBefore(c, getStyle().getIdent(CSSName.BREAK_BEFORE), false);
             calcCanvasLocation();
             calcChildLocations();
 
