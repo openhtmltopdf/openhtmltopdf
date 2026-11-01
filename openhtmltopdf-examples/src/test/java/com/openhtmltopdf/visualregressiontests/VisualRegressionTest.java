@@ -2170,6 +2170,17 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("issue-62-generated-content-inside-inline", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that a paginated table's body row starting exactly at the top of a
+     * continuation page is moved below the repeated header, which must then be
+     * drawn on that page.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/271
+     */
+    @Test
+    public void testIssue271RowAtContinuationPageTop() throws IOException {
+        assertTrue(vt.runTest("issue-271-row-at-continuation-page-top", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
