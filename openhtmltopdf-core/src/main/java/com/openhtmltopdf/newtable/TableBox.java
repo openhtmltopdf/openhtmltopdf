@@ -281,9 +281,10 @@ public class TableBox extends BlockBox {
             prevExtraTop = c.getExtraSpaceTop();
             prevExtraBottom = c.getExtraSpaceBottom();
 
-            // The collapsed top border of the repeated header sticks out above it on a
-            // continuation page just as it does on the first, where calcPageClearance
-            // makes room for it. Issue #271.
+            // Collapsed borders are centred on the grid line, so half of the header's top
+            // border sticks out above it on a continuation page, as on the first, where
+            // calcPageClearance makes room for it, and half of the bottom border of the
+            // row ending a page sticks out below it. Issue #271.
             c.setExtraSpaceTop(c.getExtraSpaceTop() +
                     (int)getPadding(c).top() +
                     (int)getBorder(c).top() +
@@ -292,6 +293,7 @@ public class TableBox extends BlockBox {
             c.setExtraSpaceBottom(c.getExtraSpaceBottom() +
                     (int)getPadding(c).bottom() +
                     (int)getBorder(c).bottom() +
+                    getCollapsedBottomSpill() +
                     getStyle().getBorderVSpacing(c));
         }
 
@@ -661,6 +663,30 @@ public class TableBox extends BlockBox {
             int tmp = (int)collapsed.top() / 2;
             if (tmp > spill) {
                 spill = tmp;
+            }
+        }
+        return spill;
+    }
+
+    /**
+     * How far a collapsed bottom border reaches below the row it closes. Any row can end
+     * a page, so this is the widest over all rows; tables rarely vary it.
+     */
+    private int getCollapsedBottomSpill() {
+        if (!getStyle().isCollapseBorders()) {
+            return 0;
+        }
+
+        int spill = 0;
+        for (TableSectionBox section : getTableSections()) {
+            for (Box rowBox : section.getChildren()) {
+                for (Iterator<TableCellBox> i = ((TableRowBox) rowBox).getChildIteratorOfType(TableCellBox.class); i.hasNext(); ) {
+                    BorderPropertySet collapsed = i.next().getCollapsedPaintingBorder();
+                    int tmp = (int)collapsed.bottom() / 2;
+                    if (tmp > spill) {
+                        spill = tmp;
+                    }
+                }
             }
         }
         return spill;
