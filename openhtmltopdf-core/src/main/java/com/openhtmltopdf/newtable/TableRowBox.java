@@ -87,7 +87,9 @@ public class TableRowBox extends BlockBox {
         if (running) {
             prevExtraTop = c.getExtraSpaceTop();
             prevExtraBottom = c.getExtraSpaceBottom();
-            
+
+            clearRepeatedHeader(c);
+
             calcExtraSpaceTop(c);
             calcExtraSpaceBottom(c);
             
@@ -146,6 +148,35 @@ public class TableRowBox extends BlockBox {
             // head its rows. When the row did start there, moving is the skipped page
             // this change is about.
             escalatePageClearToTable();
+        }
+    }
+
+    /**
+     * A body row that starts exactly at the top of a continuation page did not straddle
+     * the break, so nothing moved it below the space reserved there for the repeated
+     * header and footer furniture. Move it now, as BlockBox.calcExtraPageClearance does
+     * for blocks. Otherwise its lines are pushed down inside it, inflating the row, and
+     * the header, positioned above the row's top, ends up on the previous page. Issue #271.
+     * <br><br>
+     * Call before this row adds its own cell border and padding to the extra space.
+     */
+    private void clearRepeatedHeader(LayoutContext c) {
+        if (!c.isPageBreaksAllowed() || c.getExtraSpaceTop() <= 0
+                || getSection().isHeader() || getSection().isFooter()) {
+            return;
+        }
+
+        PageBox page = c.getRootLayer().getFirstPage(c, this);
+        if (page == null || getTable().getAbsY() >= page.getTop()) {
+            // The table starts on this page: its own header sits above the row.
+            return;
+        }
+
+        int diff = page.getTop() + c.getExtraSpaceTop() - getAbsY();
+        if (diff > 0) {
+            setY(getY() + diff);
+            c.translate(0, diff);
+            calcCanvasLocation();
         }
     }
 
