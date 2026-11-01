@@ -12,6 +12,7 @@ import com.openhtmltopdf.extend.UserAgentCallback;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
+import com.openhtmltopdf.outputdevice.helper.FontResolverHelper;
 import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.RenderingContext;
 import com.openhtmltopdf.simple.extend.ReplacedElementScaleHelper;
@@ -30,7 +31,6 @@ import org.apache.batik.transcoder.TranscoderOutput;
 import org.w3c.dom.Document;
 
 import java.awt.*;
-import java.awt.font.TextAttribute;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
@@ -142,87 +142,34 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 			return null;
 		}
 		
-		private Float getStyle(IdentValue fontStyle) {
-			if (fontStyle == IdentValue.ITALIC ||
-				fontStyle == IdentValue.OBLIQUE)
-				return TextAttribute.POSTURE_OBLIQUE;
-			
-			return TextAttribute.POSTURE_REGULAR;
-		}
+        private IdentValue toCssStyle(FontStyle style) {
+            if (style == null) {
+                return IdentValue.NORMAL;
+            }
 
-        private Float getStyle(FontStyle style) {
             switch (style) {
             case ITALIC:
+                return IdentValue.ITALIC;
             case OBLIQUE:
-                return TextAttribute.POSTURE_OBLIQUE;
+                return IdentValue.OBLIQUE;
             case NORMAL:
             default:
-                return 0f;
+                return IdentValue.NORMAL;
             }
         }
 
-        private Float getWeight(Integer weight) {
-            if (weight == null) {
-                return null;
-            }
+        private int toCssWeight(Integer weight) {
+            return weight == null ? 400 : weight;
+        }
 
-            switch (weight.intValue()) {
-            case 100:
-                return TextAttribute.WEIGHT_EXTRA_LIGHT;
-            case 200:
-            case 300:
-                return TextAttribute.WEIGHT_LIGHT;
-            case 400:
-                return TextAttribute.WEIGHT_REGULAR;
-            case 500:
-            case 600:
-                return TextAttribute.WEIGHT_SEMIBOLD;
-            case 700:
-                return TextAttribute.WEIGHT_BOLD;
-            case 800:
-                return TextAttribute.WEIGHT_EXTRABOLD;
-            case 900:
-                return TextAttribute.WEIGHT_ULTRABOLD;
-            default:
-                return null;
+        private int toCssWeight(IdentValue weight) {
+            try {
+                return FontResolverHelper.convertWeightToInt(weight);
+            } catch (IllegalArgumentException e) {
+                return 400;
             }
         }
 
-		private Float getWeight(IdentValue weight) {
-	        if (weight == IdentValue.NORMAL) {
-	            return TextAttribute.WEIGHT_REGULAR;
-	        } else if (weight == IdentValue.BOLD) {
-	            return TextAttribute.WEIGHT_BOLD;
-	        } else if (weight == IdentValue.FONT_WEIGHT_100) {
-	            return TextAttribute.WEIGHT_EXTRA_LIGHT;
-	        } else if (weight == IdentValue.FONT_WEIGHT_200) {
-	            return TextAttribute.WEIGHT_LIGHT;
-	        } else if (weight == IdentValue.FONT_WEIGHT_300) {
-	            return TextAttribute.WEIGHT_LIGHT;
-	        } else if (weight == IdentValue.FONT_WEIGHT_400) {
-	            return TextAttribute.WEIGHT_REGULAR;
-	        } else if (weight == IdentValue.FONT_WEIGHT_500) {
-	            return TextAttribute.WEIGHT_SEMIBOLD;
-	        } else if (weight == IdentValue.FONT_WEIGHT_600) {
-	            return TextAttribute.WEIGHT_SEMIBOLD;
-	        } else if (weight == IdentValue.FONT_WEIGHT_700) {
-	            return TextAttribute.WEIGHT_BOLD;
-	        } else if (weight == IdentValue.FONT_WEIGHT_800) {
-	            return TextAttribute.WEIGHT_EXTRABOLD;
-	        } else if (weight == IdentValue.FONT_WEIGHT_900) {
-	            return TextAttribute.WEIGHT_ULTRABOLD;
-	        } else if (weight == IdentValue.LIGHTER) {
-	            // FIXME
-	            return TextAttribute.WEIGHT_MEDIUM;
-	        } else if (weight == IdentValue.BOLDER) {
-	            // FIXME
-	            return TextAttribute.WEIGHT_MEDIUM;
-	        }
-	        else {
-	        	return null;
-	        }
-		}
-		
 		private void addFontFaceFont(
 	            String fontFamilyNameOverride, IdentValue fontWeightOverride, IdentValue fontStyleOverride, String uri, byte[] font1)
 	            throws FontFormatException {
@@ -236,7 +183,7 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 				families.put(fontFamilyNameOverride, family);
 			}
 			
-			family.addFont(font1, 1, getWeight(fontWeightOverride), getStyle(fontStyleOverride));
+			family.addFont(font1, 1, toCssWeight(fontWeightOverride), fontStyleOverride);
 	    }
 		
 		
@@ -283,7 +230,7 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
         public void addFontFile(File fontFile, String family, Integer weight, FontStyle style) throws IOException, FontFormatException {
             OpenHtmlGvtFontFamily fontFamily = this.families.computeIfAbsent(family, fam -> new OpenHtmlGvtFontFamily(fam));
             // 12 seems to be the default font-size for SVG so use it as our base font size.
-            fontFamily.addFont(fontFile, 12, getWeight(weight), getStyle(style));
+            fontFamily.addFont(fontFile, 12, toCssWeight(weight), toCssStyle(style));
         }
 
         public void addFontStream(FSSupplier<InputStream> supplier, String family, Integer weight, FontStyle style) throws IOException, FontFormatException {
@@ -299,7 +246,7 @@ public class PDFTranscoder extends SVGAbstractTranscoder {
 
             OpenHtmlGvtFontFamily fontFamily = this.families.computeIfAbsent(family, fam -> new OpenHtmlGvtFontFamily(fam));
             // 12 seems to be the default font-size for SVG so use it as our base font size.
-            fontFamily.addFont(fontBytes, 12, getWeight(weight), getStyle(style));
+            fontFamily.addFont(fontBytes, 12, toCssWeight(weight), toCssStyle(style));
         }
     }
 

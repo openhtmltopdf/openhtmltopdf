@@ -5,68 +5,103 @@ import java.awt.font.TextAttribute;
 import java.io.File;
 import java.io.IOException;
 import java.text.AttributedCharacterIterator;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.batik.gvt.font.GVTFont;
 import org.apache.batik.gvt.font.GVTFontFace;
 import org.apache.batik.gvt.font.GVTFontFamily;
 
+import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.outputdevice.helper.FontFamily;
+import com.openhtmltopdf.outputdevice.helper.MinimalFontDescription;
+
+/**
+ * The faces of one font family available to SVG text. Faces are kept by their CSS
+ * weight and style and chosen with {@link FontFamily#match(int, IdentValue)}, the same
+ * matching HTML text uses, so SVG text and HTML text get the same face.
+ */
 public class OpenHtmlGvtFontFamily implements GVTFontFamily {
 
-    private static class FontDescriptor {
-        Float style;
-        Float weight;
+    /**
+     * The TextAttribute weight Batik asks for, per CSS weight 100 to 900, as in
+     * org.apache.batik.bridge.TextUtilities.convertFontWeight.
+     */
+    private static final float[] BATIK_WEIGHTS = {
+        TextAttribute.WEIGHT_EXTRA_LIGHT,
+        TextAttribute.WEIGHT_LIGHT,
+        TextAttribute.WEIGHT_DEMILIGHT,
+        TextAttribute.WEIGHT_REGULAR,
+        TextAttribute.WEIGHT_SEMIBOLD,
+        TextAttribute.WEIGHT_MEDIUM,
+        TextAttribute.WEIGHT_BOLD,
+        TextAttribute.WEIGHT_HEAVY,
+        TextAttribute.WEIGHT_ULTRABOLD
+    };
 
-        @Override
-        public boolean equals(Object obj) {
-            return (obj != null && obj.getClass() == this.getClass() &&
-                    Objects.equals(((FontDescriptor) obj).style, this.style) &&
-                    Objects.equals(((FontDescriptor) obj).weight, this.weight));
+    private static class Face implements MinimalFontDescription {
+        final int weight;
+        final IdentValue style;
+        final GVTFont font;
+        final float size;
+
+        Face(int weight, IdentValue style, GVTFont font, float size) {
+            this.weight = weight;
+            this.style = style;
+            this.font = font;
+            this.size = size;
         }
 
         @Override
-        public int hashCode() {
-            return Objects.hash(style, weight);
+        public int getWeight() {
+            return weight;
+        }
+
+        @Override
+        public IdentValue getStyle() {
+            return style;
         }
     }
 
-    private static class FontEntry {
-        GVTFont font;
-        float size;
+    private final FontFamily<Face> faces;
+    private final String fontFamily;
+
+    public OpenHtmlGvtFontFamily(String family) {
+        this.fontFamily = family;
+        this.faces = new FontFamily<>(family);
     }
 
-	private final Map<FontDescriptor, FontEntry> fonts = new HashMap<>(1);
-	private final String fontFamily;
-	
-	public OpenHtmlGvtFontFamily(String family) {
-		this.fontFamily = family;
-	}
+    /**
+     * @param cssWeight the CSS font weight, 100 to 900
+     * @param style {@link IdentValue#NORMAL}, {@link IdentValue#ITALIC} or {@link IdentValue#OBLIQUE}
+     */
+    public void addFont(File file, float size, int cssWeight, IdentValue style) throws IOException, FontFormatException {
+        GVTFont font = new OpenHtmlGvtFont(file, this, size, toBatikWeight(cssWeight), toBatikPosture(style));
+        faces.addFontDescription(new Face(cssWeight, style, font, size));
+    }
 
+    /**
+     * @param cssWeight the CSS font weight, 100 to 900
+     * @param style {@link IdentValue#NORMAL}, {@link IdentValue#ITALIC} or {@link IdentValue#OBLIQUE}
+     */
+    public void addFont(byte[] bytes, float size, int cssWeight, IdentValue style) throws FontFormatException {
+        GVTFont font = new OpenHtmlGvtFont(bytes, this, size, toBatikWeight(cssWeight), toBatikPosture(style));
+        faces.addFontDescription(new Face(cssWeight, style, font, size));
+    }
+
+    /**
+     * @deprecated Use {@link #addFont(File, float, int, IdentValue)}, which takes the CSS weight.
+     */
+    @Deprecated
     public void addFont(File file, float size, Float fontWeight, Float fontStyle) throws IOException, FontFormatException {
-        FontDescriptor des = new FontDescriptor();
-        des.style = fontStyle;
-        des.weight = fontWeight;
-
-        FontEntry entry = new FontEntry();
-        entry.size = size;
-        entry.font = new OpenHtmlGvtFont(file, this, size, fontWeight, fontStyle);
-
-        fonts.put(des, entry);
+        addFont(file, size, toCssWeight(fontWeight), toCssStyle(fontStyle));
     }
 
+    /**
+     * @deprecated Use {@link #addFont(byte[], float, int, IdentValue)}, which takes the CSS weight.
+     */
+    @Deprecated
     public void addFont(byte[] bytes, float size, Float fontWeight, Float fontStyle) throws FontFormatException {
-        FontDescriptor des = new FontDescriptor();
-        des.style = fontStyle;
-        des.weight = fontWeight;
-
-        FontEntry entry = new FontEntry();
-        entry.size = size;
-        entry.font = new OpenHtmlGvtFont(bytes, this, size, fontWeight, fontStyle);
-
-        fonts.put(des, entry);
+        addFont(bytes, size, toCssWeight(fontWeight), toCssStyle(fontStyle));
     }
 
 	@Override
@@ -76,52 +111,52 @@ public class OpenHtmlGvtFontFamily implements GVTFontFamily {
 
     @Override
     public GVTFont deriveFont(float size, @SuppressWarnings("rawtypes") Map attrs) {
-        Float fontWeight = (Float) attrs.get(TextAttribute.WEIGHT);
-        Float fontStyle = (Float) attrs.get(TextAttribute.POSTURE);
+        Face face = faces.match(
+                toCssWeight((Float) attrs.get(TextAttribute.WEIGHT)),
+                toCssStyle((Float) attrs.get(TextAttribute.POSTURE)));
 
-        FontDescriptor des = new FontDescriptor();
-        des.weight = fontWeight;
-        des.style = fontStyle;
-
-        FontEntry fnt = fonts.get(des);
-
-        if (fnt != null) {
-            if (fnt.size == size) {
-                // We have the exact size.
-                return fnt.font;
-            } else {
-                // Derive a font with the correct size.
-                return fnt.font.deriveFont(size);
-            }
-        } else {
-            return nearest(fontWeight, fontStyle).font.deriveFont(size);
+        if (face == null) {
+            throw new IllegalStateException("Font family " + fontFamily + " has no faces");
         }
+
+        return face.size == size ? face.font : face.font.deriveFont(size);
     }
 
-    private FontEntry nearest(Float fontWeight, Float fontStyle) {
-        float requestedWeight = orDefault(fontWeight, TextAttribute.WEIGHT_REGULAR);
-        boolean requestedUpright = orDefault(fontStyle, TextAttribute.POSTURE_REGULAR) == TextAttribute.POSTURE_REGULAR;
+    /**
+     * The CSS weight Batik meant by a TextAttribute weight: the one it maps to that
+     * value, or the nearest. 400 when there is none.
+     */
+    static int toCssWeight(Float batikWeight) {
+        if (batikWeight == null) {
+            return 400;
+        }
 
-        return fonts.entrySet().stream()
-                .min(Comparator
-                        .comparing((Map.Entry<FontDescriptor, FontEntry> e) ->
-                                isUpright(e.getKey()) != requestedUpright)
-                        .thenComparingDouble(e -> Math.abs(weightOf(e.getKey()) - requestedWeight))
-                        .thenComparingDouble(e -> weightOf(e.getKey())))
-                .orElseThrow(() -> new IllegalStateException("Font family " + fontFamily + " has no faces"))
-                .getValue();
+        int best = 0;
+        for (int i = 1; i < BATIK_WEIGHTS.length; i++) {
+            if (Math.abs(BATIK_WEIGHTS[i] - batikWeight) < Math.abs(BATIK_WEIGHTS[best] - batikWeight)) {
+                best = i;
+            }
+        }
+        return (best + 1) * 100;
     }
 
-    private static boolean isUpright(FontDescriptor descriptor) {
-        return orDefault(descriptor.style, TextAttribute.POSTURE_REGULAR) == TextAttribute.POSTURE_REGULAR;
+    static float toBatikWeight(int cssWeight) {
+        int index = Math.round(cssWeight / 100f) - 1;
+        return BATIK_WEIGHTS[Math.max(0, Math.min(BATIK_WEIGHTS.length - 1, index))];
     }
 
-    private static float weightOf(FontDescriptor descriptor) {
-        return orDefault(descriptor.weight, TextAttribute.WEIGHT_REGULAR);
+    /**
+     * Batik gives italic and oblique the same posture, so a slanted request asks for
+     * italic, which {@link FontFamily#match(int, IdentValue)} lets fall back to oblique.
+     */
+    static IdentValue toCssStyle(Float batikPosture) {
+        return batikPosture != null && batikPosture > 0f ? IdentValue.ITALIC : IdentValue.NORMAL;
     }
 
-    private static float orDefault(Float value, float defaultValue) {
-        return value != null ? value : defaultValue;
+    private static Float toBatikPosture(IdentValue style) {
+        return style == IdentValue.ITALIC || style == IdentValue.OBLIQUE
+                ? TextAttribute.POSTURE_OBLIQUE
+                : TextAttribute.POSTURE_REGULAR;
     }
 
 	@Override

@@ -53,15 +53,61 @@ public class SvgFontFaceNonVisualTest {
         assertUsesKarlaFace(svg, TextAttribute.WEIGHT_BOLD, TextAttribute.POSTURE_REGULAR);
     }
 
+    /**
+     * A weight without a face of its own falls back as CSS font matching and HTML text
+     * do: up to 500 the nearest lighter face first, above 500 the nearest heavier one.
+     */
     @Test
-    public void testMissingWeightUsesNearestFace() throws IOException {
+    public void testMissingWeightUsesCssFontMatching() throws IOException {
         BatikSVGDrawer svg = render(
                 face(NOTO_FONT_SRC, "font-weight: 400; font-style: normal;"),
                 face(KARLA_FONT_SRC, "font-weight: 700; font-style: normal;"));
 
-        assertUsesNotoFace(svg, TextAttribute.WEIGHT_LIGHT, TextAttribute.POSTURE_REGULAR);
+        assertUsesNotoFace(svg, TextAttribute.WEIGHT_LIGHT, TextAttribute.POSTURE_REGULAR);      // 200
+        assertUsesNotoFace(svg, TextAttribute.WEIGHT_SEMIBOLD, TextAttribute.POSTURE_REGULAR);   // 500
+        assertUsesKarlaFace(svg, TextAttribute.WEIGHT_MEDIUM, TextAttribute.POSTURE_REGULAR);    // 600
         assertUsesKarlaFace(svg, TextAttribute.WEIGHT_EXTRABOLD, TextAttribute.POSTURE_REGULAR);
-        assertUsesNotoFace(svg, TextAttribute.WEIGHT_MEDIUM, TextAttribute.POSTURE_REGULAR);
+    }
+
+    /**
+     * Batik asks 300 as DEMILIGHT and 600 as MEDIUM, so faces declared 200 and 300,
+     * or 500 and 600, must stay apart.
+     */
+    @Test
+    public void testNeighbouringWeightsKeepTheirOwnFaces() throws IOException {
+        BatikSVGDrawer light = render(
+                face(NOTO_FONT_SRC, "font-weight: 200;"),
+                face(KARLA_FONT_SRC, "font-weight: 300;"));
+
+        assertUsesNotoFace(light, TextAttribute.WEIGHT_LIGHT, TextAttribute.POSTURE_REGULAR);      // 200
+        assertUsesKarlaFace(light, TextAttribute.WEIGHT_DEMILIGHT, TextAttribute.POSTURE_REGULAR); // 300
+
+        BatikSVGDrawer medium = render(
+                face(NOTO_FONT_SRC, "font-weight: 500;"),
+                face(KARLA_FONT_SRC, "font-weight: 600;"));
+
+        assertUsesNotoFace(medium, TextAttribute.WEIGHT_SEMIBOLD, TextAttribute.POSTURE_REGULAR);  // 500
+        assertUsesKarlaFace(medium, TextAttribute.WEIGHT_MEDIUM, TextAttribute.POSTURE_REGULAR);   // 600
+    }
+
+    /**
+     * 800 is HEAVY in Batik: it has to find a face declared 800, and above 500 prefer
+     * the heavier face when there is none.
+     */
+    @Test
+    public void testHeavyWeights() throws IOException {
+        BatikSVGDrawer exact = render(
+                face(NOTO_FONT_SRC, "font-weight: 800;"),
+                face(KARLA_FONT_SRC, "font-weight: 900;"));
+
+        assertUsesNotoFace(exact, TextAttribute.WEIGHT_HEAVY, TextAttribute.POSTURE_REGULAR);      // 800
+        assertUsesKarlaFace(exact, TextAttribute.WEIGHT_ULTRABOLD, TextAttribute.POSTURE_REGULAR); // 900
+
+        BatikSVGDrawer fallback = render(
+                face(NOTO_FONT_SRC, "font-weight: 600;"),
+                face(KARLA_FONT_SRC, "font-weight: 900;"));
+
+        assertUsesKarlaFace(fallback, TextAttribute.WEIGHT_HEAVY, TextAttribute.POSTURE_REGULAR);  // 800
     }
 
     @Test
@@ -111,11 +157,11 @@ public class SvgFontFaceNonVisualTest {
     }
 
     private static void assertUsesNotoFace(BatikSVGDrawer svg, float weight, float posture) {
-        assertTrue(message(weight, posture, "400"), font(svg, weight, posture).canDisplay(NOTO_ONLY_CHAR));
+        assertTrue(message(weight, posture, "Noto Sans JP"), font(svg, weight, posture).canDisplay(NOTO_ONLY_CHAR));
     }
 
     private static void assertUsesKarlaFace(BatikSVGDrawer svg, float weight, float posture) {
-        assertFalse(message(weight, posture, "700"), font(svg, weight, posture).canDisplay(NOTO_ONLY_CHAR));
+        assertFalse(message(weight, posture, "Karla"), font(svg, weight, posture).canDisplay(NOTO_ONLY_CHAR));
     }
 
     private static String message(float weight, float posture, String expectedFace) {
