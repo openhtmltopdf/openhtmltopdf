@@ -823,10 +823,7 @@ public abstract class Box implements Styleable, DisplayListItem {
 
             setY(getY() + delta);
 
-            if (fromStyle &&
-                (pageBreakValue == IdentValue.ALWAYS ||
-                 pageBreakValue == IdentValue.LEFT ||
-                 pageBreakValue == IdentValue.RIGHT)) {
+            if (fromStyle && CalculatedStyle.isForcedPageBreak(pageBreakValue)) {
                 // The box now starts at the top of the page following the one it
                 // was on, so a margin of its own adjoins a forced break.
                 c.getRootLayer().addPageStartedByForcedBreak(page.getBottom());

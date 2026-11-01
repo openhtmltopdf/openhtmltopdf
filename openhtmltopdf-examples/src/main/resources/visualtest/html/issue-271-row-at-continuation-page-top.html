@@ -1,0 +1,79 @@
+<html>
+<head>
+<style>
+@page {
+  size: 200px 200px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 10px;
+  line-height: 12px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  -fs-table-paginate: paginate;
+}
+th, td {
+  border: 1px solid black;
+}
+th {
+  background-color: red;
+}
+td {
+  background-color: lightblue;
+}
+/*
+ * Issue #271: with collapsed borders the rows have no spacing, so after the first break
+ * the page boundaries fall exactly between two rows. A row starting exactly at the top
+ * of a continuation page must still move below the repeated header; otherwise its text
+ * is pushed down inside it, the row grows by the header's height, and the header is
+ * drawn on the previous page instead.
+ *
+ * The continuation pages also reserve the half of the header's collapsed top border that
+ * sticks out above the table, as the first page does: 10 rows on every page, as in Chrome.
+ */
+</style>
+</head>
+<body>
+<table>
+    <thead>
+      <tr><th>Name</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Row 1</td><td>Value 1</td></tr>
+      <tr><td>Row 2</td><td>Value 2</td></tr>
+      <tr><td>Row 3</td><td>Value 3</td></tr>
+      <tr><td>Row 4</td><td>Value 4</td></tr>
+      <tr><td>Row 5</td><td>Value 5</td></tr>
+      <tr><td>Row 6</td><td>Value 6</td></tr>
+      <tr><td>Row 7</td><td>Value 7</td></tr>
+      <tr><td>Row 8</td><td>Value 8</td></tr>
+      <tr><td>Row 9</td><td>Value 9</td></tr>
+      <tr><td>Row 10</td><td>Value 10</td></tr>
+      <tr><td>Row 11</td><td>Value 11</td></tr>
+      <tr><td>Row 12</td><td>Value 12</td></tr>
+      <tr><td>Row 13</td><td>Value 13</td></tr>
+      <tr><td>Row 14</td><td>Value 14</td></tr>
+      <tr><td>Row 15</td><td>Value 15</td></tr>
+      <tr><td>Row 16</td><td>Value 16</td></tr>
+      <tr><td>Row 17</td><td>Value 17</td></tr>
+      <tr><td>Row 18</td><td>Value 18</td></tr>
+      <tr><td>Row 19</td><td>Value 19</td></tr>
+      <tr><td>Row 20</td><td>Value 20</td></tr>
+      <tr><td>Row 21</td><td>Value 21</td></tr>
+      <tr><td>Row 22</td><td>Value 22</td></tr>
+      <tr><td>Row 23</td><td>Value 23</td></tr>
+      <tr><td>Row 24</td><td>Value 24</td></tr>
+      <tr><td>Row 25</td><td>Value 25</td></tr>
+      <tr><td>Row 26</td><td>Value 26</td></tr>
+      <tr><td>Row 27</td><td>Value 27</td></tr>
+      <tr><td>Row 28</td><td>Value 28</td></tr>
+      <tr><td>Row 29</td><td>Value 29</td></tr>
+      <tr><td>Row 30</td><td>Value 30</td></tr>
+    </tbody>
+</table>
+</body>
+</html>

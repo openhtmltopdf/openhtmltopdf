@@ -1314,15 +1314,27 @@ public class CalculatedStyle {
     }
 
     public boolean isForcePageBreakBefore() {
-        IdentValue val = getIdent(CSSName.PAGE_BREAK_BEFORE);
-        return val == IdentValue.ALWAYS || val == IdentValue.LEFT
-                || val == IdentValue.RIGHT;
+        return isForcedPageBreak(getIdent(CSSName.BREAK_BEFORE));
     }
 
     public boolean isForcePageBreakAfter() {
-        IdentValue val = getIdent(CSSName.PAGE_BREAK_AFTER);
-        return val == IdentValue.ALWAYS || val == IdentValue.LEFT
-                || val == IdentValue.RIGHT;
+        return isForcedPageBreak(getIdent(CSSName.BREAK_AFTER));
+    }
+
+    /**
+     * Whether a break-before or break-after value forces a page break.
+     */
+    public static boolean isForcedPageBreak(IdentValue val) {
+        return val == IdentValue.PAGE || val == IdentValue.ALWAYS
+                || val == IdentValue.LEFT || val == IdentValue.RIGHT;
+    }
+
+    /**
+     * Whether a break-before, break-after or break-inside value avoids a page break.
+     * <code>avoid-column</code> does not: it only avoids column breaks.
+     */
+    public static boolean isAvoidPageBreak(IdentValue val) {
+        return val == IdentValue.AVOID || val == IdentValue.AVOID_PAGE;
     }
     
     public boolean isColumnBreakBefore() {
@@ -1334,7 +1346,7 @@ public class CalculatedStyle {
     }
 
     public boolean isAvoidPageBreakInside() {
-        return isIdent(CSSName.PAGE_BREAK_INSIDE, IdentValue.AVOID);
+        return isAvoidPageBreak(getIdent(CSSName.BREAK_INSIDE));
     }
 
     /**

@@ -2171,6 +2171,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that a paginated table's body row starting exactly at the top of a
+     * continuation page is moved below the repeated header, which must then be
+     * drawn on that page.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/271
+     */
+    @Test
+    public void testIssue271RowAtContinuationPageTop() throws IOException {
+        assertTrue(vt.runTest("issue-271-row-at-continuation-page-top", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that SVG text draws an @font-face face as the font file is, without synthetic
      * bold or slant for a face declared 900 or italic.
      * https://github.com/openhtmltopdf/openhtmltopdf/issues/270

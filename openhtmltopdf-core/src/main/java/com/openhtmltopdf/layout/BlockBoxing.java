@@ -170,7 +170,7 @@ public class BlockBoxing {
 
             if (c.isPrint()) {
                 if (child.getStyle().isForcePageBreakAfter()) {
-                    block.forcePageBreakAfter(c, child.getStyle().getIdent(CSSName.PAGE_BREAK_AFTER));
+                    block.forcePageBreakAfter(c, child.getStyle().getIdent(CSSName.BREAK_AFTER));
                     childOffset = block.getHeight();
                 }
 
@@ -368,7 +368,7 @@ public class BlockBoxing {
             }
 
             if (child.getStyle().isForcePageBreakAfter()) {
-                block.forcePageBreakAfter(c, child.getStyle().getIdent(CSSName.PAGE_BREAK_AFTER));
+                block.forcePageBreakAfter(c, child.getStyle().getIdent(CSSName.BREAK_AFTER));
                 childOffset = block.getHeight();
             }
         }
@@ -461,7 +461,7 @@ public class BlockBoxing {
             if (pageClear || needNewPageContext) {
                 int delta = child.forcePageBreakBefore(
                         c,
-                        child.getStyle().getIdent(CSSName.PAGE_BREAK_BEFORE),
+                        child.getStyle().getIdent(CSSName.BREAK_BEFORE),
                         needNewPageContext);
                 c.translate(0, delta);
                 moved = true;
@@ -478,13 +478,14 @@ public class BlockBoxing {
      */
     public static boolean avoidPageBreakBetween(BlockBox previous, BlockBox current) {
         IdentValue previousAfter =
-                previous.getStyle().getIdent(CSSName.PAGE_BREAK_AFTER);
+                previous.getStyle().getIdent(CSSName.BREAK_AFTER);
         IdentValue currentBefore =
-                current.getStyle().getIdent(CSSName.PAGE_BREAK_BEFORE);
+                current.getStyle().getIdent(CSSName.BREAK_BEFORE);
 
-        return (previousAfter == IdentValue.AVOID && currentBefore == IdentValue.AUTO) ||
-                (previousAfter == IdentValue.AUTO && currentBefore == IdentValue.AVOID) ||
-                (previousAfter == IdentValue.AVOID && currentBefore == IdentValue.AVOID);
+        // An avoid on either side holds unless the other side forces a break; a column
+        // break or avoid-column has no say over page breaks.
+        return (CalculatedStyle.isAvoidPageBreak(previousAfter) || CalculatedStyle.isAvoidPageBreak(currentBefore)) &&
+                !CalculatedStyle.isForcedPageBreak(previousAfter) && !CalculatedStyle.isForcedPageBreak(currentBefore);
     }
 
     private abstract static class AbstractRelayoutDataList {
