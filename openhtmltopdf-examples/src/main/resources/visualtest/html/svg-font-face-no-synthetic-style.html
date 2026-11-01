@@ -1,0 +1,28 @@
+<html>
+<head>
+<style>
+@page {
+  size: 220px 110px;
+  margin: 10px;
+}
+/*
+ * The same font file, Karla Bold, declared as three faces. SVG text must draw each
+ * face as the file is: declaring it 900 or italic describes the face, it must not add
+ * synthetic emboldening or slant on top. All three lines look the same.
+ */
+@font-face { font-family: 'K700'; src: url('fonts/Karla-Bold.ttf'); font-weight: 700; }
+@font-face { font-family: 'K900'; src: url('fonts/Karla-Bold.ttf'); font-weight: 900; }
+@font-face { font-family: 'KItalic'; src: url('fonts/Karla-Bold.ttf'); font-weight: 700; font-style: italic; }
+body {
+  margin: 0;
+}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="90">
+  <text x="2" y="24" font-family="K700" font-weight="700" font-size="20">Hamburg 700</text>
+  <text x="2" y="52" font-family="K900" font-weight="900" font-size="20">Hamburg 700</text>
+  <text x="2" y="80" font-family="KItalic" font-weight="700" font-style="italic" font-size="20">Hamburg 700</text>
+</svg>
+</body>
+</html>

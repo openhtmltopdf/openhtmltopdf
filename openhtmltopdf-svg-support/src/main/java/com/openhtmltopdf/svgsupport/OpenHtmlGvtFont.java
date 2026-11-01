@@ -3,7 +3,6 @@ package com.openhtmltopdf.svgsupport;
 import java.awt.Font;
 import java.awt.FontFormatException;
 import java.awt.font.FontRenderContext;
-import java.awt.font.TextAttribute;
 import java.io.File;
 import java.io.IOException;
 import java.text.CharacterIterator;
@@ -27,24 +26,6 @@ public class OpenHtmlGvtFont implements GVTFont {
 	private final Font baseFont;
 	private final GVTFontFamily fontFamily;
 	
-    private static int toFontWeight(Float weight) {
-        if (weight == null) {
-            return Font.PLAIN;
-        }
-        else if (weight <= TextAttribute.WEIGHT_BOLD) {
-           	return Font.PLAIN;
-        }
-        else {
-        	return Font.BOLD;
-        }
-    }
-
-    private static int toStyle(Float posture) {
-    	return ((posture != null) && (posture.floatValue() > 0.0))
-    			? Font.ITALIC
-                : Font.PLAIN;
-    }
-
     public OpenHtmlGvtFont(File fontFile, GVTFontFamily family, float size, Float fontWeight, Float fontStyle) throws IOException, FontFormatException {
         Font font = FontCache.getTrueTypeFont(fontFile);
 
@@ -56,7 +37,9 @@ public class OpenHtmlGvtFont implements GVTFont {
 		Font font;
 
 		try {
-			font = FontCache.getTrueTypeFont(fontBytes).deriveFont(toFontWeight(fontWeight) | toStyle(fontStyle) , size);
+			// The weight and style describe the face itself, so they must not be applied
+			// again: a bold or italic AWT style would embolden or slant it synthetically.
+			font = FontCache.getTrueTypeFont(fontBytes).deriveFont(size);
 		} catch (IOException e) {
 			// Shouldn't happen
 			XRLog.log(Level.WARNING, LogMessageId.LogMessageId1Param.EXCEPTION_SVG_CREATE_FONT, family != null ? family.getFamilyName() : "", e);
