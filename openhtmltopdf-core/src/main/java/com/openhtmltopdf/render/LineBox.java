@@ -530,6 +530,14 @@ public class LineBox extends Box implements InlinePaintable {
     }
 
     /**
+     * The last text on this line that has content, past the line feed of a hard
+     * break and elements without content, or null.
+     */
+    public InlineText findLastText() {
+        return findTrailingText(true);
+    }
+
+    /**
      * As {@link InlineLayoutBox#findTrailingText(boolean)}.
      */
     private InlineText findTrailingText(boolean skipWithoutContent) {

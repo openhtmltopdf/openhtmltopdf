@@ -193,11 +193,24 @@ public class TextSpacingTest {
      * The distance from the left edge of each line's first glyph to the right edge
      * of its last, in points.
      */
+    /**
+     * The last glyph of a line that shows something: a line can end in a space,
+     * drawn past its end to keep its last word apart from the next line's first.
+     */
+    private static TextPosition lastVisible(List<TextPosition> line) {
+        for (int i = line.size() - 1; i > 0; i--) {
+            if (!line.get(i).getUnicode().trim().isEmpty()) {
+                return line.get(i);
+            }
+        }
+        return line.get(0);
+    }
+
     private static List<Float> lineWidths(String css, String text) throws IOException {
         List<Float> result = new ArrayList<>();
 
         for (List<TextPosition> line : lines(css, text)) {
-            TextPosition last = line.get(line.size() - 1);
+            TextPosition last = lastVisible(line);
             result.add(last.getXDirAdj() + last.getWidthDirAdj() - line.get(0).getXDirAdj());
         }
 
