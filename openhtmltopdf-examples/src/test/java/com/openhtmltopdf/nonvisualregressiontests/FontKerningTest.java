@@ -511,16 +511,17 @@ public class FontKerningTest {
     }
 
     /**
-     * Under <code>white-space: pre-line</code> and <code>pre-wrap</code> a line keeps
-     * its trailing space, so nothing hangs there: a right-aligned line that would fit
-     * only without that space breaks before its last word and stays in its box.
+     * Under <code>white-space: pre-line</code>, which removes the space that ends a
+     * line, and <code>pre-wrap</code>, which keeps it, that space hangs too: a
+     * right-aligned line that fits only without it keeps its last word and stays in
+     * its box (#266).
      */
     @Test
-    public void testNoHangWhereTheTrailingSpaceIsKept() throws IOException {
+    public void testTheTrailingSpaceHangsUnderPreLineAndPreWrap() throws IOException {
         float boxPt = unkernedWidthPt("mill mill") + unkernedWidthPt(" ") / 2;
         for (String whiteSpace : new String[] { "pre-line", "pre-wrap" }) {
             assertLinesStayInTheirBox("mill mill mill", boxPt, "white-space: " + whiteSpace + ";");
-            assertEquals(whiteSpace + ": the first line", "mill",
+            assertEquals(whiteSpace + ": the first line", "millmill",
                     text(lines(true, "width: " + boxPt + "pt; white-space: " + whiteSpace + ";", "mill mill mill").get(0)));
         }
     }

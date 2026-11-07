@@ -169,6 +169,79 @@ public class TrailingSpaceHangTest {
                 withBreak.get(1).get(0).getYDirAdj(), withLineFeed.get(1).get(0).getYDirAdj(), TOLERANCE);
     }
 
+    /**
+     * Spaces kept by <code>white-space: pre-wrap</code> do not count toward the fit,
+     * and where the line wraps after them they hang: they count for neither its
+     * alignment nor its justification. Before a hard break or at the end of the
+     * block they still count for the alignment (CSS Text 3, 4.1.3). Positions as
+     * Chrome lays them out (#266).
+     */
+    @Test
+    public void testPreWrapTrailingSpacesHang() throws IOException {
+        String preWrap = "white-space: pre-wrap;";
+
+        List<List<TextPosition>> atEnd = lines(preWrap, "mill mill   ");
+        assertEquals("at the end: lines", 1, atEnd.size());
+        assertEquals("at the end: the spaces overflow, so the line starts at the box's start",
+                0, atEnd.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> beforeBreak = lines(preWrap, "mill mill   <br/>x");
+        assertEquals("before a <br>: lines", 2, beforeBreak.size());
+        assertEquals("before a <br>: first line", 0, beforeBreak.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> manySpaces = lines(preWrap, "mill mill      x");
+        assertEquals("many spaces: lines", 2, manySpaces.size());
+        assertEquals("many spaces: the wrapped line is aligned without its spaces",
+                boxPt - widthPt("mill mill"), manySpaces.get(0).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("many spaces: second line", boxPt - widthPt("x"), manySpaces.get(1).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> right = lines(preWrap, "mill millmill");
+        assertEquals("right: first line", boxPt - widthPt("mill"), right.get(0).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("right: second line", boxPt - widthPt("millmill"), right.get(1).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> center = lines(preWrap + " text-align: center;", "mill millmill");
+        assertEquals("centred: first line", (boxPt - widthPt("mill")) / 2, center.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> justified = lines(preWrap + " text-align: justify;", "mill mill mill   millmill");
+        TextPosition lastOfFirst = justified.get(0).get(justified.get(0).size() - 1);
+        assertEquals("justified: the first line", "millmill", text(justified.get(0)));
+        assertEquals("justified: the first line ends at the box's end, its trailing space hung",
+                boxPt, lastOfFirst.getXDirAdj() + widthPt(lastOfFirst.getUnicode()), TOLERANCE);
+
+        String wide = "p { margin: 0; width: 150pt; text-align: right; white-space: pre-wrap; }";
+        assertEquals("fitting, at the end: the spaces count for the alignment",
+                150 - widthPt("mill   "), renderLines(wide, "<p>mill   </p>").get(0).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("fitting, before a <br>: the spaces count for the alignment",
+                150 - widthPt("mill   "), renderLines(wide, "<p>mill   <br/>mill</p>").get(0).get(0).getXDirAdj(), TOLERANCE);
+    }
+
+    /**
+     * <code>white-space: pre-line</code> removes the spaces that end a line, as
+     * <code>normal</code> does: they count for neither the fit nor the alignment,
+     * wherever the line ends. Positions as Chrome lays them out (#266).
+     */
+    @Test
+    public void testPreLineTrailingSpacesAreRemoved() throws IOException {
+        String preLine = "white-space: pre-line;";
+        float lineStart = boxPt - widthPt("mill mill");
+
+        List<List<TextPosition>> atEnd = lines(preLine, "mill mill   ");
+        assertEquals("at the end: lines", 1, atEnd.size());
+        assertEquals("at the end", lineStart, atEnd.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> beforeBreak = lines(preLine, "mill mill   <br/>x");
+        assertEquals("before a <br>: lines", 2, beforeBreak.size());
+        assertEquals("before a <br>", lineStart, beforeBreak.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> wrapped = lines(preLine, "mill mill      x");
+        assertEquals("wrapped: lines", 2, wrapped.size());
+        assertEquals("wrapped", lineStart, wrapped.get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        String wide = "p { margin: 0; width: 150pt; text-align: right; white-space: pre-line; }";
+        assertEquals("fitting, at the end", 150 - widthPt("mill"),
+                renderLines(wide, "<p>mill   </p>").get(0).get(0).getXDirAdj(), TOLERANCE);
+    }
+
     private static void assertFirstLineInBox(String text) throws IOException {
         List<TextPosition> first = lines("", text).get(0);
         assertEquals(text + ": first line", "millmill", text(first));

@@ -47,6 +47,7 @@ public class InlineText {
     
     private boolean _trimmedLeadingSpace;
     private boolean _trimmedTrailingSpace;
+    private boolean _hangingTrailingSpace;
     
     static class InlineTextRareData {
         FunctionData _functionData;
@@ -134,6 +135,29 @@ public class InlineText {
         } 
     }
     
+    /**
+     * Lets the spaces that end this text hang at the end of a line that wraps after
+     * it, as <code>white-space: pre-wrap</code> keeps them (CSS Text 3, 4.1.3): they
+     * stay in the text but no longer take part in its width, so they count for
+     * neither the line's alignment nor its justification.
+     */
+    public void hangTrailingSpace(LayoutContext c) {
+        if (isEmpty() || _masterText.charAt(_end - 1) != ' ') {
+            return;
+        }
+        String text = getSubstring();
+        int end = text.length();
+        while (end > 0 && text.charAt(end - 1) == ' ') {
+            end--;
+        }
+        setWidth(Breaker.getTextWidthWithSpacing(c,
+                getParent().getStyle().getFSFont(c),
+                text.substring(0, end),
+                getTextSpacing(),
+                getTextDirection()));
+        _hangingTrailingSpace = true;
+    }
+
     public boolean isEmpty() {
         return _start == _end && ! _containedLF;
     }
@@ -310,7 +334,16 @@ public class InlineText {
         // Our own personal copy we can use in the calcTotalAdjustment method.
         _counts = new CharCounts();
 
-        getSubstring().codePoints().forEach(cp -> {
+        String text = getSubstring();
+        if (_hangingTrailingSpace) {
+            int end = text.length();
+            while (end > 0 && text.charAt(end - 1) == ' ') {
+                end--;
+            }
+            text = text.substring(0, end);
+        }
+
+        text.codePoints().forEach(cp -> {
             if (isJustifySpaceCodePoint(cp)) {
                 _counts.incrementSpaceCount();
             } else if (!OpenUtil.isCodePointPrintable(cp)) {
