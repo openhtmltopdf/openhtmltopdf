@@ -368,7 +368,7 @@ public class InlineBoxing {
             MarkerData markerData, List<FloatLayoutResult> pendingFloats, boolean hasFirstLinePEs,
             int lineOffset) {
 
-        trimTrailingSpaceUnlessStartAligned(c, current.line, box.getStyle(), blockLayoutDirection);
+        trimTrailingSpaceUnlessStartAligned(c, current.line, box.getStyle(), blockLayoutDirection, true);
         saveLine(current.line, c, box, minimumLineHeight,
                 space.maxAvailableWidth, pendingFloats,  hasFirstLinePEs,
                 markerData, contentStart,
@@ -392,11 +392,11 @@ public class InlineBoxing {
      * content stream and moves nothing.
      */
     private static void trimTrailingSpaceUnlessStartAligned(LayoutContext c, LineBox line,
-            CalculatedStyle style, byte direction) {
+            CalculatedStyle style, byte direction, boolean softWrap) {
         IdentValue align = style.getIdent(CSSName.TEXT_ALIGN);
         if (align != IdentValue.LEFT &&
             (align != IdentValue.START || direction != BidiSplitter.LTR)) {
-            line.trimTrailingSpace(c);
+            line.trimTrailingSpace(c, softWrap);
         }
     }
 
@@ -433,7 +433,8 @@ public class InlineBoxing {
             MarkerData markerData, List<FloatLayoutResult> pendingFloats, boolean hasFirstLinePEs,
             int lineOffset, InlineBox inlineBox, LineBreakContext lbContext) {
 
-        trimTrailingSpaceUnlessStartAligned(c, current.line, inlineBox.getStyle(), inlineBox.getTextDirection());
+        trimTrailingSpaceUnlessStartAligned(c, current.line, inlineBox.getStyle(), inlineBox.getTextDirection(),
+                !lbContext.isEndsOnNL());
 
         current.line.setEndsOnNL(lbContext.isEndsOnNL());
 

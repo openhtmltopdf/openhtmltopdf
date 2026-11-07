@@ -607,10 +607,11 @@ public class Breaker {
         String currentString = context.getStartSubstring();
         FSTextBreaker lineIterator = lineBreaker.getBreaker(currentString, c.getSharedContext());
 
-        // Spaces hang only where they are trimmed from the end of a line, which
-        // LineBox.trimTrailingSpace does for these two modes alone.
+        // Spaces hang only where LineBox.trimTrailingSpace trims them from the end of
+        // a line, or, as pre-wrap keeps them, lets them hang there.
         IdentValue whitespace = style.getWhitespace();
-        boolean hangTrailingWhitespace = whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP;
+        boolean hangTrailingWhitespace = whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP ||
+                whitespace == IdentValue.PRE_LINE || whitespace == IdentValue.PRE_WRAP;
 
         return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer,
                 pairKerning(c, font, context.getTextDirection()), hangTrailingWhitespace);

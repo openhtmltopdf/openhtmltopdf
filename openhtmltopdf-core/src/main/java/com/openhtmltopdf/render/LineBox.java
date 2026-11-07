@@ -557,6 +557,20 @@ public class LineBox extends Box implements InlinePaintable {
     }
     
     public void trimTrailingSpace(LayoutContext c) {
+        trimTrailingSpace(c, false);
+    }
+
+    /**
+     * Trims the space that ends this line, as CSS removes it wherever spaces collapse
+     * (CSS Text 3, 4.1.3), or with <code>white-space: pre-wrap</code>,
+     * which keeps its spaces, lets them hang where the line wraps.
+     *
+     * @param softWrap whether the line ends because its content wraps, rather than
+     * at a hard break or the end of the block. Only there do kept spaces hang
+     * unconditionally (CSS Text 3, 4.1.3); before a hard break they still count for
+     * the line's alignment, as in browsers.
+     */
+    public void trimTrailingSpace(LayoutContext c, boolean softWrap) {
         // The space that ends a line hangs: it did not count toward the fit. It is
         // found past the line feed of a hard break and past elements without content,
         // so that it is trimmed there too.
@@ -565,8 +579,11 @@ public class LineBox extends Box implements InlinePaintable {
         if (text != null) {
             InlineLayoutBox iB = text.getParent();
             IdentValue whitespace = iB.getStyle().getWhitespace();
-            if (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP) {
+            if (whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP ||
+                whitespace == IdentValue.PRE_LINE) {
                 text.trimTrailingSpace(c);
+            } else if (whitespace == IdentValue.PRE_WRAP && softWrap) {
+                text.hangTrailingSpace(c);
             }
         }
     }    
