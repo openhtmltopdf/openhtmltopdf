@@ -3,6 +3,9 @@ package com.openhtmltopdf.pdfboxout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.ArrayDeque;
+import org.apache.pdfbox.pdmodel.graphics.form.PDFormXObject;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -125,7 +128,36 @@ public class PdfBoxAccessibilityHelper {
     private static class PageItems {
         final List<GenericContentItem> _contentItems = new ArrayList<>();
         final List<AnnotationWithStructureParent> _pageAnnotations = new ArrayList<>();
+
+        // The transparency group form whose stream holds these content items, or
+        // null when it is the page's own stream.
+        final PDFormXObject _form;
+
+        PageItems(PDFormXObject form) {
+            _form = form;
+        }
     }
+
+    /**
+     * The content stream marked content is written to while a transparency group is
+     * open around it: MCIDs are numbered per content stream, from 0.
+     */
+    private static class StreamTarget {
+        final PdfContentStreamAdapter cs;
+        final int nextMcid;
+        final PageItems items;
+
+        StreamTarget(PdfContentStreamAdapter cs, int nextMcid, PageItems items) {
+            this.cs = cs;
+            this.nextMcid = nextMcid;
+            this.items = items;
+        }
+    }
+
+    // The stream that marked content goes into now: the page's, or a group's form.
+    private PageItems _streamItems;
+    private final Deque<StreamTarget> _outerStreams = new ArrayDeque<>();
+    private final List<PageItems> _groupItems = new ArrayList<>();
 
     /**
      * Can be either a structure element or a content item.
@@ -1179,6 +1211,8 @@ public class PdfBoxAccessibilityHelper {
         PDStructureElement parentElem;
         int mcid;
         COSDictionary dict;
+        // The transparency group form whose stream holds this content, or null.
+        PDFormXObject form;
         PDPage page;
 
         @Override
@@ -1192,7 +1226,7 @@ public class PdfBoxAccessibilityHelper {
             GenericContentItem child = this;
             boolean isReplaced = child instanceof FigureContentItem;
 
-            if (child.page == parent.page) {
+            if (child.form == null && child.page == parent.page) {
                 // If this is on the same page as its parent structual element
                 // we can just use the dict with mcid in it only.
                 child.parentElem = parent.elem;
@@ -1204,6 +1238,10 @@ public class PdfBoxAccessibilityHelper {
                 child.dict.setItem(COSName.TYPE, COSName.getPDFName("MCR"));
                 child.dict.setItem(COSName.PG, child.page);
                 child.dict.setInt(COSName.MCID, child.mcid);
+                if (child.form != null) {
+                    // The content is in a form's stream, not the page's (14.7.4.3).
+                    child.dict.setItem(COSName.getPDFName("Stm"), child.form);
+                }
 
                 PDMarkedContentReference ref = new PDMarkedContentReference(child.dict);
                 child.parentElem.appendKid(ref);
@@ -1269,6 +1307,29 @@ public class PdfBoxAccessibilityHelper {
         }
     }
 
+    /**
+     * The content painted from now on goes into this transparency group's form, drawn
+     * with <code>stream</code>, until {@link #endGroup()}.
+     */
+    public void startGroup(PdfContentStreamAdapter stream, PDFormXObject form) {
+        _outerStreams.push(new StreamTarget(_cs, _nextMcid, _streamItems));
+        _cs = stream;
+        _nextMcid = 0;
+        _streamItems = new PageItems(form);
+        _groupItems.add(_streamItems);
+    }
+
+    /**
+     * Marked content goes back into the stream it went into before the matching
+     * {@link #startGroup(PdfContentStreamAdapter, PDFormXObject)}.
+     */
+    public void endGroup() {
+        StreamTarget outer = _outerStreams.pop();
+        _cs = outer.cs;
+        _nextMcid = outer.nextMcid;
+        _streamItems = outer.items;
+    }
+
     public void finishNumberTree() {
         COSArray numTree = new COSArray();
         int i = 0;
@@ -1296,6 +1357,21 @@ public class PdfBoxAccessibilityHelper {
                 annot.annotation.setStructParent(i);
                 i++;
             }
+        }
+
+        // A transparency group's form holds its own marked content, so it has its own
+        // entry, as a page does (14.7.4.4).
+        for (PageItems group : _groupItems) {
+            COSArray mcidParentReferences = new COSArray();
+
+            for (GenericContentItem contentItem : group._contentItems) {
+                mcidParentReferences.add(contentItem.parentElem);
+            }
+
+            numTree.add(COSInteger.get(i));
+            numTree.add(mcidParentReferences);
+            group._form.getCOSObject().setItem(COSName.STRUCT_PARENTS, COSInteger.get(i));
+            i++;
         }
 
         COSDictionary dict = new COSDictionary();
@@ -1515,7 +1591,7 @@ public class PdfBoxAccessibilityHelper {
         current.mcid = _nextMcid;
         current.dict = createMarkedContentDictionary();
         current.page = _page;
-        _pageItems._contentItems.add(current);
+        addContentItem(current);
         return current;
     }
 
@@ -1547,7 +1623,7 @@ public class PdfBoxAccessibilityHelper {
         content.page = _page;
         figure.content = content;
 
-        _pageItems._contentItems.add(content);
+        addContentItem(content);
         return content;
     }
 
@@ -1559,6 +1635,11 @@ public class PdfBoxAccessibilityHelper {
 
     private static void finishTreeItem(AbstractTreeItem item, AbstractStructualElement parent) {
         item.finish(parent);
+    }
+
+    private void addContentItem(GenericContentItem item) {
+        item.form = _streamItems._form;
+        _streamItems._contentItems.add(item);
     }
 
     private COSDictionary createMarkedContentDictionary() {
@@ -1714,7 +1795,7 @@ public class PdfBoxAccessibilityHelper {
         current.dict = createMarkedContentDictionary();
         current.page = _page;
 
-        _pageItems._contentItems.add(current);
+        addContentItem(current);
 
         return current;
     }
@@ -1730,7 +1811,7 @@ public class PdfBoxAccessibilityHelper {
         li.label.addChild(current);
         current.parent = li.label;
 
-        _pageItems._contentItems.add(current);
+        addContentItem(current);
 
         return current;
     }
@@ -1756,7 +1837,7 @@ public class PdfBoxAccessibilityHelper {
 
         parent.content = current;
 
-        _pageItems._contentItems.add(current);
+        addContentItem(current);
 
         return current;
     }
@@ -1966,8 +2047,9 @@ public class PdfBoxAccessibilityHelper {
         this._page = page;
         this._pageHeight = pageHeight;
         this._transform = transform;
-        this._pageItems = new PageItems();
+        this._pageItems = new PageItems(null);
         this._pageItemsMap.put(page, this._pageItems);
+        this._streamItems = this._pageItems;
         this._runningLinkStructure = null;
         this._runningLinkDomElement = null;
     }

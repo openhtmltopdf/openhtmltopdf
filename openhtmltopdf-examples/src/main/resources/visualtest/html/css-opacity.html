@@ -1,0 +1,30 @@
+<html>
+<head>
+<style>
+@page { size: 280px 330px; margin: 6px; }
+body { margin: 0; font-family: 'TestFont'; font-size: 11px; }
+.row { height: 54px; position: relative; }
+.lab { position: absolute; left: 4px; top: 4px; width: 120px; }
+.cell { position: absolute; left: 130px; top: 4px; width: 120px; height: 46px; }
+.sq { position: absolute; width: 40px; height: 30px; background: #000; }
+</style>
+</head>
+<body>
+<!-- Issue #50: opacity applies to an element and its content as one group, so
+     overlapping children do not show through each other. Compare with Chrome. -->
+<div class="row"><span class="lab">A overlap .5</span>
+  <div class="cell" style="opacity: .5"><div class="sq" style="left: 0; top: 0"></div><div class="sq" style="left: 22px; top: 14px"></div></div></div>
+<div class="row"><span class="lab">B nested .5 x .5</span>
+  <div class="cell" style="opacity: .5"><div style="opacity: .5; width: 60px; height: 40px; background: #000"></div></div></div>
+<div class="row"><span class="lab">C text + border .4</span>
+  <div class="cell" style="opacity: .4; border: 3px solid #c00; font-size: 18px; height: 36px">Text</div></div>
+<div class="row"><span class="lab">D rgba in .5, rotated</span>
+  <div class="cell" style="opacity: .5; transform: rotate(10deg)"><div style="background: rgba(0, 0, 255, .5); width: 60px; height: 30px"></div></div></div>
+<div class="row"><span class="lab">E inline-block .3, 0, 50%</span>
+  <div class="cell"><span style="display: inline-block; opacity: .3; background: #000; color: #fff; padding: 4px">ib</span>
+  <span style="display: inline-block; opacity: 0; background: #000; width: 20px; height: 20px"></span>
+  <span style="display: inline-block; opacity: 50%; background: #000; width: 20px; height: 20px"></span></div></div>
+<!-- Continues on the next page: one group per page. -->
+<div style="opacity: .5; background: #080; color: #fff; height: 110px; padding: 4px">F across a page break .5</div>
+</body>
+</html>

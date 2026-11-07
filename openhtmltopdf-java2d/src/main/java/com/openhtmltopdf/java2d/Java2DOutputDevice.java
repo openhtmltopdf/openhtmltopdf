@@ -39,14 +39,41 @@ import java.awt.RenderingHints.Key;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
 public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDevice {
-    private final Deque<Shape> _clipStack = new ArrayDeque<>();
-    private final Deque<AffineTransform> _transformStack = new ArrayDeque<>();
+    private Deque<Shape> _clipStack = new ArrayDeque<>();
+    private Deque<AffineTransform> _transformStack = new ArrayDeque<>();
+
+    /**
+     * An open opacity group: the image its content is painted into, where that image
+     * goes on the device, and the graphics and stacks to go back to. Null for a group
+     * that has no area to paint in.
+     */
+    private static class OpacityGroup {
+        private final Graphics2D outer;
+        private final Deque<Shape> outerClips;
+        private final Deque<AffineTransform> outerTransforms;
+        private final BufferedImage image;
+        private final Rectangle deviceBounds;
+        private final float opacity;
+
+        private OpacityGroup(Graphics2D outer, Deque<Shape> outerClips, Deque<AffineTransform> outerTransforms,
+                BufferedImage image, Rectangle deviceBounds, float opacity) {
+            this.outer = outer;
+            this.outerClips = outerClips;
+            this.outerTransforms = outerTransforms;
+            this.image = image;
+            this.deviceBounds = deviceBounds;
+            this.opacity = opacity;
+        }
+    }
+
+    private final Deque<OpacityGroup> _opacityGroups = new ArrayDeque<>();
 
     private Graphics2D _graphics;
     private Java2DFont _font;
@@ -240,6 +267,69 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
     public void pushTransformLayer(AffineTransform transform) {
         _graphics.transform(transform);
         _transformStack.push(_graphics.getTransform());
+    }
+
+    /**
+     * Paints what follows, until {@link #popOpacity()}, into an image of the area the
+     * current clip leaves, which is then drawn at this opacity as one whole.
+     */
+    @Override
+    public void pushOpacity(float opacity) {
+        Shape clip = _graphics.getClip();
+        Rectangle deviceBounds = clip != null ?
+                _graphics.getTransform().createTransformedShape(clip).getBounds() :
+                _graphics.getDeviceConfiguration().getBounds();
+
+        if (deviceBounds.isEmpty()) {
+            _opacityGroups.push(new OpacityGroup(_graphics, _clipStack, _transformStack, null, deviceBounds, opacity));
+            return;
+        }
+
+        BufferedImage image = new BufferedImage(deviceBounds.width, deviceBounds.height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D group = image.createGraphics();
+        group.setRenderingHints(_graphics.getRenderingHints());
+        group.setFont(_graphics.getFont());
+        group.setPaint(_graphics.getPaint());
+        group.setStroke(_graphics.getStroke());
+
+        // The image's origin is at the top left of the area on the device.
+        AffineTransform transform = AffineTransform.getTranslateInstance(-deviceBounds.x, -deviceBounds.y);
+        transform.concatenate(_graphics.getTransform());
+        group.setTransform(transform);
+        if (clip != null) {
+            group.setClip(clip);
+        }
+
+        _opacityGroups.push(new OpacityGroup(_graphics, _clipStack, _transformStack, image, deviceBounds, opacity));
+
+        _graphics = group;
+        _clipStack = new ArrayDeque<>();
+        _transformStack = new ArrayDeque<>();
+        if (group.getClip() != null) {
+            _clipStack.push(group.getClip());
+        }
+        _transformStack.push(group.getTransform());
+    }
+
+    @Override
+    public void popOpacity() {
+        OpacityGroup open = _opacityGroups.pop();
+        if (open.image == null) {
+            return;
+        }
+
+        _graphics.dispose();
+        _graphics = open.outer;
+        _clipStack = open.outerClips;
+        _transformStack = open.outerTransforms;
+
+        AffineTransform transform = _graphics.getTransform();
+        Composite composite = _graphics.getComposite();
+        _graphics.setTransform(new AffineTransform());
+        _graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, open.opacity));
+        _graphics.drawImage(open.image, open.deviceBounds.x, open.deviceBounds.y, null);
+        _graphics.setComposite(composite);
+        _graphics.setTransform(transform);
     }
 
     @Override

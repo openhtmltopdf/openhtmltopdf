@@ -49,6 +49,10 @@ public class SimplePainter {
                     
             c.getOutputDevice().pushTransformLayer(transform);
         }
+
+        if (layer.hasOpacity()) {
+            c.getOutputDevice().pushOpacity(master.getStyle().getOpacity());
+        }
         
         if (((BlockBox) master).isReplaced()) {
             paintLayerBackgroundAndBorder(c, master);
@@ -80,6 +84,10 @@ public class SimplePainter {
                 paintLayers(c, layer.getSortedLayers(Layer.ZERO));
                 paintLayers(c, layer.getSortedLayers(Layer.POSITIVE));
             }
+        }
+
+        if (layer.hasOpacity()) {
+            c.getOutputDevice().popOpacity();
         }
 
         if (layer.hasLocalTransform()) {
