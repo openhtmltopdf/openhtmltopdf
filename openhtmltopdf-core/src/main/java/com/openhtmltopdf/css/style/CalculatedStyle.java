@@ -316,6 +316,13 @@ public class CalculatedStyle {
                 : CSSName.initialDerivedValue(CSSName.COLOR).asColor();
     }
 
+    /**
+     * The <code>opacity</code> of this element, from 0 (transparent) to 1 (opaque).
+     */
+    public float getOpacity() {
+        return asFloat(CSSName.OPACITY);
+    }
+
     public float asFloat(CSSName cssName) {
         return valueByName(cssName).asFloat();
     }
@@ -1196,6 +1203,12 @@ public class CalculatedStyle {
         }
 
         if (!isIdent(CSSName.TRANSFORM, IdentValue.NONE)) {
+            return true;
+        }
+
+        if (getOpacity() < 1f) {
+            // Opacity applies to the element and its content as a group, which
+            // makes it a stacking context (CSS Color 4, 3.2).
             return true;
         }
 

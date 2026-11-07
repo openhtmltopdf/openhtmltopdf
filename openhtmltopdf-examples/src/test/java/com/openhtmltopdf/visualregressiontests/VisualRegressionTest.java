@@ -1125,6 +1125,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests the opacity property: an element and its content are painted as one
+     * transparency group, so overlapping children do not show through each other;
+     * nested opacity multiplies; it composes with rgba colors and transforms; a box
+     * across a page break gets a group on each page. Issue 50.
+     */
+    @Test
+    public void testCssOpacity() throws IOException {
+        assertTrue(vt.runTest("css-opacity", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that border-radius clips replaced element (image) content, the same way
      * it clips background boxes. Issue 173.
      */

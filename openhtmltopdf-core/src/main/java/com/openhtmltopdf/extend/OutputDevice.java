@@ -159,6 +159,23 @@ public interface OutputDevice {
 	 * be nested correctly.
 	 */
 	public void popClip();
+
+	/**
+	 * Starts a group that what is painted until the matching {@link #popOpacity()} goes
+	 * into, which is then composited at this opacity as one whole, as CSS
+	 * <code>opacity</code> asks (CSS Color 4, 3.2). Must nest correctly with transforms
+	 * and clips. The default does nothing, so content is painted opaque.
+	 *
+	 * @param opacity from 0 (transparent) to 1 (opaque)
+	 */
+	default void pushOpacity(float opacity) {
+	}
+
+	/**
+	 * Ends the group started by the matching {@link #pushOpacity(float)}.
+	 */
+	default void popOpacity() {
+	}
 	
 	/**
 	 * Propagate the structure heirachy to allow for PDF/UA compliance.

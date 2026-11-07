@@ -1670,6 +1670,36 @@ public class PrimitivePropertyBuilders {
     public static class WordSpacing extends LengthWithNormal {
     }
 
+    /**
+     * <code>opacity</code>: a number or a percentage, clamped to 0 to 1 (CSS Color 4,
+     * 3.2). A percentage is stored as the number it stands for.
+     */
+    public static class Opacity extends AbstractPropertyBuilder {
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, values.size());
+            PropertyValue value = values.get(0);
+            checkInheritAllowed(value, inheritAllowed);
+            if (value.getCssValueType() != CSSValue.CSS_INHERIT) {
+                short type = value.getPrimitiveType();
+                float number;
+                if (type == CSSPrimitiveValue.CSS_NUMBER) {
+                    number = value.getFloatValue();
+                } else if (type == CSSPrimitiveValue.CSS_PERCENTAGE) {
+                    number = value.getFloatValue() / 100f;
+                } else {
+                    throw new CSSParseException("Value for " + cssName + " must be a number or a percentage", -1);
+                }
+                float clamped = Math.max(0f, Math.min(1f, number));
+                value = new PropertyValue(CSSPrimitiveValue.CSS_NUMBER, clamped, String.valueOf(clamped));
+            }
+
+            return Collections.singletonList(
+                    new PropertyDeclaration(cssName, value, important, origin));
+        }
+    }
+
     public static class ZIndex extends AbstractPropertyBuilder {
         // auto | <integer> | inherit
         private static final BitSet ALLOWED = setFor(

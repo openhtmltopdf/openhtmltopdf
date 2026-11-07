@@ -27,6 +27,7 @@ public interface LogMessageId {
         RENDER_TRIED_TO_SET_NON_INVERTIBLE_CSS_TRANSFORM(XRLog.RENDER, "Tried to set a non-invertible CSS transform. Ignored."),
         RENDER_LINEAR_GRADIENT_IS_NOT_SUPPORTED(XRLog.RENDER, "linear-gradient(...) is not supported in this output device"),
         RENDER_ALPHA_NOT_ALLOWED_IN_PDFA1(XRLog.RENDER, "Transparency (the alpha of rgba()/hsla() colors) is not allowed in PDF/A-1. Rendering the color fully opaque."),
+        RENDER_OPACITY_NOT_ALLOWED_IN_PDFA1(XRLog.RENDER, "Transparency (the CSS opacity property) is not allowed in PDF/A-1. Rendering the content fully opaque."),
         RENDER_GRADIENT_STOP_ALPHA_NOT_SUPPORTED(XRLog.RENDER, "Alpha in linear-gradient() color stops is not supported. Rendering the stop fully opaque."),
 
         GENERAL_EXCEPTION_SHAPING_TEXT(XRLog.GENERAL, "Exception while shaping text"),

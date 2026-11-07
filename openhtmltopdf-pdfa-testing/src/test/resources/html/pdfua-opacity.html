@@ -1,0 +1,24 @@
+<html lang="en">
+<head>
+  <title>Opacity</title>
+  <meta name="description" content="Tagged content inside opacity groups (GH issue #50)"/>
+  <meta name="subject" content="PDF/UA with CSS opacity"/>
+  <style>
+    @page { size: 300px 400px; margin: 20px; }
+    body { margin: 0; font-family: 'TestFont'; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <p>Before the group.</p>
+  <div style="opacity: 0.5">
+    <p>Inside the group, with a <a href="https://example.com">link</a>.</p>
+    <ul>
+      <li>First item</li>
+      <li>Second item</li>
+    </ul>
+    <div style="opacity: 0.5"><p>Inside a nested group.</p></div>
+    <p><img src="../images/flyingsaucer-no-alpha.png" alt="Flying saucer" style="width: 60px; height: 40px"/></p>
+  </div>
+  <p>After the group.</p>
+</body>
+</html>

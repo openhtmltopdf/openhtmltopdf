@@ -1280,6 +1280,18 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS2 property.
      */
+    /**
+     * Unique CSSName instance for CSS3 property (CSS Color 4, 3.2)
+     */
+    public final static CSSName OPACITY =
+            addProperty(
+                    "opacity",
+                    PRIMITIVE,
+                    "1",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.Opacity()
+            );
+
     public final static CSSName Z_INDEX =
             addProperty(
                     "z-index",

@@ -279,6 +279,14 @@ public class DisplayListPainter {
 				PaintPushTransformLayer dlo = (PaintPushTransformLayer) op;
 				pushTransform(c, dlo.getMaster(), dlo.getShadowPageNumber());
 				
+			} else if (op instanceof PaintPushOpacity) {
+
+				c.getOutputDevice().pushOpacity(((PaintPushOpacity) op).getOpacity());
+
+			} else if (op instanceof PaintPopOpacity) {
+
+				c.getOutputDevice().popOpacity();
+
 			} else if (op instanceof PaintPopTransformLayer) {
 				
 				PaintPopTransformLayer dlo = (PaintPopTransformLayer) op;

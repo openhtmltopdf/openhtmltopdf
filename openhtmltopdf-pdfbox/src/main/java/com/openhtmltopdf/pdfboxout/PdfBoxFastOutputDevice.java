@@ -51,6 +51,10 @@ import de.rototor.pdfbox.graphics2d.PdfBoxGraphics2D;
 import de.rototor.pdfbox.graphics2d.PdfBoxGraphics2DFontTextDrawer;
 
 import org.apache.pdfbox.cos.COSName;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.PDResources;
+import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -103,6 +107,10 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         private float fillAlpha = 1f;
         private float strokeAlpha = 1f;
 
+        // The transformation the PDF graphics stream applies, in PDF points, from
+        // the transforms pushed on it: what maps the content's coordinates to the page.
+        private AffineTransform ctm = new AffineTransform();
+
         private PageState copy() {
             PageState ret = new PageState();
 
@@ -110,6 +118,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
             ret.strokeColor = this.strokeColor;
             ret.fillAlpha = this.fillAlpha;
             ret.strokeAlpha = this.strokeAlpha;
+            ret.ctm = this.ctm;
 
             return ret;
         }
@@ -217,6 +226,25 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     // one graphics state object per document. Must not outlive this device
     // (one document) as COS objects can not be shared between documents.
     private final Map<Float, PDExtendedGraphicsState> _fillAlphaStates = new HashMap<>();
+
+    /**
+     * An open opacity group: the form its content goes into, and the stream it is
+     * drawn into when it is closed. Null for a group that is painted opaque.
+     */
+    private static class OpacityGroup {
+        private final PdfContentStreamAdapter outer;
+        private final PDAppearanceStream form;
+        private final float opacity;
+
+        private OpacityGroup(PdfContentStreamAdapter outer, PDAppearanceStream form, float opacity) {
+            this.outer = outer;
+            this.form = form;
+            this.opacity = opacity;
+        }
+    }
+
+    private final Deque<Optional<OpacityGroup>> _opacityGroups = new ArrayDeque<>();
+    private final Map<Float, PDExtendedGraphicsState> _groupAlphaStates = new HashMap<>();
     private final Map<Float, PDExtendedGraphicsState> _strokeAlphaStates = new HashMap<>();
 
     /**
@@ -227,6 +255,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
     // Whether we already warned that transparency is not allowed in PDF/A-1.
     private boolean _transparencyNotAllowedWarned;
+    private boolean _opacityNotAllowedWarned;
 
     public PdfBoxFastOutputDevice(float dotsPerPoint, boolean testMode, boolean pdfUaConform, boolean pdfAConform) {
         // Without knowing the PDF/A part, conservatively assume PDF/A-1 which
@@ -1454,6 +1483,102 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         pushState(currentState().copy());
         AffineTransform normalized = normalizeTransform(transform);
         _cp.applyPdfMatrix(normalized);
+
+        AffineTransform ctm = new AffineTransform(currentState().ctm);
+        ctm.concatenate(normalized);
+        currentState().ctm = ctm;
+    }
+
+    /**
+     * Opens a transparency group: what is painted until {@link #popOpacity()} goes
+     * into a form XObject, which is then drawn at this opacity as one whole. Painting
+     * each part at the opacity instead would let overlapping parts show through each
+     * other. Under PDF/A-1, which forbids transparency, the content is painted opaque.
+     */
+    @Override
+    public void pushOpacity(float opacity) {
+        if (!isTransparencyAllowed()) {
+            if (!_opacityNotAllowedWarned) {
+                XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_OPACITY_NOT_ALLOWED_IN_PDFA1);
+                _opacityNotAllowedWarned = true;
+            }
+            _opacityGroups.push(Optional.empty());
+            return;
+        }
+
+        AffineTransform ctm = currentState().ctm;
+        Rectangle2D bounds;
+        try {
+            // The page, in the coordinates the group's content is painted in.
+            PDRectangle media = _page.getMediaBox();
+            bounds = ctm.createInverse().createTransformedShape(new Rectangle2D.Float(
+                    media.getLowerLeftX(), media.getLowerLeftY(), media.getWidth(), media.getHeight())).getBounds2D();
+        } catch (NoninvertibleTransformException e) {
+            // Nothing painted under this transform shows.
+            bounds = new Rectangle2D.Float();
+        }
+
+        PDAppearanceStream form = new PDAppearanceStream(_writer);
+        form.setBBox(new PDRectangle((float) bounds.getMinX(), (float) bounds.getMinY(),
+                (float) bounds.getWidth(), (float) bounds.getHeight()));
+        form.setResources(new PDResources());
+
+        COSDictionary group = new COSDictionary();
+        group.setItem(COSName.TYPE, COSName.GROUP);
+        group.setItem(COSName.S, COSName.TRANSPARENCY);
+        group.setBoolean(COSName.I, true);
+        form.getCOSObject().setItem(COSName.GROUP, group);
+
+        PDPageContentStream stream;
+        try {
+            stream = new PDPageContentStream(_writer, form);
+        } catch (IOException e) {
+            throw new PdfContentStreamAdapter.PdfException("pushOpacity", e);
+        }
+
+        _opacityGroups.push(Optional.of(new OpacityGroup(_cp, form, opacity)));
+        _cp = new PdfContentStreamAdapter(stream);
+
+        // The form starts with the default graphics state, under the transformation
+        // in effect where it is drawn.
+        PageState state = new PageState();
+        state.ctm = ctm;
+        pushState(state);
+        clearPageState();
+
+        if (_pdfUa != null) {
+            _pdfUa.startGroup(_cp, form);
+        }
+    }
+
+    @Override
+    public void popOpacity() {
+        Optional<OpacityGroup> open = _opacityGroups.pop();
+        if (!open.isPresent()) {
+            return;
+        }
+        OpacityGroup group = open.get();
+
+        if (_pdfUa != null) {
+            _pdfUa.endGroup();
+        }
+
+        _cp.closeContent();
+        popState();
+        _cp = group.outer;
+
+        PDExtendedGraphicsState alpha = _groupAlphaStates.computeIfAbsent(group.opacity, a -> {
+            PDExtendedGraphicsState gs = new PDExtendedGraphicsState();
+            gs.setNonStrokingAlphaConstant(a);
+            gs.setStrokingAlphaConstant(a);
+            return gs;
+        });
+
+        _cp.saveGraphics();
+        _cp.setExtGState(alpha);
+        _cp.drawXForm(group.form);
+        _cp.restoreGraphics();
+        clearPageState();
     }
 
     @Override

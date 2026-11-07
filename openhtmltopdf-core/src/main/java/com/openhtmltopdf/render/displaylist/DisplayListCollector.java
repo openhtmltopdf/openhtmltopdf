@@ -132,6 +132,10 @@ public class DisplayListCollector {
 		if (layer.hasLocalTransform()) {
 	        addTransformItem(layer.getMaster(), layerPages, dlPages);
 	    }
+
+		if (layer.hasOpacity()) {
+		    addItem(new PaintPushOpacity(layer.getMaster().getStyle().getOpacity()), layerPages, dlPages);
+		}
 		
 		if (layer.isRootLayer() && layer.getMaster().hasRootElementBackground(c)) {
 
@@ -172,6 +176,10 @@ public class DisplayListCollector {
 			}
 		}
 		
+		if (layer.hasOpacity()) {
+		    addItem(PaintPopOpacity.INSTANCE, layerPages, dlPages);
+		}
+
 		if (layer.hasLocalTransform()) {
 			DisplayListOperation dlo = new PaintPopTransformLayer(layer.getMaster());
 			addItem(dlo, layerPages, dlPages);
