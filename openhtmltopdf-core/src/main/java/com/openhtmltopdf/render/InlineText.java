@@ -322,7 +322,10 @@ public class InlineText {
         _trimmedTrailingSpace = trimmedTrailingSpace;
     }
 
-    private boolean isTrimmedTrailingSpace() {
+    /**
+     * Whether the space that ended this text was trimmed from the end of its line.
+     */
+    public boolean isTrimmedTrailingSpace() {
         return _trimmedTrailingSpace;
     }
 

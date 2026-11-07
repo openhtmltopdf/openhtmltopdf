@@ -698,7 +698,7 @@ public class NonVisualRegressionTest {
 
             String expected =
                     IntStream.rangeClosed(1, 9)
-                            .mapToObj(i -> "Line " + i + "\r\n")
+                            .mapToObj(i -> "Line " + i + " \r\n")
                             .collect(Collectors.joining()) +
                             "This is \r\n" +
                             "some \r\n" +
@@ -707,7 +707,7 @@ public class NonVisualRegressionTest {
                             "should not \r\n" +
                             "repeat in \r\n" +
                             "page \r\n" +
-                            "margins.\r\n" +
+                            "margins. \r\n" +
                             "1.  \r\n" +
                             "2.  \r\n" +
                             "3.  \r\n" +

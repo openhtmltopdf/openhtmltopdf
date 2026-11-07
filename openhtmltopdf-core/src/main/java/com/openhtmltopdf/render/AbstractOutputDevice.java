@@ -66,6 +66,10 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         InlineLayoutBox iB = inlineText.getParent();
         String text = inlineText.isEndsOnSoftHyphen() ? inlineText.getSubstring() + '-' : inlineText.getSubstring();
 
+        if (isWordSeparatorNeeded(inlineText, text)) {
+            text = text + ' ';
+        }
+
         // We reorder text here for RTL.
         if (inlineText.getTextDirection() == BidiSplitter.RTL) {
         	BidiReorderer bidi = c.getBidiReorderer();
@@ -85,6 +89,30 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         if (c.debugDrawFontMetrics()) {
             drawFontMetrics(c, inlineText);
         }
+    }
+
+    /**
+     * Whether the text that ends a line before a forced break, or whose trailing
+     * space was trimmed at a wrap, must be drawn with a space after it. Readers
+     * that find words in the content stream rather than by the position of the
+     * glyphs, as Adobe Reader does, otherwise join the last word of the line and
+     * the first word of the next into one word (GH issue #97). The space is drawn
+     * past the end of the line, where it shows nothing, and leaves layout alone.
+     */
+    private static boolean isWordSeparatorNeeded(InlineText inlineText, String text) {
+        if (text.isEmpty() ||
+            Character.isWhitespace(text.charAt(text.length() - 1)) ||
+            inlineText.isEndsOnSoftHyphen() ||
+            inlineText.getTextDirection() != BidiSplitter.LTR) {
+            return false;
+        }
+
+        if (inlineText.isTrimmedTrailingSpace()) {
+            return true;
+        }
+
+        LineBox line = inlineText.getParent().getLineBox();
+        return line != null && line.isEndsOnNL() && line.findLastText() == inlineText;
     }
 
     /**
