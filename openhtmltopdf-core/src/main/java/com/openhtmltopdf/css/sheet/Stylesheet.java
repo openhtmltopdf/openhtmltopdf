@@ -49,7 +49,12 @@ public class Stylesheet implements RulesetContainer {
     /**
      *  May contain page rules, media rules or rulesets.
      */
-    private final List<Object> _contents = new ArrayList<>();
+    private final List<Object> _contents;
+
+    /**
+     * The cascade layer that the whole style sheet was imported into, or null.
+     */
+    private final String _layer;
 
     /**
      * Creates a new instance of Stylesheet
@@ -60,6 +65,32 @@ public class Stylesheet implements RulesetContainer {
     public Stylesheet(String uri, int origin) {
         _uri = uri;
         _origin = origin;
+        _contents = new ArrayList<>();
+        _layer = null;
+    }
+
+    private Stylesheet(Stylesheet sheet, String layer) {
+        _uri = sheet._uri;
+        _origin = sheet._origin;
+        _contents = sheet._contents;
+        _fontFaceRules.addAll(sheet._fontFaceRules);
+        _importRules.addAll(sheet._importRules);
+        _layer = layer;
+    }
+
+    /**
+     * This style sheet as imported into a cascade layer, as by
+     * <code>@import url(...) layer(name)</code>: the same rules, inside that layer.
+     */
+    public Stylesheet inLayer(String layer) {
+        return new Stylesheet(this, layer);
+    }
+
+    /**
+     * The full name of the cascade layer that this whole style sheet is in, or null.
+     */
+    public String getLayer() {
+        return _layer;
     }
 
     /**
@@ -93,9 +124,13 @@ public class Stylesheet implements RulesetContainer {
     public void addContent(PageRule rule) {
         _contents.add(rule);
     }
+
+    public void addContent(LayerStatement statement) {
+        _contents.add(statement);
+    }
     
     /**
-     * @return a list containing page rules, media rules and rulesets in encounter order.
+     * @return a list containing page rules, media rules, rulesets and layer statements in encounter order.
      */
     public List<Object> getContents() {
         return _contents;

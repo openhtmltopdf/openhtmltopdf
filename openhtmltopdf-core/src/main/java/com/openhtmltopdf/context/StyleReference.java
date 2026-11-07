@@ -23,6 +23,7 @@ import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.extend.lib.DOMTreeResolver;
 import com.openhtmltopdf.css.newmatch.CascadedStyle;
 import com.openhtmltopdf.css.newmatch.Matcher;
+import com.openhtmltopdf.css.newmatch.Selector;
 import com.openhtmltopdf.css.newmatch.PageInfo;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
 import com.openhtmltopdf.css.sheet.FontFaceRule;
@@ -109,6 +110,13 @@ public class StyleReference {
     }
 
     private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium) {
+        return readAndParseAll(infos, medium, null);
+    }
+
+    /**
+     * @param layer the cascade layer the style sheets are imported into, or null
+     */
+    private List<Stylesheet> readAndParseAll(List<StylesheetInfo> infos, String medium, String layer) {
         List<Stylesheet> result = new ArrayList<>(infos.size() * 2); // Local aggregation prevents tail recursion, but it's extremely unlikely for this to become an issue.
 
         for (StylesheetInfo info : infos) {
@@ -125,8 +133,13 @@ public class StyleReference {
                 continue;
             }
 
+            String sheetLayer = Selector.qualifyLayer(layer, info.getLayer());
+            if (sheetLayer != null) {
+                sheet = sheet.inLayer(sheetLayer);
+            }
+
             if (!sheet.getImportRules().isEmpty()) {
-                result.addAll(readAndParseAll(sheet.getImportRules(), medium));
+                result.addAll(readAndParseAll(sheet.getImportRules(), medium, sheetLayer));
             }
 
             result.add(sheet);

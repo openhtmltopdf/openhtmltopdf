@@ -240,14 +240,77 @@ public class Matcher {
         return new Mapper(sorter.values());
     }
     
+    /**
+     * The order of the cascade layers (CSS Cascade 5, 6.4.3): layers are ordered by
+     * where they are first named, a layer's sublayers come before the rules directly
+     * in it, and rules in no layer come last of all.
+     */
+    private static class LayerOrder {
+        private final Map<String, List<String>> children = new HashMap<>();
+        private final Map<String, Integer> ranks = new HashMap<>();
+
+        void declare(String layer) {
+            if (layer == null || children.containsKey(layer)) {
+                return;
+            }
+            int dot = layer.lastIndexOf('.');
+            String parent = dot < 0 ? "" : layer.substring(0, dot);
+            declare(dot < 0 ? null : parent);
+            children.computeIfAbsent(parent, p -> new ArrayList<>()).add(layer);
+            children.put(layer, new ArrayList<>());
+        }
+
+        void rank() {
+            rank("", new int[] { 0 });
+        }
+
+        private void rank(String layer, int[] next) {
+            for (String child : children.getOrDefault(layer, Collections.emptyList())) {
+                rank(child, next);
+            }
+            if (!layer.isEmpty()) {
+                ranks.put(layer, next[0]++);
+            }
+        }
+
+        int rankOf(String layer) {
+            return layer == null ? Selector.UNLAYERED_RANK : ranks.get(layer);
+        }
+    }
+
+    private static LayerOrder layerOrder(List<Stylesheet> stylesheets, String medium) {
+        LayerOrder order = new LayerOrder();
+        for (Stylesheet stylesheet : stylesheets) {
+            order.declare(stylesheet.getLayer());
+            for (Object obj : stylesheet.getContents()) {
+                if (obj instanceof LayerStatement) {
+                    for (String name : ((LayerStatement) obj).getNames()) {
+                        order.declare(Selector.qualifyLayer(stylesheet.getLayer(), name));
+                    }
+                } else if (obj instanceof Ruleset) {
+                    order.declare(Selector.qualifyLayer(stylesheet.getLayer(), ((Ruleset) obj).getLayer()));
+                } else if (obj instanceof MediaRule && ((MediaRule) obj).matches(medium)) {
+                    for (Ruleset ruleset : ((MediaRule) obj).getContents()) {
+                        order.declare(Selector.qualifyLayer(stylesheet.getLayer(), ruleset.getLayer()));
+                    }
+                }
+            }
+        }
+        order.rank();
+        return order;
+    }
+
     private void addAllStylesheets(List<Stylesheet> stylesheets, TreeMap<String, Selector> sorter, String medium) {
         int count = 0;
         int pCount = 0;
+        LayerOrder layers = layerOrder(stylesheets, medium);
         for (Stylesheet stylesheet : stylesheets) {
             for (Object obj : stylesheet.getContents()) {
                 if (obj instanceof Ruleset) {
+                    int layerRank = layers.rankOf(Selector.qualifyLayer(stylesheet.getLayer(), ((Ruleset) obj).getLayer()));
                     for (Selector selector : ((Ruleset) obj).getFSSelectors()) {
                         selector.setPos(++count);
+                        selector.setLayerRank(layerRank);
                         sorter.put(selector.getOrder(), selector);
                     }
                 } else if (obj instanceof PageRule) {
@@ -258,9 +321,11 @@ public class Matcher {
                     if (mediaRule.matches(medium)) {
                         for (Object o : mediaRule.getContents()) {
                             Ruleset ruleset = (Ruleset) o;
+                            int layerRank = layers.rankOf(Selector.qualifyLayer(stylesheet.getLayer(), ruleset.getLayer()));
                             for (Object o1 : ruleset.getFSSelectors()) {
                                 Selector selector = (Selector) o1;
                                 selector.setPos(++count);
+                                selector.setLayerRank(layerRank);
                                 sorter.put(selector.getOrder(), selector);
                             }
                         }
