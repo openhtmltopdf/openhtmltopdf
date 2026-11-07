@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
@@ -41,10 +42,13 @@ import com.openhtmltopdf.render.InlineLayoutBox;
 import com.openhtmltopdf.render.LineBox;
 import com.openhtmltopdf.render.MarkerData;
 import com.openhtmltopdf.render.RenderingContext;
+import com.openhtmltopdf.render.ViewportBox;
 import com.openhtmltopdf.render.displaylist.DisplayListContainer;
 import com.openhtmltopdf.render.displaylist.PaintInlineContent;
 import com.openhtmltopdf.util.XRLog;
 import java.util.IdentityHashMap;
+import java.util.HashSet;
+import java.util.Arrays;
 
 public class PdfBoxAccessibilityHelper {
     // This maps from page to a list of content items, we need to process in page order, so a linked map.
@@ -204,9 +208,15 @@ public class PdfBoxAccessibilityHelper {
     private static class GenericStructualElement extends AbstractStructualElement {
         final List<AbstractTreeItem> children = new ArrayList<>();
 
+        /**
+         * Set in {@link #finish(AbstractStructualElement)} when a plain block div holds
+         * only inline content and is tagged P instead of Div.
+         */
+        private String tagOverride;
+
         @Override
         String getPdfTag() {
-            return chooseTag(this.box);
+            return tagOverride != null ? tagOverride : chooseTag(this.box);
         }
 
         @Override
@@ -304,25 +314,40 @@ public class PdfBoxAccessibilityHelper {
         return count;
     }
 
-    @Override
+        /**
+         * Whether finishing this element outputs nothing at all.
+         */
+        boolean isOmitted() {
+            // There is no point in outputting empty structual elements.
+            // Exception is elements with an id which may be there to
+            // use as a link or bookmark destination.
+            return children.isEmpty() &&
+                   (box.getElement() == null || !box.getElement().hasAttribute("id"));
+        }
+
+        /**
+         * Whether this element gets no structure element of its own, its children
+         * being finished into its parent instead.
+         */
+        boolean isSkipped() {
+            return box instanceof LineBox ||
+                   (box instanceof InlineLayoutBox &&
+                    countNonBrChildren(children) == 1 &&
+                    box.getParent() instanceof LineBox) ||
+                   isBrGeneratedContent(box);
+        }
+
+        @Override
         void finish(AbstractStructualElement parent) {
             // A structual element such as Div, Sect, p, etc
             // which contains other structual elements or content items (text).
             GenericStructualElement child = this;
 
-            if (child.children.isEmpty() &&
-                (child.box.getElement() == null || !child.box.getElement().hasAttribute("id"))) {
-                // There is no point in outputting empty structual elements.
-                // Exception is elements with an id which may be there to
-                // use as a link or bookmark destination.
+            if (child.isOmitted()) {
                 return;
             }
 
-            if (child.box instanceof LineBox ||
-                (child.box instanceof InlineLayoutBox &&
-                 countNonBrChildren(child.children) == 1 &&
-                 child.box.getParent() instanceof LineBox) ||
-                isBrGeneratedContent(child.box)) {
+            if (child.isSkipped()) {
                 // We skip (don't create structure element) line boxes in the tree.
                 // We also skip the common case of a intermediary InlineLayoutBox between the 
                 // LineBox and a single InlineText.
@@ -332,6 +357,8 @@ public class PdfBoxAccessibilityHelper {
                 // as a Span causes "possibly inappropriate use of a Span structure element"
                 // warnings in PDF/UA checkers such as PAC. See GH issue #100.
                 finishTreeItems(child.children, parent);
+            } else if (GROUPING_TAGS.contains(child.getPdfTag()) && !isInlineLevel(child.box)) {
+                finishGrouping(parent);
             } else {
                 createPdfStrucureElement(parent, child);
 
@@ -340,6 +367,163 @@ public class PdfBoxAccessibilityHelper {
                 // Recursively, depth first, process the structual tree.
                 finishTreeItems(child.children, child);
             }
+        }
+
+        /**
+         * A grouping element (Div, Sect, ...) may hold only other structure elements,
+         * never content directly (PDF/UA, PDF 1.7 14.8.4.2): each run of inline content in
+         * it, its lines and the text-level elements in them, is finished into one P, as
+         * an anonymous block of text is a paragraph. A plain div holding nothing but
+         * such a run is that P itself, or inside a paragraph or heading, where a P may
+         * not go, a Span. See GH issue #225.
+         */
+        private void finishGrouping(AbstractStructualElement parent) {
+            List<AbstractTreeItem> items = new ArrayList<>();
+            collectFinishedItems(children, items);
+
+            if (StandardStructureTypes.DIV.equals(getPdfTag()) &&
+                box.getLayer() == null &&
+                !items.isEmpty() &&
+                items.stream().allMatch(GenericStructualElement::isInlineContent)) {
+                tagOverride = PARAGRAPH_TAGS.contains(parent.getPdfTag()) ?
+                        StandardStructureTypes.SPAN : StandardStructureTypes.P;
+            }
+
+            createPdfStrucureElement(parent, this);
+            handleGlobalAttributes();
+
+            if (tagOverride != null) {
+                finishTreeItems(items, this);
+                return;
+            }
+
+            List<AbstractTreeItem> run = new ArrayList<>();
+            for (AbstractTreeItem item : items) {
+                if (isInlineContent(item)) {
+                    run.add(item);
+                } else {
+                    finishParagraph(run);
+                    item.finish(this);
+                }
+            }
+            finishParagraph(run);
+        }
+
+        private void finishParagraph(List<AbstractTreeItem> run) {
+            if (run.isEmpty()) {
+                return;
+            }
+
+            AnonymousParagraphStructualElement paragraph = new AnonymousParagraphStructualElement();
+            paragraph.page = this.page;
+            createPdfStrucureElement(this, paragraph);
+            finishTreeItems(run, paragraph);
+            run.clear();
+        }
+
+        /**
+         * Collects the items that finishing these children outputs into their parent:
+         * those skipped are passed through, those omitted left out.
+         */
+        private static void collectFinishedItems(List<AbstractTreeItem> children, List<AbstractTreeItem> result) {
+            for (AbstractTreeItem item : children) {
+                if (item.getClass() == GenericStructualElement.class) {
+                    GenericStructualElement generic = (GenericStructualElement) item;
+                    if (generic.isOmitted()) {
+                        continue;
+                    } else if (generic.isSkipped()) {
+                        collectFinishedItems(generic.children, result);
+                        continue;
+                    }
+                }
+                result.add(item);
+            }
+        }
+
+        /**
+         * Whether this item is content, or an element of the text level, that a
+         * grouping element must not hold directly.
+         */
+        private static boolean isInlineContent(AbstractTreeItem item) {
+            if (item instanceof GenericContentItem) {
+                return true;
+            }
+
+            AbstractStructualElement element = (AbstractStructualElement) item;
+            String tag = element.getPdfTag();
+
+            if (INLINE_TAGS.contains(tag)) {
+                return true;
+            }
+
+            return (StandardStructureTypes.Figure.equals(tag) || StandardStructureTypes.FORMULA.equals(tag)) &&
+                   element.box != null && isInlineLevel(element.box);
+        }
+
+        private static boolean isInlineLevel(Box box) {
+            return box instanceof InlineLayoutBox ||
+                   box instanceof LineBox ||
+                   (box instanceof BlockBox && ((BlockBox) box).isInline());
+        }
+    }
+
+    /**
+     * The grouping elements of PDF 1.7 (14.8.4.2) that this helper outputs: they may
+     * hold other structure elements only.
+     */
+    private static final Set<String> GROUPING_TAGS = new HashSet<>(Arrays.asList(
+            StandardStructureTypes.DIV,
+            StandardStructureTypes.SECT,
+            StandardStructureTypes.ART,
+            StandardStructureTypes.PART,
+            StandardStructureTypes.BLOCK_QUOTE,
+            StandardStructureTypes.CAPTION));
+
+    /**
+     * The paragraph-like elements of PDF 1.7 (14.8.4.3), which hold text, but no P.
+     */
+    private static final Set<String> PARAGRAPH_TAGS = new HashSet<>(Arrays.asList(
+            StandardStructureTypes.P,
+            StandardStructureTypes.H,
+            StandardStructureTypes.H1,
+            StandardStructureTypes.H2,
+            StandardStructureTypes.H3,
+            StandardStructureTypes.H4,
+            StandardStructureTypes.H5,
+            StandardStructureTypes.H6));
+
+    /**
+     * The inline-level structure elements of PDF 1.7 (14.8.4.4) that this helper outputs.
+     */
+    private static final Set<String> INLINE_TAGS = new HashSet<>(Arrays.asList(
+            StandardStructureTypes.SPAN,
+            StandardStructureTypes.QUOTE,
+            StandardStructureTypes.NOTE,
+            StandardStructureTypes.REFERENCE,
+            StandardStructureTypes.BIB_ENTRY,
+            StandardStructureTypes.CODE,
+            StandardStructureTypes.LINK,
+            StandardStructureTypes.ANNOT,
+            StandardStructureTypes.RUBY,
+            StandardStructureTypes.WARICHU));
+
+    /**
+     * The P that holds a run of inline content in a grouping element.
+     */
+    private static class AnonymousParagraphStructualElement extends AbstractStructualElement {
+        @Override
+        String getPdfTag() {
+            return StandardStructureTypes.P;
+        }
+
+        @Override
+        void addChild(AbstractTreeItem child) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        void finish(AbstractStructualElement parent) {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -1398,7 +1582,7 @@ public class PdfBoxAccessibilityHelper {
 
             child.parent = parentItem;
             child = parentItem;
-            parent = parent.getParent();
+            parent = getStructuralParent(parent);
         }
 
         // Only re-link if the loop actually created intermediates. For callers
@@ -1436,7 +1620,11 @@ public class PdfBoxAccessibilityHelper {
                 }
             }
 
-            if (child == null && box.getElement() != null && !box.isAnonymous()) {
+            // Generated content (::before, ::after) has its originating element, but is
+            // not that element: an absolutely positioned li::before must not become a
+            // second LI. See GH issue #96.
+            if (child == null && box.getElement() != null && !box.isAnonymous() &&
+                box.getPseudoElementOrClass() == null) {
                 String htmlTag = box.getElement().getTagName();
                 Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
 
@@ -1474,10 +1662,23 @@ public class PdfBoxAccessibilityHelper {
             return child;
     }
 
+    /**
+     * The box whose structure element holds this box's: its parent, or for an
+     * absolutely positioned box, which has none, its containing block. A box fixed to
+     * the page has neither, so its structure goes to the root.
+     */
+    private static Box getStructuralParent(Box box) {
+        if (box.getParent() != null) {
+            return box.getParent();
+        }
+        Box containingBlock = box.getContainingBlock();
+        return containingBlock instanceof ViewportBox ? null : containingBlock;
+    }
+
     private void setupStructureElement(AbstractStructualElement child, Box box) {
         box.setAccessiblityObject(child);
 
-        ensureAncestorTree(child, box.getParent());
+        ensureAncestorTree(child, getStructuralParent(box));
         ensureParent(box, child);
     }
 
@@ -1489,8 +1690,8 @@ public class PdfBoxAccessibilityHelper {
             } else if (child instanceof TableBodyStructualElement) {
                 child.parent = (TableStructualElement) box.getParent().getAccessibilityObject();
                 ((TableStructualElement) child.parent).tbodies.add((TableBodyStructualElement) child);
-            } else if (box.getParent() != null) {
-                AbstractStructualElement parent = (AbstractStructualElement) box.getParent().getAccessibilityObject();
+            } else if (getStructuralParent(box) != null) {
+                AbstractStructualElement parent = (AbstractStructualElement) getStructuralParent(box).getAccessibilityObject();
                 parent.addChild(child);
                 child.parent = parent;
             } else {

@@ -1,0 +1,29 @@
+<html lang="en">
+<head>
+  <title>Positioned list item marker</title>
+  <meta name="description" content="A list whose item markers are absolutely positioned generated content (GH issue #96)"/>
+  <meta name="subject" content="PDF/UA list with positioned li::before"/>
+  <style>
+    @page { size: 300px 200px; margin: 20px; }
+    body { margin: 0; font-family: 'TestFont'; font-size: 14px; }
+    ul { padding-left: 16px; }
+    ul li { list-style-type: none; position: relative; }
+    ul li:before {
+      content: '';
+      position: absolute;
+      left: -14px;
+      top: 4px;
+      width: 8px;
+      height: 8px;
+      background-color: #336;
+    }
+  </style>
+</head>
+<body>
+  <div>A list with custom markers:</div>
+  <ul>
+    <li>First item</li>
+    <li>Second item</li>
+  </ul>
+</body>
+</html>

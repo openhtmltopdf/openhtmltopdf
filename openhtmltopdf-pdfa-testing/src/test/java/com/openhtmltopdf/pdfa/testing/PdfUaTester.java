@@ -126,6 +126,15 @@ public class PdfUaTester {
     }
 
     /**
+     * An absolutely positioned li::before, as used for custom list markers, must not
+     * make a list item outside its list (GH issue #96).
+     */
+    @Test
+    public void testPositionedListItemMarkerPdfUa1() throws Exception {
+        assertTrue(run("pdfua-positioned-list-marker"));
+    }
+
+    /**
      * Verifies that empty img elements (no src or broken src) do not cause
      * NPE in FigureStructualElement.finish() when building the PDF/UA
      * structure tree. The FigureContentItem may be null if no content was
