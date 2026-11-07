@@ -146,6 +146,10 @@
               <publishingServerId>central</publishingServerId>
               <tokenAuth>true</tokenAuth>
               <autoPublish>true</autoPublish>
+              <!-- Only the MD5 and SHA1 checksums Central requires, not also SHA256
+                   and SHA512: a third fewer files per release, which count toward
+                   Central's monthly file limit. -->
+              <checksums>required</checksums>
               <excludeArtifacts>
                 <excludeArtifact>openhtmltopdf-examples</excludeArtifact>
                 <excludeArtifact>openhtmltopdf-pdfa-testing</excludeArtifact>
