@@ -35,11 +35,24 @@ public class Ruleset {
     private final List<Selector> _fsSelectors;
     private List<InvalidPropertyDeclaration> _invalidProperties;
     private List<CustomPropertyDeclaration> _customProperties;
+    private String _layer;
 
     public Ruleset(int orig) {
         _origin = orig;
         _props = new ArrayList<>();
         _fsSelectors = new ArrayList<>();
+    }
+
+    /**
+     * The full name of the cascade layer this rule is in, within its style sheet,
+     * or null if it is in none.
+     */
+    public String getLayer() {
+        return _layer;
+    }
+
+    public void setLayer(String layer) {
+        _layer = layer;
     }
 
     /**

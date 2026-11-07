@@ -54,6 +54,16 @@ public class Selector {
 
     private int _pos;//to distinguish between selectors of same specificity
 
+    /**
+     * The rank of this selector's cascade layer: rules in a layer of lower rank lose
+     * to those in a layer of higher rank, whatever their specificity. Rules in no
+     * layer have the highest rank.
+     */
+    private int _layerRank = UNLAYERED_RANK;
+
+    /** The rank of rules that are in no cascade layer, above that of any layer. */
+    public static final int UNLAYERED_RANK = 99999;
+
     private List<Condition> conditions;
 
     /** Rightmost simple-selector requirements, recorded at parse time for {@link #mayMatch}. */
@@ -466,7 +476,9 @@ public class Selector {
         String c = "000" + getSpecificityC();
         String d = "000" + getSpecificityD();
         String p = "00000" + _pos;
-        return "0" + b.substring(b.length() - 3) + c.substring(c.length() - 3) + d.substring(d.length() - 3) + p.substring(p.length() - 5);
+        String l = "00000" + _layerRank;
+        return "0" + l.substring(l.length() - 5) +
+                b.substring(b.length() - 3) + c.substring(c.length() - 3) + d.substring(d.length() - 3) + p.substring(p.length() - 5);
     }
 
     /**
@@ -605,6 +617,32 @@ public class Selector {
         }
     }
     
+    /**
+     * See {@link #UNLAYERED_RANK}.
+     */
+    public void setLayerRank(int layerRank) {
+        _layerRank = layerRank;
+        if (siblingSelector != null) {
+            siblingSelector.setLayerRank(layerRank);
+        }
+        if (chainedSelector != null) {
+            chainedSelector.setLayerRank(layerRank);
+        }
+    }
+
+    /**
+     * The full name of layer <code>name</code> inside layer <code>outer</code>; either
+     * may be null for no layer.
+     */
+    public static String qualifyLayer(String outer, String name) {
+        if (outer == null) {
+            return name;
+        } else if (name == null) {
+            return outer;
+        }
+        return outer + "." + name;
+    }
+
     public void setParent(Ruleset ruleset) {
         _parent = ruleset;
     }

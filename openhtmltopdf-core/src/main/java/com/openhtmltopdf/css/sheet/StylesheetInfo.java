@@ -60,6 +60,20 @@ public class StylesheetInfo {
      * @param m  a single media identifier
      * @return   true if the stylesheet referenced applies to the medium
      */
+    private String _layer;
+
+    /**
+     * The cascade layer that <code>@import ... layer(name)</code> imports this style
+     * sheet into, or null.
+     */
+    public String getLayer() {
+        return _layer;
+    }
+
+    public void setLayer(String layer) {
+        _layer = layer;
+    }
+
     public boolean appliesToMedia(String m) {
         if (mediaTypes.contains("all")) {
             return true;
