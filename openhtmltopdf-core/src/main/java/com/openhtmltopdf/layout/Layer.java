@@ -114,7 +114,8 @@ public class Layer {
         _master = master;
         setStackingContext(
                 (master.getStyle().isPositioned() && !master.getStyle().isAutoZIndex()) ||
-                (!master.getStyle().isIdent(CSSName.TRANSFORM, IdentValue.NONE)));
+                (!master.getStyle().isIdent(CSSName.TRANSFORM, IdentValue.NONE)) ||
+                hasOpacity(master));
         master.setLayer(this);
         master.setContainingLayer(this);
         _hasLocalTransform = !master.getStyle().isIdent(CSSName.TRANSFORM, IdentValue.NONE);
@@ -169,6 +170,17 @@ public class Layer {
         return _parent;
     }
     
+    /**
+     * Whether this layer is painted with an <code>opacity</code> below 1, as one group.
+     */
+    public boolean hasOpacity() {
+        return hasOpacity(_master);
+    }
+
+    private static boolean hasOpacity(Box master) {
+        return master.getStyle().getOpacity() < 1f;
+    }
+
     public boolean isStackingContext() {
         return _stackingContext;
     }
