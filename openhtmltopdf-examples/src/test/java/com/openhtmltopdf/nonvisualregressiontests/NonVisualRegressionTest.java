@@ -50,6 +50,7 @@ import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructur
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.CustomTypeSafeMatcher;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -199,6 +200,35 @@ public class NonVisualRegressionTest {
             assertThat(did.getKeywords(), equalTo("Test keywords"));
 
             remove("meta-information", doc);
+        }
+    }
+
+    /**
+     * Tests that the creation date is written in the Gregorian calendar even when
+     * the JVM default locale uses another one (th_TH: Buddhist calendar, year + 543).
+     * See issue #284.
+     */
+    @Test
+    public void testCreationDateIsGregorianWithThaiLocale() throws IOException {
+        Locale saved = Locale.getDefault();
+        byte[] pdf;
+        try {
+            Locale.setDefault(new Locale("th", "TH"));
+
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.withHtmlContent("<html><body><p>Hello</p></body></html>", null);
+            builder.toStream(os);
+            builder.run();
+            pdf = os.toByteArray();
+        } finally {
+            Locale.setDefault(saved);
+        }
+
+        int year = new GregorianCalendar().get(Calendar.YEAR);
+        try (PDDocument doc = Loader.loadPDF(pdf)) {
+            String raw = doc.getDocumentInformation().getCOSObject().getString(COSName.CREATION_DATE);
+            assertThat(raw, CoreMatchers.startsWith("D:" + year));
         }
     }
 
