@@ -571,7 +571,8 @@ public class LineBox extends Box implements InlinePaintable {
     /**
      * Trims the space that ends this line, as CSS removes it wherever spaces collapse
      * (CSS Text 3, 4.1.3), or with <code>white-space: pre-wrap</code>,
-     * which keeps its spaces, lets them hang where the line wraps.
+     * which keeps its spaces, lets them hang where the line wraps. Under
+     * <code>white-space: break-spaces</code> they never hang and stay as they are.
      *
      * @param softWrap whether the line ends because its content wraps, rather than
      * at a hard break or the end of the block. Only there do kept spaces hang

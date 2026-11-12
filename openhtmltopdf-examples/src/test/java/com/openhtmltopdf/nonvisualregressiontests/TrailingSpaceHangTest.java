@@ -242,6 +242,61 @@ public class TrailingSpaceHangTest {
                 renderLines(wide, "<p>mill   </p>").get(0).get(0).getXDirAdj(), TOLERANCE);
     }
 
+    /**
+     * Spaces kept by <code>white-space: break-spaces</code> never hang: they take room
+     * on the line, count for its alignment, and a line can break after every one of
+     * them, so a wrapped line keeps the spaces that start it. Positions as Chrome lays
+     * them out (#282).
+     */
+    @Test
+    public void testBreakSpacesTrailingSpacesTakeRoom() throws IOException {
+        String breakSpaces = "white-space: break-spaces;";
+
+        List<List<TextPosition>> issue = lines(breakSpaces, "mill mill mill");
+        assertEquals("issue: lines", 2, issue.size());
+        assertEquals("issue: the space after the second word does not fit, so it wraps before it",
+                boxPt - widthPt("mill "), issue.get(0).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("issue: second line", "millmill", text(issue.get(1)));
+        assertEquals("issue: second line", boxPt - widthPt("mill mill"), issue.get(1).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> atEnd = lines(breakSpaces, "mill mill   ");
+        assertEquals("at the end: lines", 2, atEnd.size());
+        assertEquals("at the end: the spaces count for the alignment",
+                boxPt - widthPt("mill   "), atEnd.get(1).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> manySpaces = lines(breakSpaces, "mill mill      x");
+        assertEquals("many spaces: lines", 3, manySpaces.size());
+        assertEquals("many spaces: the spaces wrap after the last one that fits",
+                boxPt - widthPt("mill      "), manySpaces.get(1).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("many spaces: third line", boxPt - widthPt("x"), manySpaces.get(2).get(0).getXDirAdj(), TOLERANCE);
+
+        String wide = "p { margin: 0; width: 150pt; text-align: right; white-space: break-spaces; }";
+        assertEquals("fitting, at the end: the spaces count for the alignment",
+                150 - widthPt("mill   "), renderLines(wide, "<p>mill   </p>").get(0).get(0).getXDirAdj(), TOLERANCE);
+        assertEquals("fitting, before a <br>: the spaces count for the alignment",
+                150 - widthPt("mill   "), renderLines(wide, "<p>mill   <br/>mill</p>").get(0).get(0).getXDirAdj(), TOLERANCE);
+
+        List<List<TextPosition>> leading = renderLines(
+                "p { margin: 0; width: " + (widthPt("mill  ") + widthPt(" ") / 2) + "pt; white-space: break-spaces; }",
+                "<p>mill    mill</p>");
+        assertEquals("leading: lines", 2, leading.size());
+        assertEquals("leading: the spaces that start the wrapped line stay",
+                widthPt("  "), leading.get(1).get(0).getXDirAdj(), TOLERANCE);
+    }
+
+    /**
+     * Under <code>white-space: break-spaces</code> the narrowest a text can get keeps
+     * the space after each word, as in Chrome (#282).
+     */
+    @Test
+    public void testBreakSpacesMinContentKeepsTheSpaceAfterAWord() throws IOException {
+        List<List<TextPosition>> lines = renderLines(
+                "div { width: 1px; } span { display: inline-block; text-align: right; white-space: break-spaces; }",
+                "<div><span>mill   mill</span></div>");
+        assertEquals("the last line is right-aligned in a box as wide as 'mill '",
+                widthPt(" "), lines.get(lines.size() - 1).get(0).getXDirAdj(), TOLERANCE);
+    }
+
     private static void assertFirstLineInBox(String text) throws IOException {
         List<TextPosition> first = lines("", text).get(0);
         assertEquals(text + ": first line", "millmill", text(first));
