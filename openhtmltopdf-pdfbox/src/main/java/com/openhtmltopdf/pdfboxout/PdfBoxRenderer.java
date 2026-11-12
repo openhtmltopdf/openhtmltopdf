@@ -86,6 +86,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -864,7 +865,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
     private void setDidValues(PDDocument doc) {
         PDDocumentInformation info = new PDDocumentInformation();
 
-        info.setCreationDate(Calendar.getInstance());
+        info.setCreationDate(new GregorianCalendar());
 
         if (_producer == null) {
             info.setProducer("openhtmltopdf.com");

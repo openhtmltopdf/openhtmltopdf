@@ -396,7 +396,7 @@ public class PdfBoxFastLinkManager {
                 // PDF/A3 requires a mod date for the file.
                 if (elem.hasAttribute("relationship")) {
                     // FIXME: Should we make this specifiable.
-                    embeddedFile.setModDate(Calendar.getInstance());
+                    embeddedFile.setModDate(new GregorianCalendar());
                 }
 
                 String fileName = elem.getAttribute("download");
