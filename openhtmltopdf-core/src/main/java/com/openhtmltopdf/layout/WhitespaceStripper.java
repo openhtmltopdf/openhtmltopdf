@@ -184,7 +184,8 @@ public class WhitespaceStripper {
             text = space_before_linefeed_collapse.matcher(text).replaceAll(EOL);
         }
 
-        if (whitespace == IdentValue.PRE || whitespace == IdentValue.PRE_WRAP) {
+        if (whitespace == IdentValue.PRE || whitespace == IdentValue.PRE_WRAP ||
+            whitespace == IdentValue.BREAK_SPACES) {
             int tabSize = (int) iB.getStyle().asFloat(CSSName.TAB_SIZE);
             char[] tabs = new char[tabSize];
             Arrays.fill(tabs, ' ');

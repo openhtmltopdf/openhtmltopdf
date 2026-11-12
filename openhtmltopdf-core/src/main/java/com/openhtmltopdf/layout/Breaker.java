@@ -179,6 +179,7 @@ public class Breaker {
         boolean bareNewline = false;
         if (whitespace == IdentValue.PRE ||
             whitespace == IdentValue.PRE_WRAP ||
+            whitespace == IdentValue.BREAK_SPACES ||
             whitespace == IdentValue.PRE_LINE) {
             int n = context.getStartSubstring().indexOf(WhitespaceStripper.EOL);
             if (n > -1) {
@@ -607,14 +608,28 @@ public class Breaker {
         String currentString = context.getStartSubstring();
         FSTextBreaker lineIterator = lineBreaker.getBreaker(currentString, c.getSharedContext());
 
-        // Spaces hang only where LineBox.trimTrailingSpace trims them from the end of
-        // a line, or, as pre-wrap keeps them, lets them hang there.
         IdentValue whitespace = style.getWhitespace();
+        if (whitespace == IdentValue.BREAK_SPACES) {
+            lineIterator = new BreakSpacesTextBreaker(lineIterator, currentString);
+        }
+
+        // Spaces hang only where LineBox.trimTrailingSpace trims them from the end of
+        // a line, or, as pre-wrap keeps them, lets them hang there. Under break-spaces
+        // they never hang: they take room on the line like any other character.
         boolean hangTrailingWhitespace = whitespace == IdentValue.NORMAL || whitespace == IdentValue.NOWRAP ||
                 whitespace == IdentValue.PRE_LINE || whitespace == IdentValue.PRE_WRAP;
 
-        return doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer,
+        LineBreakResult result = doBreakTextWords(currentString, context, avail, lineIterator, spacing, measurer,
                 pairKerning(c, font, context.getTextDirection()), hangTrailingWhitespace);
+
+        if (whitespace == IdentValue.BREAK_SPACES && !context.isEndsOnSoftHyphen() &&
+            (result == LineBreakResult.WORD_BREAKING_FINISHED || result == LineBreakResult.WORD_BREAKING_NEED_NEW_LINE)) {
+            // Every space is a piece of its own here, and each piece's width is rounded
+            // up, so their sum grows along the line: measure the text that is placed whole.
+            String placed = context.getCalculatedSubstring();
+            context.setWidth((int) (measurer.applyAsInt(placed) + spacing.extra(placed)));
+        }
+        return result;
     }
 
     static LineBreakResult doBreakTextWords(
@@ -828,6 +843,15 @@ public class Breaker {
 		i.setText(s);
 		return i;
 	}
+
+    /**
+     * As {@link #getLineBreakStream(String, SharedContext)}, with the extra line break
+     * opportunities of <code>white-space: break-spaces</code>: after every space,
+     * including between spaces (CSS Text 3, 3).
+     */
+    public static FSTextBreaker getBreakSpacesLineBreakStream(String s, SharedContext shared) {
+        return new BreakSpacesTextBreaker(getLineBreakStream(s, shared), s);
+    }
 
 	/**
 	 * Gets the width of a string with letter and word spacing factored in.

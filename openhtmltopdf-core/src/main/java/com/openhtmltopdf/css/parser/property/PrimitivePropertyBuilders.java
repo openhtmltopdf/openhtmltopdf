@@ -1628,11 +1628,11 @@ public class PrimitivePropertyBuilders {
     }
 
     public static class WhiteSpace extends SingleIdent {
-        // normal | pre | nowrap | pre-wrap | pre-line | inherit
+        // normal | pre | nowrap | pre-wrap | break-spaces | pre-line | inherit
         private static final BitSet ALLOWED = setFor(
                 new IdentValue[] {
                         IdentValue.NORMAL, IdentValue.PRE, IdentValue.NOWRAP,
-                        IdentValue.PRE_WRAP, IdentValue.PRE_LINE});
+                        IdentValue.PRE_WRAP, IdentValue.BREAK_SPACES, IdentValue.PRE_LINE});
 
         @Override
         protected BitSet getAllowed() {

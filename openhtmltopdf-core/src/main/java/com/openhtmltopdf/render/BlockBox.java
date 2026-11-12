@@ -2218,7 +2218,8 @@ public class BlockBox extends Box {
                         childMaxWidth = childMinWidth;
                     }
                     lineWidth = 0;
-                } else if (whitespace == IdentValue.PRE_WRAP || whitespace == IdentValue.PRE_LINE) {
+                } else if (whitespace == IdentValue.PRE_WRAP || whitespace == IdentValue.BREAK_SPACES ||
+                           whitespace == IdentValue.PRE_LINE) {
                     lineWidth += textIndent + iB.getFirstLineWidth();
                     if (trimmableIB != null) {
                         lineWidth -= trimmableIB.getTrailingSpaceWidth(c);

@@ -1392,6 +1392,8 @@ public class InlineBoxing {
         if ((! line.isContainsContent() || zeroWidthInlineBlock) &&
                 lbContext.getStartSubstring().startsWith(WhitespaceStripper.SPACE)) {
             IdentValue whitespace = style.getWhitespace();
+            // Under break-spaces, spaces are never removed: those that start a
+            // wrapped line stay there.
             if (whitespace == IdentValue.NORMAL
                     || whitespace == IdentValue.NOWRAP
                     || whitespace == IdentValue.PRE_LINE
