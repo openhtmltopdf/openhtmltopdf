@@ -10,6 +10,10 @@ welcome.
 - Include a test for the behaviour you changed. Rendering changes usually
   belong in `openhtmltopdf-examples` — see the visual and non-visual
   regression tests there for the pattern.
+- For rendering changes, attach a comparison image to the pull request: the
+  test fixture rendered by current `main` (before), by your branch (after) and
+  by Chrome (reference). Check it yourself before posting: it is the quickest
+  way to see whether the fix is complete, and the first thing we look at.
 - Keep the change focused. A pull request that fixes one thing is reviewed and
   merged far faster than one that fixes three.
 
@@ -31,6 +35,7 @@ If you use AI, please still:
 - read and understand the diff you are submitting;
 - run the test suite locally (`mvn test`);
 - include a test for the behaviour you changed;
+- have it produce the before/after/Chrome comparison image, and look at it;
 - be around to answer questions about the change.
 
 That last point is the one that matters most. The usual problem with an
