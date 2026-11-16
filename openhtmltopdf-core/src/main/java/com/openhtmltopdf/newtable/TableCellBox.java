@@ -515,6 +515,7 @@ public class TableCellBox extends BlockBox {
         result.height = height;
         return result;
     }
+
     public Rectangle getChildrenClipEdge(RenderingContext c) {
         if (c.isPrint() && getTable().getStyle().isPaginateTable()) {
             Rectangle bounds = getContentLimitedBorderEdge(c);
