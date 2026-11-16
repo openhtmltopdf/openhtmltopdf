@@ -190,6 +190,31 @@ public class BorderPropertySet extends RectPropertySet {
         return bc;
     }
 
+    /**
+     * A copy without the top and/or bottom side, for a box fragment that a page
+     * break cuts off there: the sides get no width and their corners no radius.
+     *
+     * @param top whether to drop the top side
+     * @param bottom whether to drop the bottom side
+     */
+    public BorderPropertySet withoutVerticalSides(boolean top, boolean bottom) {
+        if (!top && !bottom) {
+            return this;
+        }
+        BorderPropertySet bc = new BorderPropertySet(this);
+        if (top) {
+            bc._top = 0;
+            bc._topLeft = new BorderRadiusCorner();
+            bc._topRight = new BorderRadiusCorner();
+        }
+        if (bottom) {
+            bc._bottom = 0;
+            bc._bottomLeft = new BorderRadiusCorner();
+            bc._bottomRight = new BorderRadiusCorner();
+        }
+        return bc;
+    }
+
     public static BorderPropertySet newInstance(
             CalculatedStyle style,
             CssContext ctx

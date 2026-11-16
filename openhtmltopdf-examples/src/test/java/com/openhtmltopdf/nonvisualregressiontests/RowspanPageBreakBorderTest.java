@@ -23,8 +23,12 @@ import com.openhtmltopdf.testlistener.PrintingRunner;
 import com.openhtmltopdf.visualtest.TestSupport;
 
 /**
- * The fragment borders of a rowspan cell that crosses a page break line up with
- * the interrupted row's other cells.
+ * A rowspan cell that crosses a page break is split as in Chrome: each fragment
+ * lines up with the rows beside it, and its edges at the break have no border.
+ * <p>
+ * Body cells paint red borders, the rowspan cells a green background and the
+ * other body cells a blue one. Header borders are black and footer cells
+ * unpainted, so neither counts as cell paint.
  */
 @RunWith(PrintingRunner.class)
 public class RowspanPageBreakBorderTest {
@@ -40,155 +44,133 @@ public class RowspanPageBreakBorderTest {
 
     @Test
     public void testSeparatedBorders() throws IOException {
-        assertFragmentBorders("separate");
+        assertFragments("break between rows", html("separate"), 6, 3, 5);
     }
 
     @Test
     public void testCollapsedBorders() throws IOException {
-        assertFragmentBorders("collapse");
+        assertFragments("break between rows", html("collapse"), 6, 3, 5);
     }
 
     @Test
     public void testSeparatedBordersOverSeveralPages() throws IOException {
-        assertFragmentBordersOverSeveralPages("separate");
+        assertFragments("rowspan over several pages", multiPageHtml("separate"), 4, 3);
     }
 
     @Test
     public void testCollapsedBordersOverSeveralPages() throws IOException {
-        assertFragmentBordersOverSeveralPages("collapse");
+        assertFragments("rowspan over several pages", multiPageHtml("collapse"), 4, 3);
     }
 
     @Test
     public void testSeparatedBordersInsideSplitRow() throws IOException {
-        assertFragmentBordersOnEveryPage("break inside a row",
-                splitRowHtml("separate"));
+        assertFragments("break inside a row", splitRowHtml("separate"), 4, 3);
     }
 
     @Test
     public void testCollapsedBordersInsideSplitRow() throws IOException {
-        assertFragmentBordersOnEveryPage("break inside a row",
-                splitRowHtml("collapse"));
+        assertFragments("break inside a row", splitRowHtml("collapse"), 4, 3);
     }
 
     @Test
     public void testSeparatedBordersStartingMidDocument() throws IOException {
-        assertFragmentBordersOnEveryPage("rowspan starting mid-document",
-                midDocumentHtml("separate"));
+        assertFragments("rowspan starting mid-document", midDocumentHtml("separate"), 4, 3);
     }
 
     @Test
     public void testCollapsedBordersStartingMidDocument() throws IOException {
-        assertFragmentBordersOnEveryPage("rowspan starting mid-document",
-                midDocumentHtml("collapse"));
+        assertFragments("rowspan starting mid-document", midDocumentHtml("collapse"), 4, 3);
     }
 
     @Test
     public void testSeparatedBordersWithRepeatedHeaderAndFooter() throws IOException {
-        assertFragmentBordersOnEveryPage("body rowspan with repeated header and footer",
-                headerFooterHtml("separate"));
+        assertFragments("body rowspan with repeated header and footer",
+                headerFooterHtml("separate"), 4, 3);
     }
 
     @Test
     public void testCollapsedBordersWithRepeatedHeaderAndFooter() throws IOException {
-        assertFragmentBordersOnEveryPage("body rowspan with repeated header and footer",
-                headerFooterHtml("collapse"));
+        // The collapsed edges at the breaks are shared with the header and footer.
+        assertFragments("body rowspan with repeated header and footer",
+                headerFooterHtml("collapse"), true, 4, 3);
     }
 
     @Test
     public void testSeparatedBordersWithRepeatedHeaderAndSpacing() throws IOException {
-        assertFragmentBordersOnEveryPage("rowspan after a repeated header with border spacing",
-                headerSpacingHtml());
+        assertFragments("rowspan after a repeated header with border spacing",
+                headerSpacingHtml(), 4, 3);
     }
 
     @Test
     public void testSeparatedBordersOverEmptyRows() throws IOException {
-        assertFragmentBordersOnEveryPage("rowspan over empty rows", emptyRowsHtml("separate"));
+        assertFragments("rowspan over empty rows", emptyRowsHtml("separate"), 4, 3);
     }
 
     @Test
     public void testCollapsedBordersOverEmptyRows() throws IOException {
-        assertFragmentBordersOnEveryPage("rowspan over empty rows", emptyRowsHtml("collapse"));
+        assertFragments("rowspan over empty rows", emptyRowsHtml("collapse"), 4, 3);
     }
 
     /**
-     * The break lands on a row boundary: all three cells end at the same y on
-     * the first page and start at the same y on the next.
+     * Checks every page at the rowspan column ({@code x = PAGE_SIZE / divisor})
+     * against the other columns ({@code x = column * PAGE_SIZE / divisor}): the
+     * cell paint of each column starts and ends at the same y, and the rowspan
+     * fragment's edges at page breaks have no border.
      */
-    private void assertFragmentBorders(String borderCollapse) throws IOException {
-        List<BufferedImage> pages = renderPages(html(borderCollapse));
-        assertTrue("the table spans more than one page", pages.size() > 1);
-        BufferedImage firstPage = pages.get(0);
-        int rowspanBottom = lastBorderRow(firstPage, PAGE_SIZE / 6);
-        int middleBottom = lastBorderRow(firstPage, PAGE_SIZE / 2);
-        int rightBottom = lastBorderRow(firstPage, 5 * PAGE_SIZE / 6);
-        assertTrue("the row's middle cell paints a bottom border on the first page",
-                middleBottom >= 0);
-        checkEquals("the rowspan cell's bottom border lines up with the row's middle cell",
-                middleBottom, rowspanBottom);
-        checkEquals("the rowspan cell's bottom border lines up with the row's right cell",
-                rightBottom, rowspanBottom);
-        BufferedImage secondPage = pages.get(1);
-        int rowspanTop = firstBorderRow(secondPage, PAGE_SIZE / 6);
-        int middleTop = firstBorderRow(secondPage, PAGE_SIZE / 2);
-        int rightTop = firstBorderRow(secondPage, 5 * PAGE_SIZE / 6);
-        assertTrue("the row's middle cell paints a top border on the second page",
-                middleTop >= 0);
-        checkEquals("the rowspan cell's top border lines up with the row's middle cell",
-                middleTop, rowspanTop);
-        checkEquals("the rowspan cell's top border lines up with the row's right cell",
-                rightTop, rowspanTop);
+    private void assertFragments(String description, String htmlContent,
+            int divisor, int... otherColumns) throws IOException {
+        assertFragments(description, htmlContent, false, divisor, otherColumns);
     }
 
     /**
-     * The rowspan covers the whole table, so every page breaks inside the span.
+     * As {@link #assertFragments(String, String, int, int...)}, but with
+     * {@code bordersAtBreaks} the fragment edges at the breaks have a border.
      */
-    private void assertFragmentBordersOverSeveralPages(String borderCollapse) throws IOException {
-        List<BufferedImage> pages = renderPages(multiPageHtml(borderCollapse));
-        assertTrue("the table spans more than two pages", pages.size() > 2);
+    private void assertFragments(String description, String htmlContent, boolean bordersAtBreaks,
+            int divisor, int... otherColumns) throws IOException {
+        List<BufferedImage> pages = renderPages(htmlContent);
+        int rowspanX = PAGE_SIZE / divisor;
+        int firstRowspanPage = -1;
+        int lastRowspanPage = -1;
         for (int page = 0; page < pages.size(); page++) {
-            BufferedImage image = pages.get(page);
-            int rowspanBottom = lastBorderRow(image, PAGE_SIZE / 4);
-            int otherBottom = lastBorderRow(image, 3 * PAGE_SIZE / 4);
-            assertTrue("the second column paints a bottom border on page " + (page + 1),
-                    otherBottom >= 0);
-            checkEquals("the rowspan cell's bottom border lines up on page " + (page + 1),
-                    otherBottom, rowspanBottom);
-            if (page > 0) {
-                int rowspanTop = firstBorderRow(image, PAGE_SIZE / 4);
-                int otherTop = firstBorderRow(image, 3 * PAGE_SIZE / 4);
-                assertTrue("the second column paints a top border on page " + (page + 1),
-                        otherTop >= 0);
-                checkEquals("the rowspan cell's top border lines up on page " + (page + 1),
-                        otherTop, rowspanTop);
+            if (firstRow(pages.get(page), rowspanX, Paint.ROWSPAN) >= 0) {
+                if (firstRowspanPage < 0) {
+                    firstRowspanPage = page;
+                }
+                lastRowspanPage = page;
             }
         }
-    }
-
-    /**
-     * Both fragment edges line up on every page.
-     */
-    private void assertFragmentBordersOnEveryPage(String description, String htmlContent)
-            throws IOException {
-        List<BufferedImage> pages = renderPages(htmlContent);
-        assertTrue(description + ": table spans more than one page", pages.size() > 1);
+        assertTrue(description + ": the rowspan cell crosses a page break",
+                firstRowspanPage >= 0 && lastRowspanPage > firstRowspanPage);
         for (int page = 0; page < pages.size(); page++) {
             BufferedImage image = pages.get(page);
-            int rowspanTop = firstBorderRow(image, PAGE_SIZE / 4);
-            int otherTop = firstBorderRow(image, 3 * PAGE_SIZE / 4);
-            int rowspanBottom = lastBorderRow(image, PAGE_SIZE / 4);
-            int otherBottom = lastBorderRow(image, 3 * PAGE_SIZE / 4);
-            assertTrue(description + ": second column paints a top border on page " + (page + 1),
-                    otherTop >= 0);
-            assertTrue(description + ": second column paints a bottom border on page " + (page + 1),
-                    otherBottom >= 0);
-            checkEquals(description + ": top border lines up on page " + (page + 1),
-                    otherTop, rowspanTop);
-            checkEquals(description + ": bottom border lines up on page " + (page + 1),
-                    otherBottom, rowspanBottom);
+            String onPage = " on page " + (page + 1);
+            int top = firstRow(image, rowspanX, Paint.CELL);
+            int bottom = lastRow(image, rowspanX, Paint.CELL);
+            for (int column : otherColumns) {
+                int x = column * PAGE_SIZE / divisor;
+                checkEquals(description + ": top edge at x=" + x + " lines up" + onPage,
+                        top, firstRow(image, x, Paint.CELL));
+                checkEquals(description + ": bottom edge at x=" + x + " lines up" + onPage,
+                        bottom, lastRow(image, x, Paint.CELL));
+            }
+            // A continuing rowspan fragment is the first cell in its column, and
+            // the last one on a page the cell continues past.
+            if (page > firstRowspanPage && page <= lastRowspanPage) {
+                checkEquals(description + ": border at the top of the fragment" + onPage,
+                        bordersAtBreaks, isBorder(image, rowspanX, top));
+            }
+            if (page >= firstRowspanPage && page < lastRowspanPage) {
+                checkEquals(description + ": border at the bottom of the fragment" + onPage,
+                        bordersAtBreaks, isBorder(image, rowspanX, bottom));
+            }
         }
+        checkEquals(description + ": the rowspan cell's top border on its first page",
+                true, isBorder(pages.get(firstRowspanPage), rowspanX,
+                        firstRow(pages.get(firstRowspanPage), rowspanX, Paint.CELL)));
     }
 
-    private void checkEquals(String message, int expected, int actual) {
+    private void checkEquals(String message, Object expected, Object actual) {
         errors.checkSucceeds(() -> {
             assertEquals(message, expected, actual);
             return null;
@@ -212,17 +194,35 @@ public class RowspanPageBreakBorderTest {
         }
     }
 
-    private static String html(String borderCollapse) {
+    private static String document(String borderStyle, String body) {
         return "<html><head><style>" +
                 "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
                 "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: " + borderCollapse + "; border-spacing: 0; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                "</style></head><body><table>" +
-                "<tr><td rowspan=\"6\"></td><td></td><td></td></tr>" +
-                row() + row() + row() + row() + row() + row() + row() + row() +
-                "</table></body></html>";
+                "table { -fs-table-paginate: paginate; width: 100%; " + borderStyle + " }" +
+                "td { height: 18px; padding: 2px; border: 2px solid red; background: #0000c8; }" +
+                "td[rowspan] { background: #00aa00; }" +
+                "th { height: 12px; border: 2px solid black; }" +
+                "tfoot td { height: 12px; border: 0; background: none; }" +
+                ".tall { height: 20px; }" +
+                ".block { height: 40px; }" +
+                "</style></head><body>" + body + "</body></html>";
+    }
+
+    private static String collapse(String borderCollapse) {
+        return "border-collapse: " + borderCollapse + "; border-spacing: 0;";
+    }
+
+    private static String html(String borderCollapse) {
+        StringBuilder rows = new StringBuilder();
+        for (int i = 1; i < 6; i++) {
+            rows.append("<tr><td></td><td></td></tr>");
+        }
+        for (int i = 0; i < 3; i++) {
+            rows.append("<tr><td></td><td></td><td></td></tr>");
+        }
+        return document(collapse(borderCollapse), "<table>" +
+                "<tr><td rowspan=\"6\"></td><td></td><td></td></tr>" + rows +
+                "</table>");
     }
 
     private static String multiPageHtml(String borderCollapse) {
@@ -230,15 +230,9 @@ public class RowspanPageBreakBorderTest {
         for (int i = 1; i < MULTI_PAGE_ROWS; i++) {
             rows.append("<tr><td></td></tr>");
         }
-        return "<html><head><style>" +
-                "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
-                "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: " + borderCollapse + "; border-spacing: 0; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                "</style></head><body><table>" +
+        return document(collapse(borderCollapse), "<table>" +
                 "<tr><td rowspan=\"" + MULTI_PAGE_ROWS + "\"></td><td></td></tr>" + rows +
-                "</table></body></html>";
+                "</table>");
     }
 
     private static String splitRowHtml(String borderCollapse) {
@@ -246,78 +240,43 @@ public class RowspanPageBreakBorderTest {
         for (int i = 0; i < 16; i++) {
             tall.append("<div class=\"tall\"></div>");
         }
-        return "<html><head><style>" +
-                "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
-                "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: " + borderCollapse + "; border-spacing: 0; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                ".tall { height: 20px; }" +
-                "</style></head><body><table>" +
+        return document(collapse(borderCollapse), "<table>" +
                 "<tr><td rowspan=\"2\"></td><td>" + tall + "</td></tr>" +
                 "<tr><td></td></tr>" +
-                "</table></body></html>";
+                "</table>");
     }
 
     private static String midDocumentHtml(String borderCollapse) {
-        return "<html><head><style>" +
-                "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
-                "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: " + borderCollapse + "; border-spacing: 0; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                "</style></head><body><div style=\"height: 50px\"></div><table>" +
+        return document(collapse(borderCollapse), "<div style=\"height: 50px\"></div><table>" +
                 "<tr><td rowspan=\"6\"></td><td></td></tr>" +
                 singleCells() + fullRows() +
-                "</table></body></html>";
+                "</table>");
     }
 
     private static String headerFooterHtml(String borderCollapse) {
-        return "<html><head><style>" +
-                "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
-                "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: " + borderCollapse + "; border-spacing: 0; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                "th { height: 12px; border: 2px solid blue; }" +
-                "tfoot td { height: 12px; border: 0; }" +
-                "</style></head><body><table>" +
+        return document(collapse(borderCollapse), "<table>" +
                 "<thead><tr><th></th><th></th></tr></thead>" +
                 "<tfoot><tr><td></td><td></td></tr></tfoot>" +
                 "<tbody>" +
                 "<tr><td rowspan=\"6\"></td><td></td></tr>" +
                 singleCells() + fullRows() +
-                "</tbody></table></body></html>";
+                "</tbody></table>");
     }
 
     private static String headerSpacingHtml() {
-        return "<html><head><style>" +
-                "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
-                "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: separate; border-spacing: 4px; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                "th { height: 12px; border: 2px solid blue; }" +
-                "</style></head><body><table>" +
+        return document("border-collapse: separate; border-spacing: 4px;", "<table>" +
                 "<thead><tr><th></th><th></th></tr></thead>" +
                 "<tbody>" +
                 "<tr><td rowspan=\"6\"></td><td></td></tr>" +
                 singleCells() + fullRows() +
-                "</tbody></table></body></html>";
+                "</tbody></table>");
     }
 
     private static String emptyRowsHtml(String borderCollapse) {
-        return "<html><head><style>" +
-                "@page { size: " + PAGE_SIZE + "px " + PAGE_SIZE + "px; margin: 0; }" +
-                "body { margin: 0; }" +
-                "table { -fs-table-paginate: paginate; width: 100%;" +
-                "        border-collapse: " + borderCollapse + "; border-spacing: 0; }" +
-                "td { height: 18px; padding: 2px; border: 2px solid red; }" +
-                ".block { height: 40px; }" +
-                "</style></head><body><table>" +
+        return document(collapse(borderCollapse), "<table>" +
                 "<tr><td rowspan=\"6\">" + blocks() + "</td><td rowspan=\"6\"></td></tr>" +
                 "<tr></tr><tr></tr><tr></tr><tr></tr><tr></tr>" +
-                "</table></body></html>";
+                "</table>");
     }
 
     private static String blocks() {
@@ -339,37 +298,47 @@ public class RowspanPageBreakBorderTest {
     private static String fullRows() {
         StringBuilder rows = new StringBuilder();
         for (int i = 0; i < 3; i++) {
-            rows.append(row());
+            rows.append("<tr><td></td><td></td></tr>");
         }
         return rows.toString();
     }
 
-    private static String row() {
-        return "<tr><td></td><td></td></tr>";
+    private enum Paint {
+        /** Any body cell's border or background. */
+        CELL,
+        /** The rowspan cell's background. */
+        ROWSPAN
     }
 
-    /**
-     * The first image row on which a solid horizontal red border is painted at x.
-     */
-    private static int firstBorderRow(BufferedImage image, int x) {
+    private static int firstRow(BufferedImage image, int x, Paint paint) {
         for (int y = 0; y < image.getHeight(); y++) {
-            if (isBorder(image, x, y)) {
+            if (matches(image, x, y, paint)) {
                 return y;
             }
         }
         return -1;
     }
 
-    /**
-     * The last image row on which a solid horizontal red border is painted at x.
-     */
-    private static int lastBorderRow(BufferedImage image, int x) {
+    private static int lastRow(BufferedImage image, int x, Paint paint) {
         for (int y = image.getHeight() - 1; y >= 0; y--) {
-            if (isBorder(image, x, y)) {
+            if (matches(image, x, y, paint)) {
                 return y;
             }
         }
         return -1;
+    }
+
+    private static boolean matches(BufferedImage image, int x, int y, Paint paint) {
+        int rgb = image.getRGB(x, y);
+        int red = (rgb >> 16) & 0xff;
+        int green = (rgb >> 8) & 0xff;
+        int blue = rgb & 0xff;
+        boolean rowspanBackground = green > 120 && red < 100 && blue < 100;
+        if (paint == Paint.ROWSPAN) {
+            return rowspanBackground;
+        }
+        boolean cellBackground = blue > 150 && red < 100 && green < 100;
+        return rowspanBackground || cellBackground || isBorder(image, x, y);
     }
 
     private static boolean isBorder(BufferedImage image, int x, int y) {
