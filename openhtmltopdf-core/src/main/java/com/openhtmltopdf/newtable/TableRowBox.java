@@ -403,7 +403,8 @@ public class TableRowBox extends BlockBox {
                 }
                 
                 IdentValue val = cell.getVerticalAlign();
-                if (val == IdentValue.MIDDLE || val == IdentValue.BOTTOM) {
+                if ((val == IdentValue.MIDDLE || val == IdentValue.BOTTOM)
+                        && !isSplitByPageBreak(c, cell)) {
                     int deltaY = calcMiddleBottomDeltaY(cell, val);
                     if (deltaY > 0) {
                         if (c.isPrint() && cell.isPageBreaksChange(c, deltaY)) {
@@ -426,6 +427,26 @@ public class TableRowBox extends BlockBox {
         return needRowHeightRecalc;
     }
     
+    /**
+     * Whether a page break splits the cell, which ends with this row. As in
+     * Chrome, such a cell ignores vertical-align: middle and bottom, so its
+     * content starts at the top of its first fragment instead of wherever the
+     * middle or bottom of the whole cell lands.
+     */
+    private boolean isSplitByPageBreak(LayoutContext c, TableCellBox cell) {
+        if (!c.isPrint() || !c.isPageBreaksAllowed() || getTable().isMarginAreaRoot()) {
+            return false;
+        }
+        int top = cell.getAbsY();
+        int bottom = getAbsY() + getHeight();
+        if (bottom <= top) {
+            return false;
+        }
+        PageBox first = c.getRootLayer().getFirstPage(c, top);
+        PageBox last = c.getRootLayer().getFirstPage(c, bottom - 1);
+        return first != null && last != null && first.getPageNo() != last.getPageNo();
+    }
+
     private int calcMiddleBottomDeltaY(TableCellBox cell, IdentValue verticalAlign) {
         int result;
         if (cell.getStyle().getRowSpan() == 1) {

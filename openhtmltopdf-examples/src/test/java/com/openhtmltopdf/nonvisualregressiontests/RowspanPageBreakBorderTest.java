@@ -13,6 +13,7 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -112,6 +113,44 @@ public class RowspanPageBreakBorderTest {
     }
 
     /**
+     * Like Chrome, a cell that a page break splits ignores vertical-align: middle
+     * and bottom, so its content starts on its first page.
+     */
+    @Test
+    public void testSplitCellContentStartsOnFirstPage() throws IOException {
+        for (String align : new String[] { "middle", "bottom" }) {
+            for (String borderCollapse : new String[] { "separate", "collapse" }) {
+                String content = splitCellTextHtml(align, borderCollapse);
+                String description = "vertical-align: " + align + ", " + borderCollapse + " borders: ";
+                checkEquals(description + "the text is on the first page",
+                        true, pageText(content, 1).contains("span"));
+                checkEquals(description + "the text is not on the second page",
+                        false, pageText(content, 2).contains("span"));
+            }
+        }
+    }
+
+    private static String splitCellTextHtml(String align, String borderCollapse) {
+        StringBuilder rows = new StringBuilder();
+        for (int i = 1; i < 6; i++) {
+            rows.append("<tr><td></td></tr>");
+        }
+        return document(collapse(borderCollapse), "<table>" +
+                "<tr><td rowspan=\"6\" style=\"vertical-align: " + align + "; font-size: 8px;\">span</td>" +
+                "<td></td></tr>" + rows +
+                "</table>");
+    }
+
+    private static String pageText(String htmlContent, int page) throws IOException {
+        try (PDDocument document = Loader.loadPDF(renderPdf(htmlContent))) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setStartPage(page);
+            stripper.setEndPage(page);
+            return stripper.getText(document);
+        }
+    }
+
+    /**
      * Checks every page at the rowspan column ({@code x = PAGE_SIZE / divisor})
      * against the other columns ({@code x = column * PAGE_SIZE / divisor}): the
      * cell paint of each column starts and ends at the same y, and the rowspan
@@ -177,14 +216,18 @@ public class RowspanPageBreakBorderTest {
         });
     }
 
-    private static List<BufferedImage> renderPages(String htmlContent) throws IOException {
+    private static byte[] renderPdf(String htmlContent) throws IOException {
         ByteArrayOutputStream pdf = new ByteArrayOutputStream();
         PdfRendererBuilder builder = new PdfRendererBuilder();
         builder.withHtmlContent(htmlContent, null);
         builder.toStream(pdf);
         builder.testMode(true);
         builder.run();
-        try (PDDocument document = Loader.loadPDF(pdf.toByteArray())) {
+        return pdf.toByteArray();
+    }
+
+    private static List<BufferedImage> renderPages(String htmlContent) throws IOException {
+        try (PDDocument document = Loader.loadPDF(renderPdf(htmlContent))) {
             PDFRenderer renderer = new PDFRenderer(document);
             List<BufferedImage> pages = new ArrayList<>();
             for (int page = 0; page < document.getNumberOfPages(); page++) {
