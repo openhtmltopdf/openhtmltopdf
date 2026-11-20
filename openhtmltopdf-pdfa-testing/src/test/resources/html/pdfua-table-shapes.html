@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>Fictional Garden Club: structure example</title>
+  <meta name="subject" content="PDF/UA table shapes"/>
+  <meta name="author" content="Fictional Garden Club"/>
+  <meta name="description" content="Table elements laid out as blocks, nested and in other displays"/>
+  <style>
+  @page { margin: 30px 20px 60px 20px; }
+  body { margin: 0; font-family: 'TestFont'; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <p>Block with header, footer and body groups.</p>
+  <table style="display:block"><thead><tr><th>h1</th><th>h2</th></tr></thead><tfoot><tr><td>f1</td><td>f2</td></tr></tfoot><tbody><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></tbody></table>
+  <p>Block with column groups.</p>
+  <table style="display:block"><colgroup><col style="width:40px"/><col/></colgroup><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table>
+  <p>Block outside, table inside.</p>
+  <table style="display:block"><tr><td><table><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table></td></tr></table>
+  <p>Table outside, block inside.</p>
+  <table><tr><td><table style="display:block"><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table></td></tr></table>
+  <p>Block inside block.</p>
+  <table style="display:block"><tr><td><table style="display:block"><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table></td></tr></table>
+  <p>Inline block.</p>
+  <table style="display:inline-block"><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table>
+  <p>Flex.</p>
+  <table style="display:flex"><tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table>
+  <p>Text placed directly in a block table.</p>
+  <table style="display:block">loose text<tr><td>a1</td><td>a2</td></tr><tr><td>b1</td><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt="Icon"/></td></tr></table>
+  <p>A decorative image in a block table.</p>
+  <table style="display:block"><tr><td><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt=""/> text</td></tr></table>
+</body>
+</html>

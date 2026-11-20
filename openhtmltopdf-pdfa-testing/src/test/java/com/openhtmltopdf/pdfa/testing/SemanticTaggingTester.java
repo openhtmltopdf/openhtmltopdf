@@ -150,6 +150,24 @@ public class SemanticTaggingTester {
         assertEquals(0, structureTypes("pdfua-css-table-cell").stream().filter("Table"::equals).count());
     }
 
+    @Test
+    public void testBlockDisplayedTableWithACaptionIsTagged() throws Exception {
+        assertTrue(run("pdfua-block-table-caption"));
+        List<String> tags = structureTypes("pdfua-block-table-caption");
+        assertEquals("one Table", 1, tags.stream().filter("Table"::equals).count());
+        assertEquals("both rows", 2, tags.stream().filter("TR"::equals).count());
+        assertEquals("every cell", 4, tags.stream().filter("TD"::equals).count());
+    }
+
+    @Test
+    public void testTableShapesAroundATableElementAreTagged() throws Exception {
+        assertTrue(run("pdfua-table-shapes"));
+        List<String> tags = structureTypes("pdfua-table-shapes");
+        assertEquals("one Table per table element", 12, tags.stream().filter("Table"::equals).count());
+        assertEquals("the two header cells", 2, tags.stream().filter("TH"::equals).count());
+        assertEquals("one Figure per described image", 8, figureAlts("pdfua-table-shapes").size());
+    }
+
     private static List<String> structureTypes(String resource) throws Exception {
         List<String> types = new ArrayList<>();
         try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {

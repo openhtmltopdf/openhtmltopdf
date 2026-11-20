@@ -1724,7 +1724,7 @@ public class PdfBoxAccessibilityHelper {
             }
 
             if (child == null && box instanceof TableBox && box.isAnonymous()
-                    && isTableElementNotLaidOutAsTable(box.getParent())) {
+                    && isTableElementNotLaidOutAsTable(owningBox(box.getParent()))) {
                 child = new TableStructualElement();
             }
 
@@ -2184,6 +2184,19 @@ public class PdfBoxAccessibilityHelper {
                 && "img".equals(element.getTagName())
                 && element.hasAttribute("alt")
                 && element.getAttribute("alt").isEmpty();
+    }
+
+    /**
+     * The first box at or above {@code box} that is not an anonymous wrapper: a {@code <caption>}
+     * puts an anonymous block around the caption and the anonymous table box, so the table
+     * element can sit more than one level up.
+     */
+    private static Box owningBox(Box box) {
+        Box current = box;
+        while (current != null && current.isAnonymous() && !(current instanceof TableBox)) {
+            current = current.getParent();
+        }
+        return current;
     }
 
     /**
