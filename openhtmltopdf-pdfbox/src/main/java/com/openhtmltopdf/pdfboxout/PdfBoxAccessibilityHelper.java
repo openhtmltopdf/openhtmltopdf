@@ -1882,6 +1882,14 @@ public class PdfBoxAccessibilityHelper {
         return dict;
     }
 
+    private COSDictionary createListMarkerArtifact() {
+        // "Layout" (PDF32000-1, 14.8.2.2.2): a list marker without a list item is decoration of
+        // the page layout, not content with a place in the structure tree.
+        COSDictionary dict = new COSDictionary();
+        dict.setItem(COSName.TYPE, COSName.getPDFName("Layout"));
+        return dict;
+    }
+
     private static class Token {
     }
 
@@ -1977,6 +1985,16 @@ public class PdfBoxAccessibilityHelper {
                          markers.getImageMarker() == null)) {
                         return FALSE_TOKEN;
                     }
+                }
+                if (!(box.getAccessibilityObject() instanceof ListItemStructualElement)) {
+                    // A marker on a box that is not an LI (display:list-item on a <table>, a
+                    // <div>, ...) has no list item to be the label of: casting its structure
+                    // element threw a ClassCastException and the document failed to render. A
+                    // Lbl outside an LI is not valid structure either, so the marker is painted
+                    // as a Layout artifact. A box without a marker (list-style: none) returned
+                    // above and writes no empty artifact.
+                    _cs.beginMarkedContent(COSName.ARTIFACT, createListMarkerArtifact());
+                    return TRUE_TOKEN;
                 }
 
                 GenericContentItem current = createListItemLabelMarkedContent(type, box);

@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -21,8 +22,14 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.contentstream.operator.Operator;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.io.IOUtils;
+import org.apache.pdfbox.pdfparser.PDFStreamParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDPropertyList;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
 import org.junit.BeforeClass;
@@ -166,6 +173,113 @@ public class SemanticTaggingTester {
         assertEquals("one Table per table element", 12, tags.stream().filter("Table"::equals).count());
         assertEquals("the two header cells", 2, tags.stream().filter("TH"::equals).count());
         assertEquals("one Figure per described image", 8, figureAlts("pdfua-table-shapes").size());
+    }
+
+    @Test
+    public void testListItemDisplayedTableIsTagged() throws Exception {
+        assertTrue(run("pdfua-table-list-item"));
+        List<String> tags = structureTypes("pdfua-table-list-item");
+        assertEquals("one Table", 1, tags.stream().filter("Table"::equals).count());
+        assertEquals("no label for the marker", 0, tags.stream().filter("Lbl"::equals).count());
+        assertRowsSitInTheTable("pdfua-table-list-item");
+        assertEquals("both rows", 2, tags.stream().filter("TR"::equals).count());
+        assertEquals("every cell", 4, tags.stream().filter("TD"::equals).count());
+        assertEquals("the described image keeps its Figure", Collections.singletonList("Icon"), figureAlts("pdfua-table-list-item"));
+    }
+
+    @Test
+    public void testListItemDisplayedDivMarkerIsAnArtifact() throws Exception {
+        assertTrue(run("pdfua-div-list-item"));
+        List<String> tags = structureTypes("pdfua-div-list-item");
+        assertEquals("no label", 0, tags.stream().filter("Lbl"::equals).count());
+        assertEquals("no list item", 0, tags.stream().filter("LI"::equals).count());
+        assertEquals("each div's marker is drawn inside a Layout artifact", 2,
+                paintedLayoutArtifacts("pdfua-div-list-item"));
+    }
+
+    private static void assertRowsSitInTheTable(String resource) throws Exception {
+        List<String> parents = parentsOf(resource, "TR");
+        assertTrue("rows found", !parents.isEmpty());
+        for (String parent : parents) {
+            assertTrue("a TR sits in a Table, THead, TBody or TFoot, not in " + parent,
+                    parent.equals("Table") || parent.equals("THead") || parent.equals("TBody")
+                            || parent.equals("TFoot"));
+        }
+    }
+
+    private static List<String> parentsOf(String resource, String type) throws Exception {
+        List<String> parents = new ArrayList<>();
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
+            collectParents(doc.getDocumentCatalog().getStructureTreeRoot(), "StructTreeRoot", type, parents);
+        }
+        return parents;
+    }
+
+    private static void collectParents(PDStructureNode node, String nodeType, String type, List<String> parents) {
+        for (Object kid : node.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if (type.equals(element.getStructureType())) {
+                    parents.add(nodeType);
+                }
+                collectParents(element, element.getStructureType(), type, parents);
+            }
+        }
+    }
+
+    private static int paintedLayoutArtifacts(String resource) throws Exception {
+        List<String> painting = Arrays.asList("f", "F", "f*", "B", "B*", "b", "b*", "S", "s",
+                "Tj", "TJ", "'", "\"", "Do", "sh");
+        int count = 0;
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
+            for (PDPage page : doc.getPages()) {
+                List<Object> tokens = new PDFStreamParser(page).parse();
+                int depth = 0;
+                int layoutDepth = -1;
+                boolean painted = false;
+                for (int i = 0; i < tokens.size(); i++) {
+                    Object token = tokens.get(i);
+                    if (!(token instanceof Operator)) {
+                        continue;
+                    }
+                    String name = ((Operator) token).getName();
+                    if ("BDC".equals(name) || "BMC".equals(name)) {
+                        depth++;
+                        if ("BDC".equals(name) && layoutDepth < 0 && i >= 2
+                                && COSName.ARTIFACT.equals(tokens.get(i - 2))
+                                && COSName.getPDFName("Layout").equals(
+                                        properties(page, tokens.get(i - 1)).getItem(COSName.TYPE))) {
+                            layoutDepth = depth;
+                            painted = false;
+                        }
+                    } else if ("EMC".equals(name)) {
+                        if (depth == layoutDepth) {
+                            if (painted) {
+                                count++;
+                            }
+                            layoutDepth = -1;
+                        }
+                        depth--;
+                    } else if (layoutDepth > 0 && painting.contains(name)) {
+                        painted = true;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private static COSDictionary properties(PDPage page, Object operand) {
+        if (operand instanceof COSDictionary) {
+            return (COSDictionary) operand;
+        }
+        if (operand instanceof COSName && page.getResources() != null) {
+            PDPropertyList list = page.getResources().getProperties((COSName) operand);
+            if (list != null) {
+                return list.getCOSObject();
+            }
+        }
+        return new COSDictionary();
     }
 
     private static List<String> structureTypes(String resource) throws Exception {
