@@ -18,6 +18,7 @@ import java.util.logging.Level;
 
 import com.openhtmltopdf.util.LogMessageId;
 import org.apache.pdfbox.cos.COSArray;
+import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSInteger;
 import org.apache.pdfbox.cos.COSName;
@@ -27,10 +28,13 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkedContentReference;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDObjectReference;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
 import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedContent;
 import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -635,7 +639,28 @@ public class PdfBoxAccessibilityHelper {
             if (child instanceof ListItemStructualElement) {
                 this.listItems.add((ListItemStructualElement) child);
             } else {
-                logIncompatibleChild(this, child, ListItemStructualElement.class);
+                // A child that is not an LI (a <p> written straight into a <ul>, or a <div> or
+                // <table> displayed as a list item) used to be dropped here: its content kept its
+                // marked-content ids but had no structure element (PDF/UA-1 7.1). An L takes only
+                // LI children, so the child goes into the LBody of a synthetic LI, as a description
+                // list does with its parts.
+                ListItemStructualElement item = new ListItemStructualElement();
+                item.synthetic = true;
+                item.parent = this;
+                if (child instanceof AbstractStructualElement) {
+                    AbstractStructualElement element = (AbstractStructualElement) child;
+                    item.page = element.page;
+                    // The box orders the item among the li elements (sortByDomOrder). An
+                    // anonymous or generated box carries the list's own element, which would sort
+                    // the item before every li; without a box it keeps its paint position.
+                    if (element.box != null && !element.box.isAnonymous()
+                            && element.box.getPseudoElementOrClass() == null) {
+                        item.box = element.box;
+                    }
+                }
+                item.addChild(child);
+                child.parent = item.body;
+                this.listItems.add(item);
             }
         }
 
@@ -688,6 +713,8 @@ public class PdfBoxAccessibilityHelper {
     private static class ListItemStructualElement extends AbstractStructualElement {
         final ListLabelStructualElement label;
         final ListBodyStructualElement body;
+        /** Made by a list for a child that is not an LI (see ListStructualElement.addChild). */
+        boolean synthetic;
 
         ListItemStructualElement() {
             this.body = new ListBodyStructualElement();
@@ -717,6 +744,15 @@ public class PdfBoxAccessibilityHelper {
 
             finishTreeItem(child.label, child);
             finishTreeItem(child.body, child);
+
+            // A synthetic item whose child tags nothing (an empty or bordered div, a clearfix's
+            // generated block) must not make the list announce one item more than it has. Whether
+            // it tags anything is known only once link annotations and bookmarks are
+            // attached, after this tree is finished: the item is marked here and pruned then
+            // (pruneEmptySyntheticListItems).
+            if (child.synthetic) {
+                child.elem.getCOSObject().setBoolean(SYNTHETIC_LIST_ITEM, true);
+            }
         }
     }
 
@@ -1330,7 +1366,69 @@ public class PdfBoxAccessibilityHelper {
         _streamItems = outer.items;
     }
 
+    /**
+     * Removes each synthetic LI (ListStructualElement.addChild) whose subtree, with link
+     * annotations and bookmarks attached, holds no marked content (MCID or MCR), no object
+     * reference (OBJR, a link annotation) and no bookmark target (/SE). Form controls attach
+     * nothing to the structure tree (their widget annotations are not tagged), so they keep no
+     * item. Such an item comes from a child that
+     * tags nothing — an empty or bordered div, a clearfix's generated block — and would make the
+     * list announce one item more than it has. Reading the attachments, rather than predicting
+     * them from the boxes, keeps every item a link or a bookmark reaches.
+     */
+    private void pruneEmptySyntheticListItems() {
+        PDStructureTreeRoot root = _od.getWriter().getDocumentCatalog().getStructureTreeRoot();
+        if (root == null) {
+            return;
+        }
+        Set<COSBase> targets = Collections.newSetFromMap(new IdentityHashMap<>());
+        PDDocumentOutline outline = _od.getWriter().getDocumentCatalog().getDocumentOutline();
+        if (outline != null) {
+            collectBookmarkTargets(outline.getFirstChild(), targets);
+        }
+        pruneSyntheticListItems(root, targets);
+    }
+
+    private static void collectBookmarkTargets(PDOutlineItem first, Set<COSBase> targets) {
+        for (PDOutlineItem item = first; item != null; item = item.getNextSibling()) {
+            PDStructureElement target = item.getStructureElement();
+            if (target != null) {
+                targets.add(target.getCOSObject());
+            }
+            collectBookmarkTargets(item.getFirstChild(), targets);
+        }
+    }
+
+    /**
+     * Post-order: prunes the synthetic LIs below {@code node} and returns whether its subtree
+     * still holds marked content, an object reference or a bookmark target.
+     */
+    private static boolean pruneSyntheticListItems(PDStructureNode node, Set<COSBase> targets) {
+        boolean holds = false;
+        for (Object kid : new ArrayList<>(node.getKids())) {
+            if (!(kid instanceof PDStructureElement)) {
+                // An MCID, a marked-content reference or an object reference.
+                holds = true;
+                continue;
+            }
+            PDStructureElement element = (PDStructureElement) kid;
+            boolean kidHolds = pruneSyntheticListItems(element, targets)
+                    || targets.contains(element.getCOSObject());
+            if (element.getCOSObject().getBoolean(SYNTHETIC_LIST_ITEM, false)) {
+                element.getCOSObject().removeItem(SYNTHETIC_LIST_ITEM);
+                if (!kidHolds) {
+                    node.removeKid(element);
+                    continue;
+                }
+            }
+            holds |= kidHolds;
+        }
+        return holds;
+    }
+
     public void finishNumberTree() {
+        pruneEmptySyntheticListItems();
+
         COSArray numTree = new COSArray();
         int i = 0;
 
@@ -1686,7 +1784,11 @@ public class PdfBoxAccessibilityHelper {
             if (box instanceof BlockBox) {
                 BlockBox bb = (BlockBox) box;
 
-                if (bb.isReplaced()) {
+                if (bb.isReplaced() && isDecorativeImage(box)) {
+                    // A decorative image (alt="") is painted as an artifact and gets no
+                    // Figure; an empty generic element is never written (see finish).
+                    child = new GenericStructualElement();
+                } else if (bb.isReplaced()) {
                     // For replaced elements we will need to create a BBox.
                     // This is done here so we don'thave to hang onto the page height, transform, etc.
                     Rectangle2D rect = PdfBoxFastLinkManager.createTargetArea(
@@ -1709,9 +1811,20 @@ public class PdfBoxAccessibilityHelper {
                 String htmlTag = box.getElement().getTagName();
                 Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
 
-                if (supplier != null) {
+                // A <table> laid out as something other than a table (an e-mail's
+                // display:block table) is not the Table: its rows sit in an anonymous
+                // table box, which is (below). Tagging the element as the Table made the
+                // Table drop that box as an incompatible child, leaving everything inside
+                // it with marked content but no structure element.
+                if (supplier != null && !("table".equals(htmlTag) && !(box instanceof TableBox))) {
                     child = supplier.get();
                 }
+            }
+
+            if (child == null && box instanceof TableBox && box.isAnonymous()
+                    && (isTableElementNotLaidOutAsTable(owningBox(box.getParent()))
+                        || holdsTheRowsOfATableElement(box))) {
+                child = new TableStructualElement();
             }
 
             if (child == null &&
@@ -1868,6 +1981,20 @@ public class PdfBoxAccessibilityHelper {
         return dict;
     }
 
+    private COSDictionary createListMarkerArtifact() {
+        // "Layout" (PDF32000-1, 14.8.2.2.2): a list marker without a list item is decoration of
+        // the page layout, not content with a place in the structure tree.
+        COSDictionary dict = new COSDictionary();
+        dict.setItem(COSName.TYPE, COSName.getPDFName("Layout"));
+        return dict;
+    }
+
+    /**
+     * Marks a synthetic LI until pruneEmptySyntheticListItems decides it; removed from every item
+     * there, so it never reaches the written document.
+     */
+    private static final COSName SYNTHETIC_LIST_ITEM = COSName.getPDFName("SyntheticListItem");
+
     private static class Token {
     }
 
@@ -1897,6 +2024,16 @@ public class PdfBoxAccessibilityHelper {
                 // Detect content inside anchor elements to create /Link structure (PDF/UA-1 §7.18).
                 // Note: SimplePainter (used for running content) doesn't emit INLINE structure
                 // calls, so we detect anchors at the TEXT/REPLACED level via DOM ancestry.
+                if (type == StructureType.REPLACED && isDecorativeImage(box)) {
+                    // A decorative image stays part of the running artifact, even inside a
+                    // link; the link itself still gets its /Link structure element, so its
+                    // annotation is tagged (7.18) whatever else the link contains.
+                    org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
+                    if (anchorElem != null) {
+                        ensureRunningLinkStructure(box, anchorElem);
+                    }
+                    return INSIDE_RUNNING;
+                }
                 if (type == StructureType.TEXT || type == StructureType.REPLACED) {
                     org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
                     if (anchorElem != null) {
@@ -1954,6 +2091,16 @@ public class PdfBoxAccessibilityHelper {
                         return FALSE_TOKEN;
                     }
                 }
+                if (!(box.getAccessibilityObject() instanceof ListItemStructualElement)) {
+                    // A marker on a box that is not an LI (display:list-item on a <table>, a
+                    // <div>, ...) has no list item to be the label of: casting its structure
+                    // element threw a ClassCastException and the document failed to render. A
+                    // Lbl outside an LI is not valid structure either, so the marker is painted
+                    // as a Layout artifact. A box without a marker (list-style: none) returned
+                    // above and writes no empty artifact.
+                    _cs.beginMarkedContent(COSName.ARTIFACT, createListMarkerArtifact());
+                    return TRUE_TOKEN;
+                }
 
                 GenericContentItem current = createListItemLabelMarkedContent(type, box);
                 _cs.beginMarkedContent(COSName.getPDFName("Span"), current.dict);
@@ -1987,6 +2134,13 @@ public class PdfBoxAccessibilityHelper {
                 if (isTableLayoutArtifact(box)) {
                     COSDictionary artifact = createPaginationArtifact();
                     _cs.beginMarkedContent(COSName.ARTIFACT, artifact);
+                    return TRUE_TOKEN;
+                }
+
+                if (isDecorativeImage(box)) {
+                    // alt="" marks an image as decorative (HTML): PDF/UA-1 wants it as an
+                    // artifact, not as a Figure with empty alternative text (7.3).
+                    _cs.beginMarkedContent(COSName.ARTIFACT, createLineBreakArtifact());
                     return TRUE_TOKEN;
                 }
 
@@ -2140,6 +2294,99 @@ public class PdfBoxAccessibilityHelper {
         } else {
             return isInPaginatedTable(box.getParent());
         }
+    }
+
+    /**
+     * True for an image the author marked decorative: an {@code <img>} whose {@code alt}
+     * attribute is present and empty. An image without an {@code alt} attribute is not
+     * decorative; it stays a Figure, and its missing alternative text stays visible to checkers.
+     */
+    private static boolean isDecorativeImage(Box box) {
+        org.w3c.dom.Element element = box.getElement();
+        return element != null
+                && "img".equals(element.getTagName())
+                && element.hasAttribute("alt")
+                && element.getAttribute("alt").isEmpty();
+    }
+
+    /**
+     * The first box at or above {@code box} that is not an anonymous wrapper: a {@code <caption>}
+     * puts an anonymous block around the caption and the anonymous table box, so the table
+     * element can sit more than one level up.
+     */
+    private static Box owningBox(Box box) {
+        Box current = box;
+        while (current != null && current.isAnonymous() && !(current instanceof TableBox)) {
+            current = current.getParent();
+        }
+        return current;
+    }
+
+    /**
+     * True for an anonymous table box whose content belongs to a {@code <table>} element: its
+     * first non-anonymous descendant is a row group, row or cell of that element. A
+     * {@code display:inline} table needs this: the table element is an inline, so BoxBuilder wraps
+     * its rows in an anonymous table box under the line's containing block and gives that box the
+     * element of its FIRST row group or row ({@code resolveChildTableContent} →
+     * {@code createAnonymousTableContent}). Climbing the box tree never meets the table element;
+     * the rows' own document position does. A CSS table layout
+     * (a {@code display:table-cell} div, say) has no table element above its first box and stays
+     * generic.
+     */
+    private static boolean holdsTheRowsOfATableElement(Box tableBox) {
+        Box first = firstNonAnonymousDescendant(tableBox);
+        if (first == null) {
+            return false;
+        }
+        org.w3c.dom.Node node = first.getElement();
+        while (node instanceof org.w3c.dom.Element && isTablePartTag(((org.w3c.dom.Element) node).getTagName())) {
+            node = node.getParentNode();
+        }
+        return node instanceof org.w3c.dom.Element
+                && "table".equals(((org.w3c.dom.Element) node).getTagName())
+                && first.getElement() != node;
+    }
+
+    private static boolean isTablePartTag(String tag) {
+        switch (tag) {
+            case "thead":
+            case "tbody":
+            case "tfoot":
+            case "tr":
+            case "td":
+            case "th":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static Box firstNonAnonymousDescendant(Box box) {
+        for (int i = 0; i < box.getChildCount(); i++) {
+            Box child = box.getChild(i);
+            if (!child.isAnonymous() && child.getElement() != null) {
+                return child;
+            }
+            Box nested = firstNonAnonymousDescendant(child);
+            if (nested != null) {
+                return nested;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * True for the box of a {@code <table>} element that is not laid out as a table (an
+     * e-mail's {@code display:block} table): its rows sit in an anonymous table box, which is
+     * the Table. An anonymous table box of a CSS layout (a {@code display:table-cell} div, say)
+     * is not under such an element and stays generic.
+     */
+    private static boolean isTableElementNotLaidOutAsTable(Box box) {
+        return box != null
+                && !(box instanceof TableBox)
+                && !box.isAnonymous()
+                && box.getElement() != null
+                && "table".equals(box.getElement().getTagName());
     }
 
     private boolean isTableLayoutArtifact(Box box) {

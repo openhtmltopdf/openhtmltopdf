@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>Fictional Garden Club: structure example</title>
+  <meta name="subject" content="PDF/UA list children holding an inline link or an inline target"/>
+  <meta name="author" content="Fictional Garden Club"/>
+  <meta name="description" content="A decorative image link and a bookmark target nested in inline boxes stay in the structure tree"/>
+  <bookmarks>
+    <bookmark name="Inner" href="#inner"/>
+  </bookmarks>
+  <style>
+  @page { margin: 30px 20px 60px 20px; }
+  body { margin: 0; font-family: 'TestFont'; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <ul><li>First.</li><div><span><a href="https://example.com/" title="Example" style="display:inline-block;width:8px;height:8px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="8" height="8" alt=""/></a></span></div></ul>
+  <ul><li>Second.</li><div><span><span id="inner" style="display: inline-block; width: 8px; height: 8px; background: #ccc"></span></span></div></ul>
+  <ul><li>Third.</li><div id="unused" style="height:8px"></div></ul>
+</body>
+</html>
