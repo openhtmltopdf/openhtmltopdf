@@ -1686,7 +1686,11 @@ public class PdfBoxAccessibilityHelper {
             if (box instanceof BlockBox) {
                 BlockBox bb = (BlockBox) box;
 
-                if (bb.isReplaced()) {
+                if (bb.isReplaced() && isDecorativeImage(box)) {
+                    // A decorative image (alt="") is painted as an artifact and gets no
+                    // Figure; an empty generic element is never written (see finish).
+                    child = new GenericStructualElement();
+                } else if (bb.isReplaced()) {
                     // For replaced elements we will need to create a BBox.
                     // This is done here so we don'thave to hang onto the page height, transform, etc.
                     Rectangle2D rect = PdfBoxFastLinkManager.createTargetArea(
@@ -1709,9 +1713,19 @@ public class PdfBoxAccessibilityHelper {
                 String htmlTag = box.getElement().getTagName();
                 Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
 
-                if (supplier != null) {
+                // A <table> laid out as something other than a table (an e-mail's
+                // display:block table) is not the Table: its rows sit in an anonymous
+                // table box, which is (below). Tagging the element as the Table made the
+                // Table drop that box as an incompatible child, leaving everything inside
+                // it with marked content but no structure element.
+                if (supplier != null && !("table".equals(htmlTag) && !(box instanceof TableBox))) {
                     child = supplier.get();
                 }
+            }
+
+            if (child == null && box instanceof TableBox && box.isAnonymous()
+                    && isTableElementNotLaidOutAsTable(box.getParent())) {
+                child = new TableStructualElement();
             }
 
             if (child == null &&
@@ -1990,6 +2004,13 @@ public class PdfBoxAccessibilityHelper {
                     return TRUE_TOKEN;
                 }
 
+                if (isDecorativeImage(box)) {
+                    // alt="" marks an image as decorative (HTML): PDF/UA-1 wants it as an
+                    // artifact, not as a Figure with empty alternative text (7.3).
+                    _cs.beginMarkedContent(COSName.ARTIFACT, createLineBreakArtifact());
+                    return TRUE_TOKEN;
+                }
+
                 AbstractStructualElement struct = (AbstractStructualElement) box.getAccessibilityObject();
                 if (struct == null) {
                     struct = createStructureItem(type, box);
@@ -2140,6 +2161,33 @@ public class PdfBoxAccessibilityHelper {
         } else {
             return isInPaginatedTable(box.getParent());
         }
+    }
+
+    /**
+     * True for an image the author marked decorative: an {@code <img>} whose {@code alt}
+     * attribute is present and empty. An image without an {@code alt} attribute is not
+     * decorative; it stays a Figure, and its missing alternative text stays visible to checkers.
+     */
+    private static boolean isDecorativeImage(Box box) {
+        org.w3c.dom.Element element = box.getElement();
+        return element != null
+                && "img".equals(element.getTagName())
+                && element.hasAttribute("alt")
+                && element.getAttribute("alt").isEmpty();
+    }
+
+    /**
+     * True for the box of a {@code <table>} element that is not laid out as a table (an
+     * e-mail's {@code display:block} table): its rows sit in an anonymous table box, which is
+     * the Table. An anonymous table box of a CSS layout (a {@code display:table-cell} div, say)
+     * is not under such an element and stays generic.
+     */
+    private static boolean isTableElementNotLaidOutAsTable(Box box) {
+        return box != null
+                && !(box instanceof TableBox)
+                && !box.isAnonymous()
+                && box.getElement() != null
+                && "table".equals(box.getElement().getTagName());
     }
 
     private boolean isTableLayoutArtifact(Box box) {
