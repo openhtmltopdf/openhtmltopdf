@@ -139,6 +139,12 @@ public class SemanticTaggingTester {
     }
 
     @Test
+    public void testDecorativeImageInARunningLinkIsAnArtifact() throws Exception {
+        assertTrue(run("pdfua-running-decorative-image"));
+        assertEquals(Collections.emptyList(), figureAlts("pdfua-running-decorative-image"));
+    }
+
+    @Test
     public void testCssTableLayoutIsNotATable() throws Exception {
         assertTrue(run("pdfua-css-table-cell"));
         assertEquals(0, structureTypes("pdfua-css-table-cell").stream().filter("Table"::equals).count());

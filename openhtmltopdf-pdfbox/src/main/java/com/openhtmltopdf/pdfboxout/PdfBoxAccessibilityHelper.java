@@ -1911,6 +1911,16 @@ public class PdfBoxAccessibilityHelper {
                 // Detect content inside anchor elements to create /Link structure (PDF/UA-1 §7.18).
                 // Note: SimplePainter (used for running content) doesn't emit INLINE structure
                 // calls, so we detect anchors at the TEXT/REPLACED level via DOM ancestry.
+                if (type == StructureType.REPLACED && isDecorativeImage(box)) {
+                    // A decorative image stays part of the running artifact, even inside a
+                    // link; the link itself still gets its /Link structure element, so its
+                    // annotation is tagged (7.18) whatever else the link contains.
+                    org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
+                    if (anchorElem != null) {
+                        ensureRunningLinkStructure(box, anchorElem);
+                    }
+                    return INSIDE_RUNNING;
+                }
                 if (type == StructureType.TEXT || type == StructureType.REPLACED) {
                     org.w3c.dom.Element anchorElem = findAnchorAncestor(box);
                     if (anchorElem != null) {
