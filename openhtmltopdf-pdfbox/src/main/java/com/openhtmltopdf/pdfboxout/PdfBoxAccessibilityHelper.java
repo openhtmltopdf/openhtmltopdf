@@ -18,6 +18,7 @@ import java.util.logging.Level;
 
 import com.openhtmltopdf.util.LogMessageId;
 import org.apache.pdfbox.cos.COSArray;
+import org.apache.pdfbox.cos.COSBase;
 import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.cos.COSInteger;
 import org.apache.pdfbox.cos.COSName;
@@ -27,10 +28,13 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkedContentReference;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDObjectReference;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
 import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedContent;
 import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
@@ -635,7 +639,28 @@ public class PdfBoxAccessibilityHelper {
             if (child instanceof ListItemStructualElement) {
                 this.listItems.add((ListItemStructualElement) child);
             } else {
-                logIncompatibleChild(this, child, ListItemStructualElement.class);
+                // A child that is not an LI (a <p> written straight into a <ul>, or a <div> or
+                // <table> displayed as a list item) used to be dropped here: its content kept its
+                // marked-content ids but had no structure element (PDF/UA-1 7.1). An L takes only
+                // LI children, so the child goes into the LBody of a synthetic LI, as a description
+                // list does with its parts.
+                ListItemStructualElement item = new ListItemStructualElement();
+                item.synthetic = true;
+                item.parent = this;
+                if (child instanceof AbstractStructualElement) {
+                    AbstractStructualElement element = (AbstractStructualElement) child;
+                    item.page = element.page;
+                    // The box orders the item among the li elements (sortByDomOrder). An
+                    // anonymous or generated box carries the list's own element, which would sort
+                    // the item before every li; without a box it keeps its paint position.
+                    if (element.box != null && !element.box.isAnonymous()
+                            && element.box.getPseudoElementOrClass() == null) {
+                        item.box = element.box;
+                    }
+                }
+                item.addChild(child);
+                child.parent = item.body;
+                this.listItems.add(item);
             }
         }
 
@@ -688,6 +713,8 @@ public class PdfBoxAccessibilityHelper {
     private static class ListItemStructualElement extends AbstractStructualElement {
         final ListLabelStructualElement label;
         final ListBodyStructualElement body;
+        /** Made by a list for a child that is not an LI (see ListStructualElement.addChild). */
+        boolean synthetic;
 
         ListItemStructualElement() {
             this.body = new ListBodyStructualElement();
@@ -717,6 +744,15 @@ public class PdfBoxAccessibilityHelper {
 
             finishTreeItem(child.label, child);
             finishTreeItem(child.body, child);
+
+            // A synthetic item whose child tags nothing (an empty or bordered div, a clearfix's
+            // generated block) must not make the list announce one item more than it has. Whether
+            // it tags anything is known only once link annotations and bookmarks are
+            // attached, after this tree is finished: the item is marked here and pruned then
+            // (pruneEmptySyntheticListItems).
+            if (child.synthetic) {
+                child.elem.getCOSObject().setBoolean(SYNTHETIC_LIST_ITEM, true);
+            }
         }
     }
 
@@ -1330,7 +1366,69 @@ public class PdfBoxAccessibilityHelper {
         _streamItems = outer.items;
     }
 
+    /**
+     * Removes each synthetic LI (ListStructualElement.addChild) whose subtree, with link
+     * annotations and bookmarks attached, holds no marked content (MCID or MCR), no object
+     * reference (OBJR, a link annotation) and no bookmark target (/SE). Form controls attach
+     * nothing to the structure tree (their widget annotations are not tagged), so they keep no
+     * item. Such an item comes from a child that
+     * tags nothing — an empty or bordered div, a clearfix's generated block — and would make the
+     * list announce one item more than it has. Reading the attachments, rather than predicting
+     * them from the boxes, keeps every item a link or a bookmark reaches.
+     */
+    private void pruneEmptySyntheticListItems() {
+        PDStructureTreeRoot root = _od.getWriter().getDocumentCatalog().getStructureTreeRoot();
+        if (root == null) {
+            return;
+        }
+        Set<COSBase> targets = Collections.newSetFromMap(new IdentityHashMap<>());
+        PDDocumentOutline outline = _od.getWriter().getDocumentCatalog().getDocumentOutline();
+        if (outline != null) {
+            collectBookmarkTargets(outline.getFirstChild(), targets);
+        }
+        pruneSyntheticListItems(root, targets);
+    }
+
+    private static void collectBookmarkTargets(PDOutlineItem first, Set<COSBase> targets) {
+        for (PDOutlineItem item = first; item != null; item = item.getNextSibling()) {
+            PDStructureElement target = item.getStructureElement();
+            if (target != null) {
+                targets.add(target.getCOSObject());
+            }
+            collectBookmarkTargets(item.getFirstChild(), targets);
+        }
+    }
+
+    /**
+     * Post-order: prunes the synthetic LIs below {@code node} and returns whether its subtree
+     * still holds marked content, an object reference or a bookmark target.
+     */
+    private static boolean pruneSyntheticListItems(PDStructureNode node, Set<COSBase> targets) {
+        boolean holds = false;
+        for (Object kid : new ArrayList<>(node.getKids())) {
+            if (!(kid instanceof PDStructureElement)) {
+                // An MCID, a marked-content reference or an object reference.
+                holds = true;
+                continue;
+            }
+            PDStructureElement element = (PDStructureElement) kid;
+            boolean kidHolds = pruneSyntheticListItems(element, targets)
+                    || targets.contains(element.getCOSObject());
+            if (element.getCOSObject().getBoolean(SYNTHETIC_LIST_ITEM, false)) {
+                element.getCOSObject().removeItem(SYNTHETIC_LIST_ITEM);
+                if (!kidHolds) {
+                    node.removeKid(element);
+                    continue;
+                }
+            }
+            holds |= kidHolds;
+        }
+        return holds;
+    }
+
     public void finishNumberTree() {
+        pruneEmptySyntheticListItems();
+
         COSArray numTree = new COSArray();
         int i = 0;
 
@@ -1890,6 +1988,12 @@ public class PdfBoxAccessibilityHelper {
         dict.setItem(COSName.TYPE, COSName.getPDFName("Layout"));
         return dict;
     }
+
+    /**
+     * Marks a synthetic LI until pruneEmptySyntheticListItems decides it; removed from every item
+     * there, so it never reaches the written document.
+     */
+    private static final COSName SYNTHETIC_LIST_ITEM = COSName.getPDFName("SyntheticListItem");
 
     private static class Token {
     }

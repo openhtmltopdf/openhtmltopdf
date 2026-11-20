@@ -32,6 +32,11 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDPropertyList;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
 import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureNode;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
+import org.apache.pdfbox.pdmodel.common.COSObjectable;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.verapdf.gf.foundry.VeraGreenfieldFoundryProvider;
@@ -206,6 +211,153 @@ public class SemanticTaggingTester {
         assertEquals("both rows", 2, tags.stream().filter("TR"::equals).count());
         assertEquals("every cell", 4, tags.stream().filter("TD"::equals).count());
         assertEquals("the described image keeps its Figure", Collections.singletonList("Icon"), figureAlts("pdfua-table-inline"));
+    }
+
+    @Test
+    public void testListItemDisplayedBoxesInsideAListAreTagged() throws Exception {
+        assertTrue(run("pdfua-list-item-in-a-list"));
+        List<String> tags = structureTypes("pdfua-list-item-in-a-list");
+        assertEquals("one list", 1, tags.stream().filter("L"::equals).count());
+        assertEquals("the real item and one synthetic item per box", 3,
+                tags.stream().filter("LI"::equals).count());
+        assertEquals("one Table", 1, tags.stream().filter("Table"::equals).count());
+        assertRowsSitInTheTable("pdfua-list-item-in-a-list");
+        assertNoSyntheticMarkerIsWritten("pdfua-list-item-in-a-list");
+    }
+
+    @Test
+    public void testParagraphDirectlyInAListIsTagged() throws Exception {
+        assertTrue(run("pdfua-paragraph-in-a-list"));
+        List<String> tags = structureTypes("pdfua-paragraph-in-a-list");
+        assertEquals("the real item and the synthetic one", 2,
+                tags.stream().filter("LI"::equals).count());
+        assertEquals(Collections.singletonList("LBody"), parentsOf("pdfua-paragraph-in-a-list", "P"));
+    }
+
+    @Test
+    public void testEmptyAndGeneratedChildrenOfAListAddNoItems() throws Exception {
+        assertTrue(run("pdfua-list-empty-children"));
+        List<String> tags = structureTypes("pdfua-list-empty-children");
+        assertEquals("one LI per li element", 5, tags.stream().filter("LI"::equals).count());
+        assertEquals("the four lists only", 4, tags.stream().filter("L"::equals).count());
+        assertNoSyntheticMarkerIsWritten("pdfua-list-empty-children");
+    }
+
+    @Test
+    public void testTextAfterTheLastItemKeepsItsPosition() throws Exception {
+        assertTrue(run("pdfua-list-tail-text"));
+        assertEquals(Arrays.asList("Lbl LBody", "LBody"), listItemShapes("pdfua-list-tail-text"));
+    }
+
+    @Test
+    public void testALinkOrABookmarkTargetInAListStaysInTheTree() throws Exception {
+        assertTrue(run("pdfua-list-link-and-target"));
+        assertLinksAndBookmarksReachTheRoot("pdfua-list-link-and-target", 1);
+        assertNoSyntheticMarkerIsWritten("pdfua-list-link-and-target");
+    }
+
+    @Test
+    public void testAnInlineLinkOrTargetInAListStaysInTheTree() throws Exception {
+        assertTrue(run("pdfua-list-inline-link-and-target"));
+        assertLinksAndBookmarksReachTheRoot("pdfua-list-inline-link-and-target", 1);
+        assertNoSyntheticMarkerIsWritten("pdfua-list-inline-link-and-target");
+        assertEquals("an unused id alone adds no list item", 5,
+                structureTypes("pdfua-list-inline-link-and-target").stream().filter("LI"::equals).count());
+    }
+
+    private static void assertLinksAndBookmarksReachTheRoot(String resource, int expectedLinks) throws Exception {
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
+            PDStructureTreeRoot root = doc.getDocumentCatalog().getStructureTreeRoot();
+            int links = 0;
+            for (PDPage page : doc.getPages()) {
+                for (PDAnnotation annotation : page.getAnnotations()) {
+                    if (annotation instanceof PDAnnotationLink) {
+                        Object parent = root.getParentTree().getValue(annotation.getStructParent());
+                        PDStructureElement link = parent instanceof PDStructureElement
+                                ? (PDStructureElement) parent
+                                : (PDStructureElement) PDStructureNode.create((COSDictionary) ((COSObjectable) parent).getCOSObject());
+                        assertEquals("Link", link.getStructureType());
+                        assertTrue("the link reaches the structure tree root", reachesTheRoot(link));
+                        links++;
+                    }
+                }
+            }
+            assertEquals(expectedLinks, links);
+            PDOutlineItem bookmark = doc.getDocumentCatalog().getDocumentOutline().getFirstChild();
+            assertTrue("the bookmark names a structure element", bookmark.getStructureElement() != null);
+            assertTrue("the bookmark target reaches the structure tree root",
+                    reachesTheRoot(bookmark.getStructureElement()));
+        }
+    }
+
+    @Test
+    public void testOnlyTheContentChildOfAMixedListGetsAnItem() throws Exception {
+        assertTrue(run("pdfua-list-mixed-children"));
+        assertEquals(Arrays.asList("Lbl LBody", "LBody"), listItemShapes("pdfua-list-mixed-children"));
+        assertEquals(Collections.singletonList("LBody"), parentsOf("pdfua-list-mixed-children", "P"));
+    }
+
+    private static void assertNoSyntheticMarkerIsWritten(String resource) throws Exception {
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
+            assertTrue("no structure element keeps the synthetic-item marker",
+                    noMarker(doc.getDocumentCatalog().getStructureTreeRoot()));
+        }
+    }
+
+    private static boolean noMarker(PDStructureNode node) {
+        for (Object kid : node.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if (element.getCOSObject().containsKey(COSName.getPDFName("SyntheticListItem"))
+                        || !noMarker(element)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean reachesTheRoot(PDStructureElement element) {
+        PDStructureNode node = element;
+        for (int depth = 0; depth < 64 && node instanceof PDStructureElement; depth++) {
+            node = ((PDStructureElement) node).getParent();
+        }
+        return node instanceof PDStructureTreeRoot;
+    }
+
+    private static List<String> listItemShapes(String resource) throws Exception {
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
+            PDStructureElement list = firstOfType(doc.getDocumentCatalog().getStructureTreeRoot(), "L");
+            List<String> shapes = new ArrayList<>();
+            for (Object kid : list.getKids()) {
+                if (kid instanceof PDStructureElement && "LI".equals(((PDStructureElement) kid).getStructureType())) {
+                    List<String> types = new ArrayList<>();
+                    for (Object grandKid : ((PDStructureElement) kid).getKids()) {
+                        if (grandKid instanceof PDStructureElement) {
+                            types.add(((PDStructureElement) grandKid).getStructureType());
+                        }
+                    }
+                    shapes.add(String.join(" ", types));
+                }
+            }
+            return shapes;
+        }
+    }
+
+    private static PDStructureElement firstOfType(PDStructureNode node, String type) {
+        for (Object kid : node.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if (type.equals(element.getStructureType())) {
+                    return element;
+                }
+                PDStructureElement nested = firstOfType(element, type);
+                if (nested != null) {
+                    return nested;
+                }
+            }
+        }
+        return null;
     }
 
     private static void assertRowsSitInTheTable(String resource) throws Exception {
