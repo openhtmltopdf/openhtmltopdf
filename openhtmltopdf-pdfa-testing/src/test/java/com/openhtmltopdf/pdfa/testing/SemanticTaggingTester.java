@@ -197,6 +197,17 @@ public class SemanticTaggingTester {
                 paintedLayoutArtifacts("pdfua-div-list-item"));
     }
 
+    @Test
+    public void testInlineDisplayedTableIsTagged() throws Exception {
+        assertTrue(run("pdfua-table-inline"));
+        List<String> tags = structureTypes("pdfua-table-inline");
+        assertEquals("one Table", 1, tags.stream().filter("Table"::equals).count());
+        assertRowsSitInTheTable("pdfua-table-inline");
+        assertEquals("both rows", 2, tags.stream().filter("TR"::equals).count());
+        assertEquals("every cell", 4, tags.stream().filter("TD"::equals).count());
+        assertEquals("the described image keeps its Figure", Collections.singletonList("Icon"), figureAlts("pdfua-table-inline"));
+    }
+
     private static void assertRowsSitInTheTable(String resource) throws Exception {
         List<String> parents = parentsOf(resource, "TR");
         assertTrue("rows found", !parents.isEmpty());

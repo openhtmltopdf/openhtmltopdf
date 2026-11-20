@@ -1724,7 +1724,8 @@ public class PdfBoxAccessibilityHelper {
             }
 
             if (child == null && box instanceof TableBox && box.isAnonymous()
-                    && isTableElementNotLaidOutAsTable(owningBox(box.getParent()))) {
+                    && (isTableElementNotLaidOutAsTable(owningBox(box.getParent()))
+                        || holdsTheRowsOfATableElement(box))) {
                 child = new TableStructualElement();
             }
 
@@ -2215,6 +2216,59 @@ public class PdfBoxAccessibilityHelper {
             current = current.getParent();
         }
         return current;
+    }
+
+    /**
+     * True for an anonymous table box whose content belongs to a {@code <table>} element: its
+     * first non-anonymous descendant is a row group, row or cell of that element. A
+     * {@code display:inline} table needs this: the table element is an inline, so BoxBuilder wraps
+     * its rows in an anonymous table box under the line's containing block and gives that box the
+     * element of its FIRST row group or row ({@code resolveChildTableContent} →
+     * {@code createAnonymousTableContent}). Climbing the box tree never meets the table element;
+     * the rows' own document position does. A CSS table layout
+     * (a {@code display:table-cell} div, say) has no table element above its first box and stays
+     * generic.
+     */
+    private static boolean holdsTheRowsOfATableElement(Box tableBox) {
+        Box first = firstNonAnonymousDescendant(tableBox);
+        if (first == null) {
+            return false;
+        }
+        org.w3c.dom.Node node = first.getElement();
+        while (node instanceof org.w3c.dom.Element && isTablePartTag(((org.w3c.dom.Element) node).getTagName())) {
+            node = node.getParentNode();
+        }
+        return node instanceof org.w3c.dom.Element
+                && "table".equals(((org.w3c.dom.Element) node).getTagName())
+                && first.getElement() != node;
+    }
+
+    private static boolean isTablePartTag(String tag) {
+        switch (tag) {
+            case "thead":
+            case "tbody":
+            case "tfoot":
+            case "tr":
+            case "td":
+            case "th":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static Box firstNonAnonymousDescendant(Box box) {
+        for (int i = 0; i < box.getChildCount(); i++) {
+            Box child = box.getChild(i);
+            if (!child.isAnonymous() && child.getElement() != null) {
+                return child;
+            }
+            Box nested = firstNonAnonymousDescendant(child);
+            if (nested != null) {
+                return nested;
+            }
+        }
+        return null;
     }
 
     /**
