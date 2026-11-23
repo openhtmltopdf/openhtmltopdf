@@ -504,6 +504,17 @@ public class NonVisualRegressionTest {
     }
 
     /**
+     * A form without controls must not produce an empty AcroForm. Issue 289.
+     */
+    @Test
+    public void testFormWithoutControlsHasNoAcroForm() throws IOException {
+        try (PDDocument doc = run("form-empty")) {
+            assertNull(doc.getDocumentCatalog().getAcroForm());
+            remove("form-empty", doc);
+        }
+    }
+
+    /**
      * Tests the positioning, size, name and value of a form control on an overflow page.
      */
     @Test

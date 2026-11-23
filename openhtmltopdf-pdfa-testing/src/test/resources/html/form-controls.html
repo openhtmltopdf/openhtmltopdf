@@ -1,0 +1,29 @@
+<html>
+<head>
+<title>Form with controls</title>
+<style>
+body { font-family: 'TestFont'; }
+input, textarea, select { display: block; width: 200px; height: 20px; margin: 4px 0; font-family: 'TestFont'; }
+textarea { height: 50px; }
+input[type=checkbox], input[type=radio] { display: inline-block; width: 20px; height: 20px; margin: 4px; }
+</style>
+</head>
+<body>
+<form name="f">
+<p>Form with controls.</p>
+<input type="text" name="filled" value="Filled" title="Filled text field"/>
+<input type="text" name="empty" title="Empty text field"/>
+<textarea name="area" title="Text area">Some text</textarea>
+<select name="choice" title="Choice"><option value="a">Alpha</option><option value="b" selected="selected">Beta</option></select>
+<input type="checkbox" name="check-check" value="yes" checked="checked" title="check" style="-fs-checkbox-style: check;"/>
+<input type="checkbox" name="check-cross" value="yes" checked="checked" title="cross" style="-fs-checkbox-style: cross;"/>
+<input type="checkbox" name="check-diamond" value="yes" checked="checked" title="diamond" style="-fs-checkbox-style: diamond;"/>
+<input type="checkbox" name="check-circle" value="yes" checked="checked" title="circle" style="-fs-checkbox-style: circle;"/>
+<input type="checkbox" name="check-star" value="yes" checked="checked" title="star" style="-fs-checkbox-style: star;"/>
+<input type="checkbox" name="check-square" value="yes" checked="checked" title="square" style="-fs-checkbox-style: square;"/>
+<br/>
+<input type="radio" name="radio" value="one" checked="checked" title="One"/>
+<input type="radio" name="radio" value="two" title="Two"/>
+</form>
+</body>
+</html>

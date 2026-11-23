@@ -21,6 +21,9 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
 import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
+import org.apache.pdfbox.pdmodel.interactive.form.PDChoice;
+import org.apache.pdfbox.pdmodel.interactive.form.PDField;
+import org.apache.pdfbox.pdmodel.interactive.form.PDTextField;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
@@ -62,6 +65,9 @@ public class PdfBoxPerDocumentFormState {
 private PDAppearanceStream signatureAppearance;
     // The ZapfDingbats font resource needed by checkbox and radio box appearance streams.
     private PDResources checkBoxFontResource;
+
+    // PDF/A forbids non-embedded fonts, so check marks are drawn as paths instead of zapf dingbats.
+    private boolean pdfAConform;
 
     public PDAppearanceStream getCheckboxStyle(CheckboxStyle style) {
         return checkboxAppearances.get(style);
@@ -123,7 +129,7 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
     private void createCheckboxAppearanceStreams(PDDocument writer, PdfBoxForm.Control ctrl) {
         CheckboxStyle style = CheckboxStyle.fromIdent(ctrl.box.getStyle().getIdent(CSSName.FS_CHECKBOX_STYLE));
 
-        checkboxAppearances.computeIfAbsent(style, k -> PdfBoxForm.createCheckboxAppearance(style, writer, checkBoxFontResource));
+        checkboxAppearances.computeIfAbsent(style, k -> createCheckmarkAppearance(style, writer));
 
         if (checkboxOffAppearance == null) {
             checkboxOffAppearance = PdfBoxForm.createCheckboxAppearance(DEFAULT_APPEARANCE, writer, checkBoxFontResource);
@@ -136,18 +142,35 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
         }
 
         if (radioBoxOnAppearance == null) {
-            radioBoxOnAppearance = PdfBoxForm.createCheckboxAppearance(CheckboxStyle.DIAMOND, writer, checkBoxFontResource);
+            radioBoxOnAppearance = createCheckmarkAppearance(CheckboxStyle.DIAMOND, writer);
         }
     }
 
+    private PDAppearanceStream createCheckmarkAppearance(CheckboxStyle style, PDDocument writer) {
+        return pdfAConform ?
+                PdfBoxForm.createCheckboxVectorAppearance(style, writer) :
+                PdfBoxForm.createCheckboxAppearance(style, writer, checkBoxFontResource);
+    }
+
     private void createCheckboxFontResource() {
-        if (checkBoxFontResource == null) {
+        if (checkBoxFontResource == null && !pdfAConform) {
             checkBoxFontResource = new PDResources();
             checkBoxFontResource.put(COSName.getPDFName("OpenHTMLZap"), new PDType1Font(Standard14Fonts.FontName.ZAPF_DINGBATS));
         }
     }
 
     public void processControls(SharedContext sharedContext, PDDocument writer, Box root, RenderingContext renderingContext) {
+        processControls(sharedContext, writer, root, renderingContext, false);
+    }
+
+    /**
+     * Turns the collected controls into AcroForm fields. In PDF/A mode the NeedAppearances
+     * flag is forbidden, so appearance streams are generated for every field instead.
+     */
+    public void processControls(SharedContext sharedContext, PDDocument writer, Box root, RenderingContext renderingContext, boolean pdfAConform) {
+        this.pdfAConform = pdfAConform;
+        boolean anyFormControl = false;
+
         for (PdfBoxForm.Control ctrl : controls) {
             PdfBoxForm frm = findEnclosingForm(ctrl.box.getElement());
             String fontName = null;
@@ -167,15 +190,19 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
 
             if (frm != null) {
                 frm.addControl(ctrl, fontName);
+                anyFormControl = true;
             }
         }
 
-        if (!forms.isEmpty()) {
-            processForms(writer, root);
+        // Forms without controls (e.g. a <form> wrapping plain content) would produce an
+        // empty AcroForm, which is useless and rejected by some consumers such as signing
+        // services, so leave it out. Issue 289.
+        if (anyFormControl) {
+            processForms(writer, root, pdfAConform);
         }
     }
 
-    private void processForms(PDDocument writer, Box root) {
+    private void processForms(PDDocument writer, Box root, boolean pdfAConform) {
         PDResources resources = new PDResources();
         /* Default fonts */
         resources.put(COSName.HELV, new PDType1Font(Standard14Fonts.FontName.HELVETICA));
@@ -191,13 +218,49 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
         acro.setNeedAppearances(Boolean.TRUE);
         acro.setDefaultResources(resources);
 
-        writer.getDocumentCatalog().setAcroForm(acro);
-
         for (PdfBoxForm frm : forms.values()) {
             try {
                 start = 1 + frm.process(acro, start, root);
             } catch (IOException e) {
                 throw new PdfContentStreamAdapter.PdfException("processControls", e);
+            }
+        }
+
+        if (pdfAConform) {
+            // PDF/A forbids NeedAppearances=true (ISO 19005-1 6.9, ISO 19005-2 6.4.1),
+            // so every widget needs its own appearance stream.
+            acro.setNeedAppearances(Boolean.FALSE);
+            try {
+                addFieldTextToFontSubsets(acro);
+                acro.refreshAppearances();
+            } catch (IOException e) {
+                throw new PdfContentStreamAdapter.PdfException("processControls", e);
+            }
+        }
+
+        writer.getDocumentCatalog().setAcroForm(acro);
+    }
+
+    /**
+     * Generated appearance streams show the field values with the embedded control fonts.
+     * These fonts are subset to the glyphs of the page content, so add the field text too.
+     */
+    private void addFieldTextToFontSubsets(PDAcroForm acro) {
+        StringBuilder text = new StringBuilder();
+        for (PDField field : acro.getFieldTree()) {
+            if (field instanceof PDTextField) {
+                String value = ((PDTextField) field).getValue();
+                if (value != null) {
+                    text.append(value);
+                }
+            } else if (field instanceof PDChoice) {
+                ((PDChoice) field).getOptionsDisplayValues().forEach(text::append);
+            }
+        }
+
+        for (PDFont fnt : controlFonts.keySet()) {
+            if (fnt.willBeSubset()) {
+                text.codePoints().forEach(fnt::addToSubset);
             }
         }
     }

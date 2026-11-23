@@ -594,6 +594,53 @@ public class PdfBoxForm {
         return createCheckboxAppearance(appear, doc, resources);
     }
 
+    /**
+     * Creates a checkbox appearance stream that draws the check mark as vector paths instead of
+     * using the zapf dingbats font. PDF/A requires all fonts to be embedded, and we have no font
+     * program for zapf dingbats. The shapes are about the size of the zapf dingbats glyphs and
+     * centred in the 100x100 box.
+     */
+    public static PDAppearanceStream createCheckboxVectorAppearance(CheckboxStyle style, PDDocument doc) {
+        return createCheckboxAppearance("q\n" + checkboxPath(style) + "Q\n", doc, new PDResources());
+    }
+
+    private static String checkboxPath(CheckboxStyle style) {
+        switch (style) {
+            case CROSS:
+                return "7 w 1 J 21 21 m 79 79 l S 21 79 m 79 21 l S\n";
+            case DIAMOND:
+                return "50 86 m 86 50 l 50 14 l 14 50 l h f\n";
+            case CIRCLE: {
+                double cx = 50, cy = 50, r = 36, k = r * 0.5523;
+                return String.format(Locale.ROOT,
+                        "%.2f %.2f m %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c "
+                        + "%.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c f\n",
+                        cx + r, cy,
+                        cx + r, cy + k, cx + k, cy + r, cx, cy + r,
+                        cx - k, cy + r, cx - r, cy + k, cx - r, cy,
+                        cx - r, cy - k, cx - k, cy - r, cx, cy - r,
+                        cx + k, cy - r, cx + r, cy - k, cx + r, cy);
+            }
+            case STAR: {
+                // cy is below 50 so that the bounding box (top point to lower points) is centred.
+                double cx = 50, cy = 46.25, outer = 39.3, inner = outer * 0.382;
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < 10; i++) {
+                    double radius = i % 2 == 0 ? outer : inner;
+                    double angle = Math.toRadians(90 + i * 36);
+                    sb.append(String.format(Locale.ROOT, "%.2f %.2f %s ",
+                            cx + radius * Math.cos(angle), cy + radius * Math.sin(angle), i == 0 ? "m" : "l"));
+                }
+                return sb.append("h f\n").toString();
+            }
+            case SQUARE:
+                return "15.5 15.5 69 69 re f\n";
+            case CHECK:
+            default:
+                return "16 w 1 J 1 j 19.5 48.5 m 37.5 23.5 l 80.5 76.5 l S\n";
+        }
+    }
+
     public static PDAppearanceStream createCheckboxAppearance(String appear, PDDocument doc, PDResources resources) {
 
         PDAppearanceStream s = new PDAppearanceStream(doc);

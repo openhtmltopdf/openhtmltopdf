@@ -379,7 +379,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     }
 
 	private void processControls(RenderingContext renderingContext) {
-		_formState.processControls(_sharedContext, _writer, _root, renderingContext);
+		_formState.processControls(_sharedContext, _writer, _root, renderingContext, _pdfAConform);
     }
 
     /**
