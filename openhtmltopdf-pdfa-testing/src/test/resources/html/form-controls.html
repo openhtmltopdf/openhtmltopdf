@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Form with controls</title>
+<style>
+body { font-family: 'TestFont'; }
+input, textarea, select { display: block; width: 200px; height: 20px; margin: 4px 0; font-family: 'TestFont'; }
+textarea { height: 50px; }
+</style>
+</head>
+<body>
+<!-- No checkbox/radio: their appearance streams use the non-embedded ZapfDingbats font. -->
+<form name="f">
+<p>Form with controls.</p>
+<input type="text" name="filled" value="Filled" title="Filled text field"/>
+<input type="text" name="empty" title="Empty text field"/>
+<textarea name="area" title="Text area">Some text</textarea>
+<select name="choice" title="Choice"><option value="a">Alpha</option><option value="b" selected="selected">Beta</option></select>
+</form>
+</body>
+</html>

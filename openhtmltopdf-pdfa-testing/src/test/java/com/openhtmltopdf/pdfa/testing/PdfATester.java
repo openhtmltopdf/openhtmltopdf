@@ -2,6 +2,8 @@ package com.openhtmltopdf.pdfa.testing;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,6 +25,7 @@ import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.interactive.form.PDAcroForm;
 import org.apache.pdfbox.text.PDFMarkedContentExtractor;
 import org.apache.pdfbox.text.TextPosition;
 import org.junit.BeforeClass;
@@ -164,6 +167,38 @@ public class PdfATester {
     @Test
     public void testFileEmbedA3b() throws Exception {
         assertTrue(run("file-embed", PDFAFlavour.PDFA_3_B, PdfAConformance.PDFA_3_B));
+    }
+
+    /**
+     * A form without controls must not produce an AcroForm, which would carry
+     * the NeedAppearances flag PDF/A forbids. Issue 289.
+     */
+    @Test
+    public void testEmptyFormPdfA1b() throws Exception {
+        assertTrue(run("form-empty", PDFAFlavour.PDFA_1_B, PdfAConformance.PDFA_1_B));
+
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/form-empty--" + PDFAFlavour.PDFA_1_B + ".pdf"))) {
+            assertNull(doc.getDocumentCatalog().getAcroForm());
+        }
+    }
+
+    /**
+     * Form controls in PDF/A need appearance streams instead of NeedAppearances. Issue 289.
+     */
+    @Test
+    public void testFormControlsPdfA1b() throws Exception {
+        assertTrue(run("form-controls", PDFAFlavour.PDFA_1_B, PdfAConformance.PDFA_1_B));
+
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/form-controls--" + PDFAFlavour.PDFA_1_B + ".pdf"))) {
+            PDAcroForm acro = doc.getDocumentCatalog().getAcroForm();
+            assertFalse(acro.getNeedAppearances());
+            assertEquals(4, acro.getFields().size());
+        }
+    }
+
+    @Test
+    public void testFormControlsPdfA2b() throws Exception {
+        assertTrue(run("form-controls", PDFAFlavour.PDFA_2_B, PdfAConformance.PDFA_2_B));
     }
 
     @Test
