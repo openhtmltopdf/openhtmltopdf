@@ -597,8 +597,8 @@ public class PdfBoxForm {
     /**
      * Creates a checkbox appearance stream that draws the check mark as vector paths instead of
      * using the zapf dingbats font. PDF/A requires all fonts to be embedded, and we have no font
-     * program for zapf dingbats. The shapes cover the same box as the zapf dingbats glyphs
-     * drawn by {@link #createCheckboxAppearance(CheckboxStyle, PDDocument, PDResources)}.
+     * program for zapf dingbats. The shapes are about the size of the zapf dingbats glyphs and
+     * centred in the 100x100 box.
      */
     public static PDAppearanceStream createCheckboxVectorAppearance(CheckboxStyle style, PDDocument doc) {
         return createCheckboxAppearance("q\n" + checkboxPath(style) + "Q\n", doc, new PDResources());
@@ -607,11 +607,11 @@ public class PdfBoxForm {
     private static String checkboxPath(CheckboxStyle style) {
         switch (style) {
             case CROSS:
-                return "7 w 1 J 24 26 m 82 84 l S 24 84 m 82 26 l S\n";
+                return "7 w 1 J 21 21 m 79 79 l S 21 79 m 79 21 l S\n";
             case DIAMOND:
-                return "54.5 90.5 m 90.5 54.5 l 54.5 18.5 l 18.5 54.5 l h f\n";
+                return "50 86 m 86 50 l 50 14 l 14 50 l h f\n";
             case CIRCLE: {
-                double cx = 54.6, cy = 54.6, r = 36, k = r * 0.5523;
+                double cx = 50, cy = 50, r = 36, k = r * 0.5523;
                 return String.format(Locale.ROOT,
                         "%.2f %.2f m %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c "
                         + "%.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c f\n",
@@ -622,7 +622,8 @@ public class PdfBoxForm {
                         cx + k, cy - r, cx + r, cy - k, cx + r, cy);
             }
             case STAR: {
-                double cx = 55.85, cy = 51.2, outer = 39.3, inner = outer * 0.382;
+                // cy is below 50 so that the bounding box (top point to lower points) is centred.
+                double cx = 50, cy = 46.25, outer = 39.3, inner = outer * 0.382;
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < 10; i++) {
                     double radius = i % 2 == 0 ? outer : inner;
@@ -633,10 +634,10 @@ public class PdfBoxForm {
                 return sb.append("h f\n").toString();
             }
             case SQUARE:
-                return "18.5 20 69.1 69.2 re f\n";
+                return "15.5 15.5 69 69 re f\n";
             case CHECK:
             default:
-                return "16 w 1 J 1 j 27 54 m 45 29 l 88 82 l S\n";
+                return "16 w 1 J 1 j 19.5 48.5 m 37.5 23.5 l 80.5 76.5 l S\n";
         }
     }
 
