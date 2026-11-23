@@ -162,6 +162,15 @@ public class PdfATester {
     }
 
     /**
+     * Boxes spanning dozens of pages must not write coordinates beyond the
+     * PDF/A-1 real value limit of 32767 (issue 290).
+     */
+    @Test
+    public void testLongBoxPdfA1b() throws Exception {
+        assertTrue(run("long-box", PDFAFlavour.PDFA_1_B, PdfAConformance.PDFA_1_B));
+    }
+
+    /**
      * File embedding is allowed as of PDF/A3.
      */
     @Test

@@ -1,0 +1,23 @@
+<html>
+<head>
+  <title>Boxes spanning dozens of pages</title>
+  <meta name="subject" content="Issue 290: real values in content streams must stay within 32767 for PDF/A-1"/>
+  <style>
+  @page { size: 300px 300px; margin: 20px; }
+  body { margin: 0; font-family: 'TestFont'; font-size: 14px; }
+  .tall { height: 50000px; margin: 10px 0; }
+  .solid { background-color: #eee; border: 3px solid #c00; }
+  .dashed { border: 4px dashed #00c; border-radius: 12px; }
+  .dotted { border: 4px dotted #080; }
+  .gradient { background-image: linear-gradient(to bottom, #fcc, #ccf); }
+  .diagonal { background-image: linear-gradient(30deg, #cfc 20%, #ffc 80%); }
+  </style>
+</head>
+<body>
+  <div class="tall solid">Solid background and border</div>
+  <div class="tall dashed">Dashed rounded border</div>
+  <div class="tall dotted">Dotted border</div>
+  <div class="tall gradient">Vertical gradient</div>
+  <div class="tall diagonal">Diagonal gradient</div>
+</body>
+</html>

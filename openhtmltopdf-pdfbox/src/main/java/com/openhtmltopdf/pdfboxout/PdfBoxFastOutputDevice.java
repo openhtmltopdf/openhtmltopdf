@@ -125,6 +125,11 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
     }
     
     private static final AffineTransform IDENTITY = new AffineTransform();
+
+    /** Largest real value PDF/A-1 allows in a content stream. */
+    static final float PDFA1_MAX_REAL = 32767f;
+    private static final float SAFE_REAL_SLACK = 100f;
+    private static final float PAGE_CLIP_MARGIN = 100f;
     private static final BasicStroke STROKE_ONE = new BasicStroke(1);
     private static final boolean ROUND_RECT_DIMENSIONS_DOWN = false;
 
@@ -795,6 +800,24 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
                 return;
             }
         }
+        boolean inDeviceSpace = drawType == GraphicsOperation.CLIP;
+        if (limitsRealsToPage()) {
+            Shape device = inDeviceSpace ? s : _transform.createTransformedShape(s);
+            if (exceedsRealLimit(device.getBounds2D(), drawType == GraphicsOperation.STROKE)) {
+                // A box spanning dozens of pages reaches coordinates PDF/A-1 does not
+                // allow (issue 290). Cut it down to what can show on this page; a
+                // stroke becomes its outline first, so the dash phase stays intact.
+                if (drawType == GraphicsOperation.STROKE) {
+                    device = _stroke.createStrokedShape(device);
+                    drawType = GraphicsOperation.FILL;
+                }
+                Area clipped = new Area(device);
+                clipped.intersect(new Area(pageAreaWithMargin()));
+                s = clipped;
+                inDeviceSpace = true;
+            }
+        }
+
         if (drawType == GraphicsOperation.STROKE) {
             setStrokeDiff(_stroke, _oldStroke);
             _oldStroke = _stroke;
@@ -804,7 +827,7 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
         }
         
         PathIterator points;
-        if (drawType == GraphicsOperation.CLIP) {
+        if (inDeviceSpace) {
             points = s.getPathIterator(IDENTITY);
         } else {
             points = s.getPathIterator(_transform);
@@ -861,6 +884,51 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
                 _cp.clipNonZero();
             _cp.newPath();
         }
+    }
+
+    /**
+     * PDF/A-1 caps real numbers at 32767 (ISO 19005-1, 6.1.12), so drawing has
+     * to keep its coordinates near the page. Later parts follow PDF 1.7, which
+     * has no such limit.
+     */
+    boolean limitsRealsToPage() {
+        return _pdfAConformance != PdfRendererBuilder.PdfAConformance.NONE
+                && _pdfAConformance.getPart() == 1;
+    }
+
+    float pageWidth() {
+        return _page.getMediaBox().getWidth();
+    }
+
+    float pageHeight() {
+        return _pageHeight;
+    }
+
+    /**
+     * Whether a path with these device space (top down) bounds would write a
+     * coordinate beyond the PDF/A-1 limit. Leaves some head room for a stroke's
+     * width and for flattening curves.
+     */
+    private boolean exceedsRealLimit(Rectangle2D bounds, boolean stroke) {
+        double slack = SAFE_REAL_SLACK;
+        if (stroke && _stroke instanceof BasicStroke) {
+            slack += ((BasicStroke) _stroke).getLineWidth();
+        }
+        double limit = PDFA1_MAX_REAL - slack;
+        return Math.abs(bounds.getMinX()) > limit
+            || Math.abs(bounds.getMaxX()) > limit
+            || Math.abs(normalizeY((float) bounds.getMinY())) > limit
+            || Math.abs(normalizeY((float) bounds.getMaxY())) > limit;
+    }
+
+    /**
+     * The current page in device space (top down), plus a margin so nothing
+     * that could show on the page is cut.
+     */
+    private Rectangle2D pageAreaWithMargin() {
+        return new Rectangle2D.Float(
+                -PAGE_CLIP_MARGIN, -PAGE_CLIP_MARGIN,
+                pageWidth() + 2 * PAGE_CLIP_MARGIN, _pageHeight + 2 * PAGE_CLIP_MARGIN);
     }
 
     /**
