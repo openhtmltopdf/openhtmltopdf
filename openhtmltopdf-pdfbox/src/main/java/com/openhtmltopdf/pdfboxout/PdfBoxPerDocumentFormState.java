@@ -66,6 +66,9 @@ private PDAppearanceStream signatureAppearance;
     // The ZapfDingbats font resource needed by checkbox and radio box appearance streams.
     private PDResources checkBoxFontResource;
 
+    // PDF/A forbids non-embedded fonts, so check marks are drawn as paths instead of zapf dingbats.
+    private boolean pdfAConform;
+
     public PDAppearanceStream getCheckboxStyle(CheckboxStyle style) {
         return checkboxAppearances.get(style);
     }
@@ -126,7 +129,7 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
     private void createCheckboxAppearanceStreams(PDDocument writer, PdfBoxForm.Control ctrl) {
         CheckboxStyle style = CheckboxStyle.fromIdent(ctrl.box.getStyle().getIdent(CSSName.FS_CHECKBOX_STYLE));
 
-        checkboxAppearances.computeIfAbsent(style, k -> PdfBoxForm.createCheckboxAppearance(style, writer, checkBoxFontResource));
+        checkboxAppearances.computeIfAbsent(style, k -> createCheckmarkAppearance(style, writer));
 
         if (checkboxOffAppearance == null) {
             checkboxOffAppearance = PdfBoxForm.createCheckboxAppearance(DEFAULT_APPEARANCE, writer, checkBoxFontResource);
@@ -139,12 +142,18 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
         }
 
         if (radioBoxOnAppearance == null) {
-            radioBoxOnAppearance = PdfBoxForm.createCheckboxAppearance(CheckboxStyle.DIAMOND, writer, checkBoxFontResource);
+            radioBoxOnAppearance = createCheckmarkAppearance(CheckboxStyle.DIAMOND, writer);
         }
     }
 
+    private PDAppearanceStream createCheckmarkAppearance(CheckboxStyle style, PDDocument writer) {
+        return pdfAConform ?
+                PdfBoxForm.createCheckboxVectorAppearance(style, writer) :
+                PdfBoxForm.createCheckboxAppearance(style, writer, checkBoxFontResource);
+    }
+
     private void createCheckboxFontResource() {
-        if (checkBoxFontResource == null) {
+        if (checkBoxFontResource == null && !pdfAConform) {
             checkBoxFontResource = new PDResources();
             checkBoxFontResource.put(COSName.getPDFName("OpenHTMLZap"), new PDType1Font(Standard14Fonts.FontName.ZAPF_DINGBATS));
         }
@@ -159,6 +168,7 @@ private void createSignatureAppearanceStreams(PDDocument writer) {
      * flag is forbidden, so appearance streams are generated for every field instead.
      */
     public void processControls(SharedContext sharedContext, PDDocument writer, Box root, RenderingContext renderingContext, boolean pdfAConform) {
+        this.pdfAConform = pdfAConform;
         boolean anyFormControl = false;
 
         for (PdfBoxForm.Control ctrl : controls) {

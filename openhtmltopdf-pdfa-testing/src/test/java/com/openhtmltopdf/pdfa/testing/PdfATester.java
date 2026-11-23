@@ -192,7 +192,7 @@ public class PdfATester {
         try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/form-controls--" + PDFAFlavour.PDFA_1_B + ".pdf"))) {
             PDAcroForm acro = doc.getDocumentCatalog().getAcroForm();
             assertFalse(acro.getNeedAppearances());
-            assertEquals(4, acro.getFields().size());
+            assertEquals(11, acro.getFields().size());
         }
     }
 
