@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>Fictional Garden Club: structure example</title>
+  <meta name="subject" content="PDF/UA list children that are a link or a bookmark target"/>
+  <meta name="author" content="Fictional Garden Club"/>
+  <meta name="description" content="A painted link and a bookmark target with no text inside a list stay in the structure tree"/>
+  <bookmarks>
+    <bookmark name="Target" href="#target"/>
+  </bookmarks>
+  <style>
+  @page { margin: 30px 20px 60px 20px; }
+  body { margin: 0; font-family: 'TestFont'; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <ul><li>First.</li><a href="https://example.com/" title="Example" style="display: block; width: 16px; height: 16px; background: #c00"></a></ul>
+  <ul><li>Second.</li><a id="target" style="display: block; height: 8px"></a></ul>
+</body>
+</html>

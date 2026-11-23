@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>Fictional Garden Club: structure example</title>
+  <meta name="subject" content="PDF/UA block-displayed table with a caption"/>
+  <meta name="author" content="Fictional Garden Club"/>
+  <meta name="description" content="A table element laid out as a block, as e-mail footers do"/>
+  <style>
+  @page { margin: 30px 20px 60px 20px; }
+  body { margin: 0; font-family: 'TestFont'; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <p>Paragraph before the footer.</p>
+  <table role="presentation" width="260" align="center" style="display:block;background-color:#333333;color:#ffffff">
+    <caption>Footer links</caption>
+    <tr><td>Seeds</td><td>Soil</td></tr>
+    <tr><td><a href="https://example.com/app"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAHElEQVR4nGP4sM8RjpTjp8ERAxUlkDnIiqgoAQDh82DhFUXpLQAAAABJRU5ErkJggg==" width="16" height="16" alt="App"/></a></td><td>Water</td></tr>
+  </table>
+  <p>Paragraph after the footer.</p>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>Fictional Garden Club: structure example</title>
+  <meta name="subject" content="PDF/UA lists with empty and generated children"/>
+  <meta name="author" content="Fictional Garden Club"/>
+  <meta name="description" content="A clearfix and an empty div in a list add no list items"/>
+  <style>
+  @page { margin: 30px 20px 60px 20px; }
+  body { margin: 0; font-family: 'TestFont'; font-size: 15px; }
+  ul.cf::after { content: ""; display: block; clear: both; }
+  ul.cf2::after { content: ""; display: block; clear: both; height: 6px; border-top: 1px solid black; }
+  </style>
+</head>
+<body>
+  <ul class="cf"><li>First.</li><li>Second.</li></ul>
+  <ul class="cf2"><li>Fifth.</li></ul>
+  <ul><li>Third.</li><div></div></ul>
+  <ul><li>Fourth.</li><div style="height: 10px"></div><div style="border: 1px solid black; height: 4px"></div><div style="background: #ccc; height: 4px"></div></ul>
+</body>
+</html>
