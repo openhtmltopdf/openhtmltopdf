@@ -64,12 +64,23 @@ public class GradientHelper {
         float endX = (float) ptEndDevice.getX();
         float endY = od.normalizeY((float) ptEndDevice.getY());
 
+        float[] axis = { startX, startY, endX, endY };
+        float[] domain = null;
+        if (od.limitsRealsToPage()) {
+            domain = fitAxisToPage(axis, od.pageWidth(), od.pageHeight());
+        }
+
         COSArray coords = new COSArray();
-        coords.add(new COSFloat(startX));
-        coords.add(new COSFloat(startY));
-        coords.add(new COSFloat(endX));
-        coords.add(new COSFloat(endY));
+        for (float coord : axis) {
+            coords.add(new COSFloat(coord));
+        }
         shading.setCoords(coords);
+        if (domain != null) {
+            COSArray shadingDomain = new COSArray();
+            shadingDomain.add(new COSFloat(domain[0]));
+            shadingDomain.add(new COSFloat(domain[1]));
+            shading.getCOSObject().setItem(COSName.DOMAIN, shadingDomain);
+        }
 
         PDFunctionType3 type3 = buildType3Function(stopPoints, axisStart, axisEnd - axisStart);
 
@@ -79,6 +90,67 @@ public class GradientHelper {
         shading.setFunction(type3);
         shading.setExtend(extend);
         return shading;
+    }
+
+    /**
+     * PDF/A-1 caps real numbers at 32767, which the axis of a gradient on a
+     * box spanning dozens of pages exceeds (issue 290). Moves the axis next to
+     * the page: sliding it sideways leaves the shading unchanged, and only the
+     * stretch of it the page covers is kept, with the shading's domain
+     * narrowed to match so every point keeps its colour.
+     *
+     * @param axis start x, start y, end x, end y in PDF page space, replaced in place
+     * @return the shading domain to use, or null for the default 0 to 1
+     */
+    static float[] fitAxisToPage(float[] axis, float pageWidth, float pageHeight) {
+        float limit = PdfBoxFastOutputDevice.PDFA1_MAX_REAL;
+        if (Math.abs(axis[0]) <= limit && Math.abs(axis[1]) <= limit
+                && Math.abs(axis[2]) <= limit && Math.abs(axis[3]) <= limit) {
+            return null;
+        }
+
+        double sx = axis[0], sy = axis[1];
+        double dx = axis[2] - sx, dy = axis[3] - sy;
+        double lengthSq = dx * dx + dy * dy;
+        if (lengthSq == 0) {
+            return null;
+        }
+
+        // Position along the axis (0 at its start, 1 at its end) of the page's corners.
+        double tMin = Double.MAX_VALUE, tMax = -Double.MAX_VALUE;
+        for (double[] corner : new double[][] { { 0, 0 }, { pageWidth, 0 }, { 0, pageHeight }, { pageWidth, pageHeight } }) {
+            double t = ((corner[0] - sx) * dx + (corner[1] - sy) * dy) / lengthSq;
+            tMin = Math.min(tMin, t);
+            tMax = Math.max(tMax, t);
+        }
+
+        // The axis, slid sideways to run through the page centre.
+        double cx = pageWidth / 2.0, cy = pageHeight / 2.0;
+        double tCentre = ((cx - sx) * dx + (cy - sy) * dy) / lengthSq;
+
+        double from, to;
+        float[] domain;
+        if (tMax <= 0) {
+            // The whole page lies before the axis: the start colour, extended.
+            from = tMax;
+            to = tMax + 1 / Math.sqrt(lengthSq);
+            domain = null;
+        } else if (tMin >= 1) {
+            // The whole page lies after the axis: the end colour, extended.
+            from = tMin - 1 / Math.sqrt(lengthSq);
+            to = tMin;
+            domain = null;
+        } else {
+            from = Math.max(tMin, 0);
+            to = Math.min(tMax, 1);
+            domain = new float[] { (float) from, (float) to };
+        }
+
+        axis[0] = (float) (cx + (from - tCentre) * dx);
+        axis[1] = (float) (cy + (from - tCentre) * dy);
+        axis[2] = (float) (cx + (to - tCentre) * dx);
+        axis[3] = (float) (cy + (to - tCentre) * dy);
+        return domain;
     }
 
     /**
