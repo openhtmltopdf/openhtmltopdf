@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import com.openhtmltopdf.util.LogMessageId;
 import org.w3c.dom.Element;
 
+import com.openhtmltopdf.bidi.BidiLineOrder;
 import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.bidi.ParagraphSplitter.Paragraph;
 import com.openhtmltopdf.css.constants.CSSName;
@@ -615,6 +616,7 @@ public class InlineBoxing {
                 c, style, space.remainingWidth - fit, lbContext, false, inlineBox.getTextDirection(), tryToBreakAnywhere, space.maxAvailableWidth - fit, forceOutput);
         
         inlineText.setTextSpacing(TextSpacing.from(style, c));
+        inlineText.setBidiLevel(inlineBox.getBidiLevel());
 
         if (lbContext.isUnbreakable() && 
             !current.line.isContainsContent() &&
@@ -693,7 +695,7 @@ public class InlineBoxing {
 
         InlineLayoutBox firstLetter =
             addFirstLetterBox(c, current.line, current.layoutBox, lbContext,
-                    space.maxAvailableWidth, space.remainingWidth, inlineBox.getTextDirection());
+                    space.maxAvailableWidth, space.remainingWidth, inlineBox.getTextDirection(), inlineBox.getBidiLevel());
 
         space.remainingWidth -= firstLetter.getInlineWidth();
 
@@ -751,7 +753,7 @@ public class InlineBoxing {
 
     private static InlineLayoutBox addFirstLetterBox(LayoutContext c, LineBox current,
             InlineLayoutBox currentIB, LineBreakContext lbContext, int maxAvailableWidth,
-            int remainingWidth, byte textDirection) {
+            int remainingWidth, byte textDirection, int bidiLevel) {
         CalculatedStyle previous = currentIB.getStyle();
 
         currentIB.setStyle(c.getFirstLettersTracker().deriveAll(currentIB.getStyle()));
@@ -764,6 +766,7 @@ public class InlineBoxing {
         current.setContainsContent(true);
 
         InlineText text = layoutText(c, iB.getStyle(), remainingWidth, lbContext, true, textDirection, true, maxAvailableWidth, false);
+        text.setBidiLevel(bidiLevel);
 
         text.setTextSpacing(TextSpacing.from(iB.getStyle(), c));
         
@@ -805,8 +808,10 @@ public class InlineBoxing {
     		x -= currentIB.getRightMarginPaddingBorder(c);
     	}
     	
-    	for (int i = 0; i < current.getChildCount(); i++) {
-    		Box b = current.getChild(i);
+    	int[] order = BidiLineOrder.placementOrder(current, true);
+
+    	for (int k = 0; k < order.length; k++) {
+    		Box b = current.getChild(order[k]);
     		
     		if (b instanceof InlineLayoutBox) {
     			InlineLayoutBox iB = (InlineLayoutBox) b;
@@ -840,9 +845,11 @@ public class InlineBoxing {
         xAbs -= w;
         xRel -= w;
         
-        for (int i = 0; i < current.getInlineChildCount(); i++) {
+        int[] order = BidiLineOrder.placementOrder(current, true);
+
+        for (int k = 0; k < order.length; k++) {
         	
-            Object child = current.getInlineChild(i);
+            Object child = current.getInlineChild(order[k]);
             
             if (child instanceof InlineLayoutBox) {
             	InlineLayoutBox iB = (InlineLayoutBox) child;
@@ -886,10 +893,12 @@ public class InlineBoxing {
             x += currentIB.getLeftMarginBorderPadding(c);
         }
 
-        for (int i = 0; i < current.getChildCount(); i++) {
-            Box b = current.getChild(i);
+        int[] order = BidiLineOrder.placementOrder(current, false);
+
+        for (int k = 0; k < order.length; k++) {
+            Box b = current.getChild(order[k]);
             if (b instanceof InlineLayoutBox) {
-                InlineLayoutBox iB = (InlineLayoutBox) current.getChild(i);
+                InlineLayoutBox iB = (InlineLayoutBox) b;
                 iB.setX(x);
                 x += positionHorizontally(c, iB, x);
             } else {
@@ -911,8 +920,10 @@ public class InlineBoxing {
 
         x += current.getLeftMarginBorderPadding(c);
 
-        for (int i = 0; i < current.getInlineChildCount(); i++) {
-            Object child = current.getInlineChild(i);
+        int[] order = BidiLineOrder.placementOrder(current, false);
+
+        for (int k = 0; k < order.length; k++) {
+            Object child = current.getInlineChild(order[k]);
             if (child instanceof InlineLayoutBox) {
                 InlineLayoutBox iB = (InlineLayoutBox) child;
                 iB.setX(x);

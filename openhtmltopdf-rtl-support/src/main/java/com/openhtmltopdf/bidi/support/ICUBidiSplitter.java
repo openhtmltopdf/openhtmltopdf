@@ -30,7 +30,7 @@ public class ICUBidiSplitter implements BidiSplitter {
 	@Override
 	public BidiTextRun getVisualRun(int runIndex) {
 		BidiRun run = bidi.getVisualRun(runIndex);
-		BidiTextRun textRun = new BidiTextRun(run.getStart(), run.getLength(), run.getDirection());
+		BidiTextRun textRun = new BidiTextRun(run.getStart(), run.getLength(), run.getDirection(), run.getEmbeddingLevel());
 		return textRun;
 	}
 

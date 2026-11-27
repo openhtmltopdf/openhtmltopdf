@@ -21,6 +21,7 @@
 package com.openhtmltopdf.render;
 
 import com.openhtmltopdf.context.ContentFunctionFactory.LeaderFunction;
+import com.openhtmltopdf.bidi.BidiLineOrder;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
@@ -939,8 +940,8 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         
         float result = 0.0f;
         
-        for (Iterator<Object> i = getInlineChildren().iterator(); i.hasNext(); ) {
-            Object o = i.next();
+        for (int k : BidiLineOrder.placementOrder(this, false)) {
+            Object o = getInlineChild(k);
             
             if (o instanceof InlineText) {
                 InlineText iT = (InlineText)o;
@@ -973,8 +974,8 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         float runningTotal = adjust;
         float result = 0.0f;
 
-        for (Iterator<Object> i = getInlineChildren().iterator(); i.hasNext(); ) {
-            Object o = i.next();
+        for (int k : BidiLineOrder.placementOrder(this, true)) {
+            Object o = getInlineChild(k);
 
             if (o instanceof InlineText) {
                 InlineText iT = (InlineText)o;

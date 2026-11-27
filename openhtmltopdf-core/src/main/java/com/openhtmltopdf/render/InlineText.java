@@ -54,6 +54,7 @@ public class InlineText {
         boolean _endsOnSoftHyphen = false;
         TextSpacing _textSpacing = TextSpacing.NONE;
         byte _textDirection = BidiSplitter.LTR;
+        int _bidiLevel = -1;
     }
     
     private CharCounts _counts;
@@ -84,6 +85,26 @@ public class InlineText {
      */
     public byte getTextDirection() {
     	return _rareData != null ? _rareData._textDirection : BidiSplitter.LTR;
+    }
+
+    /**
+     * @param level the Unicode bidi embedding level of this text, or -1 if unknown.
+     */
+    public void setBidiLevel(int level) {
+        if (level != -1) {
+            ensureRareData();
+        }
+
+        if (_rareData != null) {
+            _rareData._bidiLevel = level;
+        }
+    }
+
+    /**
+     * @return the Unicode bidi embedding level of this text, or -1 if unknown.
+     */
+    public int getBidiLevel() {
+        return _rareData != null ? _rareData._bidiLevel : -1;
     }
     
     /**

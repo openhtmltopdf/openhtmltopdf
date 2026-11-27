@@ -1,0 +1,50 @@
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(../fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+@font-face {
+  src: url(../fonts/NotoNaskhArabic-Regular.ttf);
+  font-family: 'arabic';
+}
+*/
+
+@page {
+  size: 600px 520px;
+  margin: 20px;
+}
+html * {
+  font-family: 'TestFont', 'arabic', sans-serif;
+}
+p {
+  font-size: 20px;
+  margin: 0 0 16px 0;
+  border: 1px solid #ccc;
+}
+b { color: #c00; }
+i { color: #00c; font-style: normal; }
+</style>
+</head>
+<body>
+<!-- Issue #148: numbers inside Arabic text inside an LTR paragraph. -->
+<p>JHRA2640، 2640 عبد ه الطيب، 6464 ، ، 23839 ،</p>
+
+<!-- Same in an RTL paragraph. -->
+<p dir="rtl">JHRA2640، 2640 عبد ه الطيب، 6464 ، ، 23839 ،</p>
+
+<!-- Two Arabic words in separate inline elements inside an LTR paragraph: shown right to left. -->
+<p>start <b>الزهور</b> <i>الاشجار</i> end</p>
+
+<!-- Two English words in separate inline elements inside an RTL paragraph: shown left to right. -->
+<p dir="rtl">مرحبًا <b>flowers</b> <i>trees</i> نهاية</p>
+
+<!-- Justified lines keep the reordered runs apart. -->
+<p style="text-align: justify; width: 320px;">order <b>الزهور</b> <i>الاشجار</i> 12 عبد ه 345 الطيب then some more English words to wrap.</p>
+<p dir="rtl" style="text-align: justify; width: 320px;">مرحبًا <b>flowers</b> <i>trees</i> نهاية الزهور الاشجار عبد ه الطيب مرحبًا نهاية.</p>
+</body>
+</html>

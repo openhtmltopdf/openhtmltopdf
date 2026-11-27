@@ -85,6 +85,7 @@ public class InlineBox implements Styleable {
     }
 
     private byte _textDirection;
+    private int _bidiLevel = -1;
 
     private BlockBox _footnoteBody;
     
@@ -100,6 +101,20 @@ public class InlineBox implements Styleable {
      */
     public byte getTextDirection() {
     	return this._textDirection;
+    }
+
+    /**
+     * @param level the Unicode bidi embedding level of this text run, or -1 if unknown.
+     */
+    public void setBidiLevel(int level) {
+        this._bidiLevel = level;
+    }
+
+    /**
+     * @return the Unicode bidi embedding level of this text run, or -1 if unknown.
+     */
+    public int getBidiLevel() {
+        return this._bidiLevel;
     }
     
     public String getText() {
