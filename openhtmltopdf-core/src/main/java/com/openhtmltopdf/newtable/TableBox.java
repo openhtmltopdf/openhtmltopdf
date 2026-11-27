@@ -1313,7 +1313,7 @@ public class TableBox extends BlockBox {
             _layoutStruct = new Layout[_table.numEffCols()];
             for (int i = 0; i < _layoutStruct.length; i++) {
                 _layoutStruct[i] = new Layout();
-                _layoutStruct[i].setMinWidth(getMinColWidth());
+                _layoutStruct[i].setMinWidth(0);
                 _layoutStruct[i].setMaxWidth(getMinColWidth());
             }
 
