@@ -7,6 +7,8 @@ on:
       - main
     paths-ignore:
       - "**.md"
+      # Workflow-only changes need no release; run it by hand if one does.
+      - ".github/**"
 
 # Serialize release runs: "Get next version" derives the version from git tags,
 # but the tag is only pushed after the slow Maven Central upload. Two overlapping
@@ -25,9 +27,9 @@ jobs:
         java: ['8', '11', '17','21', '25']
     if: github.repository_owner == 'openhtmltopdf'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up JDK ${{matrix.java}}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: ${{matrix.java}}
@@ -46,13 +48,13 @@ jobs:
       packages: write
     steps:
       - name: Step 1 - Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Step 2 - Import GPG key
         run: |
           echo "${{ secrets.GPG_PUBLIC_KEY }}" | gpg --import
           echo "${{ secrets.GPG_SECRET_KEY }}" | gpg --import --no-tty --batch --yes
       - name: Step 3 - Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 8
