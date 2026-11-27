@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,7 +20,15 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.cos.COSDictionary;
 import org.apache.pdfbox.io.IOUtils;
+import org.apache.pdfbox.pdmodel.common.COSObjectable;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
+import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachment;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.verapdf.gf.foundry.VeraGreenfieldFoundryProvider;
@@ -115,6 +124,32 @@ public class PdfUaTester {
     @Test
     public void testAllInOnePdfUa1() throws Exception {
         assertTrue(run("all-in-one"));
+    }
+
+    /**
+     * File attachment annotations (from {@code <a download>}) must be nested in an
+     * Annot structure element and carry a /Contents description (GH issues #65, #66).
+     */
+    @Test
+    public void testFileEmbedPdfUa1() throws Exception {
+        assertTrue(run("file-embed"));
+        assertTrue(run("pdfua-file-embed"));
+
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/pdfua-file-embed--PDFUA_1.pdf"))) {
+            List<String> contents = new ArrayList<>();
+            for (PDAnnotation annot : doc.getPage(0).getAnnotations()) {
+                assertTrue(annot instanceof PDAnnotationFileAttachment);
+                PDStructureElement parent = new PDStructureElement((COSDictionary) ((COSObjectable) doc.getDocumentCatalog()
+                        .getStructureTreeRoot().getParentTree().getValue(annot.getStructParent())).getCOSObject());
+                assertEquals(StandardStructureTypes.ANNOT, parent.getStructureType());
+                assertEquals(StandardStructureTypes.LINK, ((PDStructureElement) parent.getParent()).getStructureType());
+                contents.add(annot.getContents());
+            }
+            // One annotation per line box of each link; the wrapped link gives several.
+            assertTrue(contents.size() >= 4);
+            assertEquals("Structure test page", contents.get(contents.size() - 1));
+            assertTrue(contents.subList(0, contents.size() - 1).stream().allMatch("source.html"::equals));
+        }
     }
 
     @Test

@@ -377,6 +377,7 @@ public class PdfBoxFastLinkManager {
 
             annotationFileAttachment.setFile(fs);
             annotationFileAttachment.setAppearance(this._embeddedFileAppearance);
+            setFileAttachmentContents(annotationFileAttachment, elem);
 
             return new AnnotationContainer.PDAnnotationFileAttachmentContainer(annotationFileAttachment);
         }
@@ -430,6 +431,7 @@ public class PdfBoxFastLinkManager {
 
                 annotationFileAttachment.setFile(fs);
                 annotationFileAttachment.setAppearance(this._embeddedFileAppearance);
+                setFileAttachmentContents(annotationFileAttachment, elem);
 
                 // PDF/A3 requires we explicitly list this link as associated with file.
                 if (elem.hasAttribute("relationship")) {
@@ -448,6 +450,25 @@ public class PdfBoxFastLinkManager {
         }
 
         return null;
+    }
+
+    /**
+     * Set the file attachment annotation's /Contents, which viewers show as its
+     * label and PDF/UA-1 (7.18.1) requires as its description: the `title`
+     * attribute (the file description), else the `download` file name, else the
+     * visible text.
+     */
+    private static void setFileAttachmentContents(PDAnnotationFileAttachment annot, Element elem) {
+        String contents = nonBlank(elem.getAttribute("title"));
+        if (contents == null) {
+            contents = nonBlank(elem.getAttribute("download"));
+        }
+        if (contents == null) {
+            contents = nonBlank(elem.getTextContent());
+        }
+        if (contents != null) {
+            annot.setContents(contents);
+        }
     }
 
     /**
