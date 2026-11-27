@@ -357,6 +357,15 @@ public class CascadedStyle {
 
     public int countAssigned() { return cascadedProperties.size(); }
 
+    private void appendLogicalOrder(StringBuilder sb, CSSName logical, CSSName left, CSSName right) {
+        if (hasProperty(logical)) {
+            int seq = getMatchSequence(logical);
+            sb.append(logical.FS_ID)
+              .append(seq > getMatchSequence(left) ? '>' : '<')
+              .append(seq > getMatchSequence(right) ? '>' : '<');
+        }
+    }
+
     public String getFingerprint() {
         if (this.fingerprint == null) {
             StringBuilder sb = new StringBuilder();
@@ -369,6 +378,12 @@ public class CascadedStyle {
             for (CustomPropertyDeclaration o : customProperties.values()) {
                 sb.append(o.getFingerprint());
             }
+            // A logical property and the physical ones it can map to share a value,
+            // the later in the cascade winning, so their order matters too.
+            appendLogicalOrder(sb, CSSName.PADDING_INLINE_START, CSSName.PADDING_LEFT, CSSName.PADDING_RIGHT);
+            appendLogicalOrder(sb, CSSName.PADDING_INLINE_END, CSSName.PADDING_LEFT, CSSName.PADDING_RIGHT);
+            appendLogicalOrder(sb, CSSName.MARGIN_INLINE_START, CSSName.MARGIN_LEFT, CSSName.MARGIN_RIGHT);
+            appendLogicalOrder(sb, CSSName.MARGIN_INLINE_END, CSSName.MARGIN_LEFT, CSSName.MARGIN_RIGHT);
             this.fingerprint = sb.toString();
         }
         return this.fingerprint;
