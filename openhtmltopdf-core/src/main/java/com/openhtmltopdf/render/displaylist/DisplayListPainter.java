@@ -177,6 +177,11 @@ public class DisplayListPainter {
     }
     
     private void pushTransform(RenderingContext c, Box master, int shadowPage) {
+        if (master.getLayer() != null && PagedBoxCollector.findRepeatedTableSection(master) != null) {
+            // The repeated table section was moved to this page; the matrix used
+            // for link and structure areas must follow it.
+            master.getLayer().propagateCurrentTransformationMatrix(c);
+        }
     	AffineTransform transform = TransformCreator.createPageCoordinatesTranform(c, master, c.getPage(), shadowPage);
     	debugOnly("pushing transform", transform);
     	c.getOutputDevice().pushTransformLayer(transform);

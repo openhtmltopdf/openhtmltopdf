@@ -2094,6 +2094,17 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that transformed content in the repeated head and foot of a paginated
+     * table is painted on every page the section repeats on, not only on the
+     * table's last page, also with nested transforms and a table that starts on a
+     * later page. Issue 295.
+     */
+    @Test
+    public void testTransformInRepeatedTableHead() throws IOException {
+        assertTrue(vt.runTest("issue-295-transform-in-repeated-thead", TestSupport.WITH_FONT));
+    }
+
+    /**
      * Tests that a table with -fs-table-paginate: paginate inside a
      * column-count container paints. Column content is laid out with
      * pagination switched off, so the rows are never page break analyzed,

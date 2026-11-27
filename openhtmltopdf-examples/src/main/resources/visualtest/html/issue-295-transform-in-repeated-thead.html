@@ -1,0 +1,103 @@
+<html>
+<head>
+<style>
+@page {
+  size: 300px 180px;
+  margin: 0;
+}
+body {
+  margin: 10px;
+  font-family: 'TestFont';
+  font-size: 10px;
+}
+table {
+  -fs-table-paginate: paginate;
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 10px;
+}
+td, th {
+  border: 1px solid black;
+  height: 14px;
+  padding: 0 2px;
+  text-align: left;
+}
+th {
+  background-color: silver;
+}
+.rot {
+  height: 40px;
+}
+.rot span {
+  display: inline-block;
+  transform: rotate(-90deg);
+  color: blue;
+}
+.skew {
+  display: inline-block;
+  transform: skewX(-20deg);
+  color: green;
+}
+.nested {
+  display: inline-block;
+  transform: translateX(10px);
+  color: red;
+}
+.nested span {
+  display: inline-block;
+  transform: rotate(10deg);
+}
+</style>
+</head>
+<body>
+<!-- (1) The reported case: a rotated header cell and a no-op transform. Both
+         must be painted on every page the head repeats on, not only the last. -->
+<table>
+<thead>
+<tr><th class="rot"><span>Rot</span></th><th><div style="transform: rotate(0deg);">Zero</div></th></tr>
+</thead>
+<tbody>
+<tr><td>1</td><td>x</td></tr>
+<tr><td>2</td><td>x</td></tr>
+<tr><td>3</td><td>x</td></tr>
+<tr><td>4</td><td>x</td></tr>
+<tr><td>5</td><td>x</td></tr>
+<tr><td>6</td><td>x</td></tr>
+<tr><td>7</td><td>x</td></tr>
+<tr><td>8</td><td>x</td></tr>
+<tr><td>9</td><td>x</td></tr>
+<tr><td>10</td><td>x</td></tr>
+<tr><td>11</td><td>x</td></tr>
+<tr><td>12</td><td>x</td></tr>
+<tr><td>13</td><td>x</td></tr>
+<tr><td>14</td><td>x</td></tr>
+</tbody>
+</table>
+
+<!-- (2) The table starts on a later page (#294) and has a transformed cell in
+         a repeated foot, and a transform nested inside a transform in the head. -->
+<div style="page-break-before: always;">Before the table</div>
+<table>
+<thead>
+<tr><th><span class="skew">Skew</span></th><th><span class="nested"><span>Nested</span></span></th></tr>
+</thead>
+<tfoot>
+<tr><td><span class="skew">Foot</span></td><td>end</td></tr>
+</tfoot>
+<tbody>
+<tr><td>1</td><td>x</td></tr>
+<tr><td>2</td><td>x</td></tr>
+<tr><td>3</td><td>x</td></tr>
+<tr><td>4</td><td>x</td></tr>
+<tr><td>5</td><td>x</td></tr>
+<tr><td>6</td><td>x</td></tr>
+<tr><td>7</td><td>x</td></tr>
+<tr><td>8</td><td>x</td></tr>
+<tr><td>9</td><td>x</td></tr>
+<tr><td>10</td><td>x</td></tr>
+<tr><td>11</td><td>x</td></tr>
+<tr><td>12</td><td>x</td></tr>
+</tbody>
+</table>
+</body>
+</html>

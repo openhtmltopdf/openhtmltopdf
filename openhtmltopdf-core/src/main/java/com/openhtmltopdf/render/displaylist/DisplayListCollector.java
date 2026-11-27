@@ -15,6 +15,7 @@ import com.openhtmltopdf.layout.Layer;
 import com.openhtmltopdf.newtable.CollapsedBorderValue;
 import com.openhtmltopdf.newtable.TableBox;
 import com.openhtmltopdf.newtable.TableCellBox;
+import com.openhtmltopdf.newtable.TableSectionBox;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.render.Box;
 import com.openhtmltopdf.render.PageBox;
@@ -28,6 +29,12 @@ public class DisplayListCollector {
     }
     
  	private final List<PageBox> _pages;
+
+	/**
+	 * While collecting a layer inside a repeated table section: the one page
+	 * the section is positioned for, else -1.
+	 */
+	private int _repeatedSectionPage = -1;
 	
 	public DisplayListCollector(List<PageBox> pages) {
 		this._pages = pages;
@@ -115,10 +122,27 @@ public class DisplayListCollector {
 		    return;
 		}
 
+		TableSectionBox repeatedSection = PagedBoxCollector.findRepeatedTableSection(layer.getMaster());
+		if (repeatedSection != null && _repeatedSectionPage < 0) {
+		    collectRepeatedSectionLayer(c, layer, repeatedSection, dlPages, flags);
+		    return;
+		}
+
 		List<PageInfo> layerPages = PagedBoxCollector.findLayerPages(c, layer, _pages);
 		int layerPageStart = findStartPage(c, layer);
 		int layerPageEnd = findEndPage(c, layer);
 		boolean pushedClip = false;
+
+		if (_repeatedSectionPage >= 0) {
+		    // Only this page's copy of the repeated section is positioned now.
+		    final int page = _repeatedSectionPage;
+		    layerPages.removeIf(pg -> pg.pageNumber != page);
+		    if (layerPages.isEmpty() || page < layerPageStart || page > layerPageEnd) {
+		        return;
+		    }
+		    layerPageStart = page;
+		    layerPageEnd = page;
+		}
 
 		Rectangle parentClip = layer.getMaster().getParentClipBox(c, layer.getParent());
 
@@ -190,6 +214,42 @@ public class DisplayListCollector {
             addItem(dlo, layerPages, dlPages);
 		}
 	}
+
+    /**
+     * A layer inside the repeated header or footer of a paginated table (e.g. a
+     * transformed cell). There is only one box tree for the section, moved to each
+     * page the table spans, so the layer is collected once per page with the section
+     * positioned there and its transform recomputed for that position. When painting,
+     * the section is moved again by the table painted before the layer.
+     */
+    private void collectRepeatedSectionLayer(RenderingContext c, Layer layer, TableSectionBox section,
+            DisplayListContainer dlPages, Set<CollectFlags> flags) {
+        int[] range = PagedBoxCollector.findRepeatedSectionRange(c, section, _pages);
+        if (range == null) {
+            return;
+        }
+
+        TableBox table = section.getTable();
+        int first = Math.max(range[0], dlPages.getMinPage());
+        int last = Math.min(range[1], dlPages.getMaxPage());
+
+        try {
+            for (int page = first; page <= last; page++) {
+                if (PagedBoxCollector.isHiddenOnRepeatedSectionPage(c, section, layer.getMaster(), page, range[0], range[1])) {
+                    continue;
+                }
+
+                c.setPage(page, _pages.get(page));
+                table.updateHeaderFooterPosition(c);
+                layer.propagateCurrentTransformationMatrix(c);
+
+                _repeatedSectionPage = page;
+                collect(c, layer, dlPages, flags);
+            }
+        } finally {
+            _repeatedSectionPage = -1;
+        }
+    }
 
     /**
      * Convert a list of boxes to a list of paint instructions for a page.
