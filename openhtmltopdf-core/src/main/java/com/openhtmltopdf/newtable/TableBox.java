@@ -91,6 +91,13 @@ public class TableBox extends BlockBox {
         return _styleColumns == null ? Collections.emptyList() : _styleColumns;
     }
 
+    /**
+     * @return true if the columns run from right to left (direction: rtl on the table).
+     */
+    public boolean isRtl() {
+        return getStyle().getDirection() == IdentValue.RTL;
+    }
+
     public int[] getColumnPos() {
         return ArrayUtil.cloneOrEmpty(_columnPos);
     }
@@ -801,7 +808,11 @@ public class TableBox extends BlockBox {
         result.y += vspacing;
         result.height -= vspacing*2;
 
-        result.x += _columnPos[effCol] + hspacing;
+        if (isRtl()) {
+            result.x += _columnPos[_columnPos.length - 1] + hspacing - _columnPos[effCol + 1];
+        } else {
+            result.x += _columnPos[effCol] + hspacing;
+        }
 
         return result;
     }

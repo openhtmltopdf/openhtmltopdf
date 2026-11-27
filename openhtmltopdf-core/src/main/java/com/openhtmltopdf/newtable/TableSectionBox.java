@@ -222,6 +222,7 @@ public class TableSectionBox extends BlockBox {
     void setCellWidths(LayoutContext c)
     {
         int[] columnPos = getTable().getColumnPos();
+        boolean rtl = getTable().isRtl();
         
         for (RowData row : _grid) {
             List<TableCellBox> cols = row.getRow();
@@ -243,7 +244,11 @@ public class TableSectionBox extends BlockBox {
                 
                 int w = columnPos[endCol] - columnPos[j] - hspacing;
                 cell.setLayoutWidth(c, w);
-                cell.setX(columnPos[j] + hspacing);
+                // In an RTL table the first column is on the right (CSS 2.1, 17.5):
+                // mirror the cell within the span from the first spacing to the last cell.
+                cell.setX(rtl ?
+                        columnPos[columnPos.length - 1] + hspacing - columnPos[endCol] :
+                        columnPos[j] + hspacing);
             }
         }
     }
