@@ -711,6 +711,35 @@ public class CalculatedStyle {
                 _derivedValuesById[pd.getCSSName().FS_ID] = val;
             }
         }
+
+        applyLogicalProperties(matched);
+    }
+
+    /**
+     * Applies padding-inline-start/end and margin-inline-start/end to the left or
+     * right side, by the direction of this element: start is left in left-to-right
+     * text, right in right-to-left text. A logical property and the physical one it
+     * maps to share a value, so whichever comes later in the cascade wins.
+     */
+    private void applyLogicalProperties(CascadedStyle matched) {
+        if (!(matched.hasProperty(CSSName.PADDING_INLINE_START) || matched.hasProperty(CSSName.PADDING_INLINE_END) ||
+              matched.hasProperty(CSSName.MARGIN_INLINE_START) || matched.hasProperty(CSSName.MARGIN_INLINE_END))) {
+            return;
+        }
+
+        boolean rtl = valueByName(CSSName.DIRECTION) == IdentValue.RTL;
+
+        applyLogicalProperty(matched, CSSName.PADDING_INLINE_START, rtl ? CSSName.PADDING_RIGHT : CSSName.PADDING_LEFT);
+        applyLogicalProperty(matched, CSSName.PADDING_INLINE_END, rtl ? CSSName.PADDING_LEFT : CSSName.PADDING_RIGHT);
+        applyLogicalProperty(matched, CSSName.MARGIN_INLINE_START, rtl ? CSSName.MARGIN_RIGHT : CSSName.MARGIN_LEFT);
+        applyLogicalProperty(matched, CSSName.MARGIN_INLINE_END, rtl ? CSSName.MARGIN_LEFT : CSSName.MARGIN_RIGHT);
+    }
+
+    private void applyLogicalProperty(CascadedStyle matched, CSSName logical, CSSName physical) {
+        if (matched.hasProperty(logical) &&
+            matched.getMatchSequence(logical) > matched.getMatchSequence(physical)) {
+            _derivedValuesById[physical.FS_ID] = valueByName(logical);
+        }
     }
 
     /**

@@ -1038,6 +1038,7 @@ public class BlockBox extends Box {
             setRightMBP((int) padding.right() + (int) border.right() + (int) margin.right());
 
             if (isReplaced()) {
+                alignToStartInRtl(c, padding, border);
                 setDimensionsCalculated(true);
                 return;
             }
@@ -1087,9 +1088,42 @@ public class BlockBox extends Box {
                 if (! isReplaced()) {
                     applyCSSMinMaxWidth(c);
                 }
+
+                alignToStartInRtl(c, padding, border);
             }
 
             setDimensionsCalculated(true);
+        }
+    }
+
+    /**
+     * A block narrower than its right-to-left containing block starts at its right
+     * edge: with no auto margin the widths are over-constrained, and CSS 2.1 section
+     * 10.3.3 then ignores margin-left instead of margin-right. Unlike browsers, a block
+     * wider than its containing block is not moved to the left of it, where it would be
+     * cut off the page.
+     */
+    private void alignToStartInRtl(LayoutContext c, RectPropertySet padding, BorderPropertySet border) {
+        if (isAnonymous() ||
+            !getStyle().isNeedAutoMarginResolution() ||
+            getStyle().isIdent(CSSName.MARGIN_LEFT, IdentValue.AUTO) ||
+            getStyle().isIdent(CSSName.MARGIN_RIGHT, IdentValue.AUTO)) {
+            return;
+        }
+
+        Box cb = getContainingBlock();
+        if (cb == null || cb.getStyle() == null || cb.getStyle().getDirection() != IdentValue.RTL) {
+            return;
+        }
+
+        RectPropertySet margin = getMargin(c);
+        int used = (int) border.left() + (int) padding.left() + getContentWidth() +
+                (int) padding.right() + (int) border.right() + (int) margin.right();
+        int marginLeft = getContainingBlockWidth() - used;
+
+        if (marginLeft > (int) margin.left()) {
+            setMarginLeft(c, marginLeft);
+            setLeftMBP(marginLeft + (int) border.left() + (int) padding.left());
         }
     }
 

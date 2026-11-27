@@ -2252,6 +2252,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("image-exif-orientation", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that in right-to-left text a block narrower than its container starts at
+     * the right, and that lists are indented on the right, where their markers go.
+     */
+    @Test
+    public void testRtlBlocksAndLists() throws IOException {
+        assertTrue(vt.runTest("rtl-blocks-and-lists", TestSupport.WITH_ARABIC));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
