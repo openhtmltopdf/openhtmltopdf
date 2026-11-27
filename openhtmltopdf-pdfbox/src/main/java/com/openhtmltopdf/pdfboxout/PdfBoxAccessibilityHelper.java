@@ -33,6 +33,7 @@ import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructur
 import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedContent;
 import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDDocumentOutline;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.PDOutlineItem;
 import org.w3c.dom.Document;
@@ -2228,6 +2229,17 @@ public class PdfBoxAccessibilityHelper {
                     struct = cached.elem;
                 }
             }
+        }
+
+        if (struct != null && !(pdAnnotation instanceof PDAnnotationLink)) {
+            // PDF/UA-1 (ISO 14289-1, 7.18.1): annotations other than Link and Widget
+            // (here: file attachments from <a download>) must be nested in an Annot
+            // structure element. It goes inside the anchor's element, which keeps the text.
+            PDStructureElement annotElem = new PDStructureElement(StandardStructureTypes.ANNOT, struct);
+            annotElem.setParent(struct);
+            annotElem.setPage(page);
+            struct.appendKid(annotElem);
+            struct = annotElem;
         }
 
         if (struct != null) {
