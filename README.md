@@ -37,6 +37,71 @@ PDF renderer.
     + Note: This documentation is hosted on the old GitHub repository and has yet to be migrated
 + [Sample Project - Pretty Resume Generator](https://github.com/danfickle/pretty-resume)
 
+### Basic usage
+
+Add the PDF renderer and, to parse real-world HTML, [jsoup](https://jsoup.org/)
+(use the latest version shown on [Maven Central](https://central.sonatype.com/artifact/io.github.openhtmltopdf/openhtmltopdf-pdfbox)):
+
+```xml
+<dependency>
+  <groupId>io.github.openhtmltopdf</groupId>
+  <artifactId>openhtmltopdf-pdfbox</artifactId>
+  <version>${openhtmltopdf.version}</version>
+</dependency>
+<dependency>
+  <groupId>org.jsoup</groupId>
+  <artifactId>jsoup</artifactId>
+  <version>${jsoup.version}</version>
+</dependency>
+```
+
+Convert an HTML file to a PDF file:
+
+```java
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+
+import org.jsoup.Jsoup;
+import org.jsoup.helper.W3CDom;
+
+import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+
+public class HtmlToPdf {
+    public static void main(String[] args) throws Exception {
+        File input = new File(args[0]);
+        File output = new File(args[1]);
+
+        // Parse real-world HTML with jsoup, then hand the W3C DOM to the renderer.
+        org.w3c.dom.Document doc = W3CDom.convert(Jsoup.parse(input, "UTF-8"));
+
+        try (OutputStream os = new FileOutputStream(output)) {
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            // The base URI resolves relative links to images, CSS and fonts.
+            builder.withW3cDocument(doc, input.toURI().toString());
+            // Optional: only load resources from the input's directory.
+            String base = input.getParentFile().toURI().toString();
+            builder.useExternalResourceAccessControl(
+                    (uri, type) -> uri.startsWith(base),
+                    ExternalResourceControlPriority.RUN_AFTER_RESOLVING_URI);
+            builder.toStream(os);
+            builder.run();
+        }
+    }
+}
+```
+
+Useful builder options:
+
++ `useFont(new File("fonts/MyFont.ttf"), "MyFont")` makes a TrueType font available to CSS as
+  `font-family: 'MyFont'`. Without it only the 14 standard PDF fonts are available, which cover Latin text only.
++ `useExternalResourceAccessControl(...)` decides which resources (images, CSS, fonts, file embeds) may be loaded.
+  By default everything is allowed except file embeds (`<a download>`).
++ `usePdfUaAccessibility(true)` and `usePdfAConformance(...)` produce accessible (PDF/UA) or archival (PDF/A) documents.
+  Both need fonts registered with `useFont`, as the standard fonts are then disabled.
++ `useSVGDrawer(new BatikSVGDrawer())` (module `openhtmltopdf-svg-support`) renders SVG images.
+
 ## DIFFERENCES WITH FLYING SAUCER
 
 + Uses the well-maintained and open-source (LGPL compatible) PDFBOX as PDF library, rather than iText.
