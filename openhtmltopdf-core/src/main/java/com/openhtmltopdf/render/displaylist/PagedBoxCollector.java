@@ -616,33 +616,13 @@ public class PagedBoxCollector {
         
         TableBox table = ((TableSectionBox) container).getTable();
         RenderingContext rc = (RenderingContext) c;
-        
-        int tableStart = findStartPage(c, table, layer.getCurrentTransformMatrix());
-        int tableEnd = findEndPage(c, table, layer.getCurrentTransformMatrix());
 
-        // The section repeats on every page the table spans, so its first and
-        // last appearances (fragments) are the table's first and last pages.
-        int firstFragmentPage = getValidMinPageNumber(tableStart);
-        int lastFragmentPage = getValidMaxPageNumber(tableEnd);
-
-        // A running footer that is hidden on its last fragment must not open a
-        // trailing fragment of its own: when the body content ends flush at a
-        // page boundary, the footer's natural position spills onto the next
-        // page, which would (a) repeat the header onto a page without a single
-        // body row and (b) rob the true last body page of its last-fragment
-        // status, so the carried-forward foot would paint below the totals
-        // there. Clamp the span to the last page carrying non-running content.
-        TableSectionBox foot = runningFooter(table);
-        if (foot != null && (fragmentHide(rc, foot) & Matcher.HIDE_ON_LAST_FRAGMENT) != 0) {
-            Box lastContent = lastContentSection(table);
-            if (lastContent != null) {
-                int contentEnd = getValidMaxPageNumber(
-                        findEndPage(c, lastContent, layer.getCurrentTransformMatrix()));
-                if (contentEnd >= firstFragmentPage && contentEnd < lastFragmentPage) {
-                    lastFragmentPage = contentEnd;
-                }
-            }
+        int[] range = findRepeatedSectionRange(rc, (TableSectionBox) container, pages);
+        if (range == null) {
+            return;
         }
+        int firstFragmentPage = getValidMinPageNumber(range[0]);
+        int lastFragmentPage = getValidMaxPageNumber(range[1]);
 
         int sectionHide = fragmentHide(rc, container);
 
@@ -667,6 +647,95 @@ public class PagedBoxCollector {
                 collect(c, layer, child, shadowPageNumber);
             }
         }
+    }
+
+    /**
+     * The first and last page (0 based) a repeated table header or footer
+     * appears on: the pages its paginated table spans, or null if the table
+     * is not on any page. The section is repositioned on each of them before
+     * its content is collected or painted.
+     */
+    public static int[] findRepeatedSectionRange(RenderingContext c, TableSectionBox section, List<PageBox> pages) {
+        TableBox table = section.getTable();
+        PageFinder finder = new PageFinder(pages);
+        AffineTransform ctm = section.getContainingLayer().getCurrentTransformMatrix();
+
+        int firstFragmentPage = findPage(c, finder, table, ctm, true);
+        int lastFragmentPage = findPage(c, finder, table, ctm, false);
+        if (firstFragmentPage < 0 || lastFragmentPage < 0) {
+            return null;
+        }
+        firstFragmentPage = Math.max(firstFragmentPage, 0);
+        lastFragmentPage = Math.min(lastFragmentPage, pages.size() - 1);
+
+        // A running footer that is hidden on its last fragment must not open a
+        // trailing fragment of its own: when the body content ends flush at a
+        // page boundary, the footer's natural position spills onto the next
+        // page, which would (a) repeat the header onto a page without a single
+        // body row and (b) rob the true last body page of its last-fragment
+        // status, so the carried-forward foot would paint below the totals
+        // there. Clamp the span to the last page carrying non-running content.
+        TableSectionBox foot = runningFooter(table);
+        if (foot != null && (fragmentHide(c, foot) & Matcher.HIDE_ON_LAST_FRAGMENT) != 0) {
+            Box lastContent = lastContentSection(table);
+            if (lastContent != null) {
+                int contentEnd = findPage(c, finder, lastContent, ctm, false);
+                if (contentEnd >= firstFragmentPage && contentEnd < lastFragmentPage) {
+                    lastFragmentPage = contentEnd;
+                }
+            }
+        }
+
+        return new int[] { firstFragmentPage, lastFragmentPage };
+    }
+
+    private static int findPage(CssContext c, PageFinder finder, Box box, AffineTransform ctm, boolean start) {
+        PaintingInfo info = box.calcPaintingInfo(c, true);
+        Rectangle bounds = info == null ? null : info.getAggregateBounds();
+        if (bounds == null) {
+            return -1;
+        }
+        double y;
+        if (start) {
+            y = ctm == null ? bounds.getMinY() : getMinYFromTransformedBox(bounds, ctm);
+        } else {
+            y = ctm == null ? bounds.getMaxY() : getMaxYFromTransformedBox(bounds, ctm);
+        }
+        return finder.findPageAdjusted(c, (int) y);
+    }
+
+    /**
+     * The repeated header or footer of a paginated table that contains this box
+     * (or is it), else null. There is only one box tree for such a section, which
+     * is moved to each page the table spans before it is collected or painted.
+     */
+    public static TableSectionBox findRepeatedTableSection(Box box) {
+        for (Box b = box; b != null; b = b.getParent()) {
+            if (b instanceof TableSectionBox) {
+                TableSectionBox section = (TableSectionBox) b;
+                if ((section.isHeader() || section.isFooter()) &&
+                    section.getTable().hasContentLimitContainer()) {
+                    return section;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Whether the box is hidden on this fragment page of its repeated section
+     * by :-fs-first-fragment / :-fs-last-fragment, on the section or a row in it.
+     */
+    public static boolean isHiddenOnRepeatedSectionPage(RenderingContext c, TableSectionBox section, Box box, int page, int firstPage, int lastPage) {
+        for (Box b = box; b != null; b = b.getParent()) {
+            if (isHiddenOnFragment(fragmentHide(c, b), page, firstPage, lastPage)) {
+                return true;
+            }
+            if (b == section) {
+                break;
+            }
+        }
+        return false;
     }
 
     private static int fragmentHide(RenderingContext c, Box box) {
