@@ -1775,6 +1775,7 @@ public class BoxBuilder {
 
        	InlineBox child = createInlineBox(runText, parent, parentStyle, textNode);
        	child.setTextDirection(prevSplit.getDirection());
+       	child.setBidiLevel(prevSplit.getLevel());
        	previousIB = setupInlineChild(child, previousIB);
        	children.add(child);
        	
@@ -1804,6 +1805,7 @@ public class BoxBuilder {
         			
         			child = createInlineBox(runText, parent, parentStyle, textNode);
         			child.setTextDirection(newSplit.getDirection());
+        			child.setBidiLevel(newSplit.getLevel());
         	       	previousIB = setupInlineChild(child, previousIB);
         	       	children.add(child);
         		}

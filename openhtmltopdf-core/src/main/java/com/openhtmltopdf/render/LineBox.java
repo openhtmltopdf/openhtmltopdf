@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.openhtmltopdf.bidi.BidiLineOrder;
 import com.openhtmltopdf.bidi.BidiSplitter;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
@@ -307,7 +308,8 @@ public class LineBox extends Box implements InlinePaintable {
         }
 
         float adjust = 0.0f;
-        for (Box b : getChildren()) {
+        for (int k : BidiLineOrder.placementOrder(this, false)) {
+            Box b = getChild(k);
             b.setX(b.getX() + Math.round(adjust));
 
             if (b instanceof InlineLayoutBox) {
@@ -320,7 +322,8 @@ public class LineBox extends Box implements InlinePaintable {
 
     private void adjustChildrenRTL(JustificationInfo info) {
         float adjust = 0.0f;
-        for (Box b : getChildren()) {
+        for (int k : BidiLineOrder.placementOrder(this, true)) {
+            Box b = getChild(k);
             b.setX(b.getX() - Math.round(adjust));
 
             if (b instanceof InlineLayoutBox) {

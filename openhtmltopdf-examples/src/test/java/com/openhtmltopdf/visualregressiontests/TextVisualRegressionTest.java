@@ -536,6 +536,17 @@ public class TextVisualRegressionTest {
     }
 
     /**
+     * Tests that nested bidi runs are ordered by their embedding level (UAX #9 rule L2):
+     * numbers inside Arabic text inside an LTR paragraph, and same-direction runs in
+     * separate inline elements against the paragraph direction.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/148
+     */
+    @Test
+    public void testArabicBiDiNestedLevels() throws IOException {
+        assertTrue(vtester.runTest("arabic-bidi-nested-levels", TestSupport.WITH_ARABIC));
+    }
+
+    /**
      * Tests that list numbers are placed correctly for RTL ol elements.
      * https://github.com/danfickle/openhtmltopdf/pull/655
      */
