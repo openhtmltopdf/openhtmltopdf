@@ -1,0 +1,24 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Transformed header cell in a repeated table head</title>
+<style>
+body { font-family: 'TestFont'; font-size: 10pt; }
+table { -fs-table-paginate: paginate; }
+th, td { border: 1px solid black; padding: 1mm; }
+td { height: 80mm; }
+</style>
+</head>
+<body>
+<div style="page-break-after: always">first page</div>
+<table>
+<thead><tr><th style="transform: rotate(-90deg)">Header</th><th>Other</th></tr></thead>
+<tbody>
+<tr><td>r0c0</td><td>r0c1</td></tr>
+<tr><td>r1c0</td><td>r1c1</td></tr>
+<tr><td>r2c0</td><td>r2c1</td></tr>
+<tr><td>r3c0</td><td>r3c1</td></tr>
+<tr><td>r4c0</td><td>r4c1</td></tr>
+</tbody>
+</table>
+</body>
+</html>
