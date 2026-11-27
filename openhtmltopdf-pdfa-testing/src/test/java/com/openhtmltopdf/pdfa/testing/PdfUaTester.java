@@ -1,5 +1,6 @@
 package com.openhtmltopdf.pdfa.testing;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -153,12 +154,16 @@ public class PdfUaTester {
      * entry of that stream maps the MCID back to the referring structure element.
      */
     private static void assertMarkedContentReferencesResolve(String resource) throws Exception {
+        assertMarkedContentReferencesResolve(resource, true);
+    }
+
+    private static void assertMarkedContentReferencesResolve(String resource, boolean expectFormReferences) throws Exception {
         try (org.apache.pdfbox.pdmodel.PDDocument doc = org.apache.pdfbox.Loader.loadPDF(
                 new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
             MarkedContentChecker checker = new MarkedContentChecker(doc);
             checker.walk(doc.getDocumentCatalog().getStructureTreeRoot().getCOSObject());
             assertTrue("references checked", checker.references > 0);
-            assertTrue("references into a form", checker.formReferences > 0);
+            assertTrue("references into a form", !expectFormReferences || checker.formReferences > 0);
             assertTrue("broken references: " + checker.broken, checker.broken.isEmpty());
         }
     }
@@ -278,6 +283,41 @@ public class PdfUaTester {
             }
             drawn.put(stream, result);
             return result;
+        }
+    }
+
+    /**
+     * A transformed cell is painted in its own layer; in a paginated table that
+     * starts below page 1, its head is reached through the cell, before the table has a
+     * structure element. The head and the table must still be tagged as THead and
+     * Table (GH issue #294; this threw a NullPointerException).
+     */
+    @Test
+    public void testTransformedCellInRepeatedTableHeadPdfUa1() throws Exception {
+        assertTrue(run("pdfua-transformed-thead-cell"));
+        assertMarkedContentReferencesResolve("pdfua-transformed-thead-cell", false);
+
+        try (org.apache.pdfbox.pdmodel.PDDocument doc = org.apache.pdfbox.Loader.loadPDF(
+                new File("target/test/pdf/pdfua-transformed-thead-cell--PDFUA_1.pdf"))) {
+            List<String> tableKids = new java.util.ArrayList<>();
+            collectTableKidTypes(doc.getDocumentCatalog().getStructureTreeRoot().getKids(), tableKids);
+            assertEquals(java.util.Arrays.asList("THead", "TBody", "TFoot"), tableKids);
+        }
+    }
+
+    private static void collectTableKidTypes(List<Object> kids, List<String> result) {
+        for (Object kid : kids) {
+            if (kid instanceof org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement) {
+                org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement elem =
+                        (org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement) kid;
+                if ("Table".equals(elem.getStructureType())) {
+                    for (Object tableKid : elem.getKids()) {
+                        result.add(((org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement) tableKid).getStructureType());
+                    }
+                } else {
+                    collectTableKidTypes(elem.getKids(), result);
+                }
+            }
         }
     }
 

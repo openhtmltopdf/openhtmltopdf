@@ -972,7 +972,7 @@ public class PdfBoxAccessibilityHelper {
             if (child instanceof TableBodyStructualElement) {
                 this.tbodies.add((TableBodyStructualElement) child);
             } else {
-                logIncompatibleChild(parent, child, TableBodyStructualElement.class);
+                logIncompatibleChild(this, child, TableBodyStructualElement.class);
             }
         }
 
@@ -1206,7 +1206,7 @@ public class PdfBoxAccessibilityHelper {
             if (child instanceof FigureContentItem) {
                 this.content = (FigureContentItem) child;
             } else {
-                logIncompatibleChild(parent, child, FigureContentItem.class);
+                logIncompatibleChild(this, child, FigureContentItem.class);
             }
         }
 
@@ -1748,34 +1748,31 @@ public class PdfBoxAccessibilityHelper {
     }
 
     private void ensureAncestorTree(AbstractTreeItem child, Box parent) {
-        // Walk up the ancestor tree making sure they all have accessibility objects.
-        // When the walk terminates because an ancestor already has an accessibility
-        // object, the most-recently-created intermediate (`child` after the loop)
-        // must be linked into that existing ancestor's children list.
-        AbstractTreeItem original = child;
+        // Make sure all ancestors have accessibility objects. They are created
+        // outermost first: a table part is only recognized as THead/TBody/TFoot when
+        // its table already has its element, which is not the case when a cell is
+        // painted before its table, e.g. a transformed cell in its own layer on a
+        // continuation page (GH issue #294).
+        Deque<Box> missing = new ArrayDeque<>();
         while (parent != null && parent.getAccessibilityObject() == null) {
-            AbstractStructualElement parentItem = createStructureItem(null, parent);
-            parent.setAccessiblityObject(parentItem);
-
-            parentItem.addChild(child);
-
-            child.parent = parentItem;
-            child = parentItem;
+            missing.push(parent);
             parent = getStructuralParent(parent);
         }
 
-        // Only re-link if the loop actually created intermediates. For callers
-        // whose direct parent already has an accessibility object (e.g.
-        // createMarkedContentStructureItem) the caller adds `original` itself,
-        // so re-linking here would duplicate the entry under /K.
-        if (child != original && parent != null && child.parent == null) {
-            AbstractStructualElement existing =
-                    (AbstractStructualElement) parent.getAccessibilityObject();
-            if (existing != null) {
-                existing.addChild(child);
-                child.parent = existing;
-            }
+        if (missing.isEmpty()) {
+            // The caller links `child` to its existing parent itself.
+            return;
         }
+
+        AbstractStructualElement innermost = null;
+        for (Box box : missing) {
+            innermost = createStructureItem(null, box);
+            box.setAccessiblityObject(innermost);
+            ensureParent(box, innermost);
+        }
+
+        innermost.addChild(child);
+        child.parent = innermost;
     }
 
     private AbstractStructualElement createStructureItem(StructureType type, Box box) {
