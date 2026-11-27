@@ -1,0 +1,62 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 440px 760px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 15px;
+}
+table {
+  border-collapse: collapse;
+  width: 400px;
+  margin-bottom: 12px;
+}
+td {
+  border: 1px solid black;
+  padding: 0 4px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<!-- A colspan past the last column must not take width from the real columns:
+     every table except the shrink-to-fit one is 400px wide, its first-row cells
+     end where the wide cell ends. -->
+
+<!-- Fixed column widths, colspan="1000". -->
+<table><colgroup><col style="width:100px"/><col style="width:100px"/><col style="width:100px"/><col style="width:100px"/></colgroup>
+<tr><td>A</td><td>B</td><td>C</td><td>D</td></tr><tr><td colspan="1000">WIDE</td></tr></table>
+
+<!-- Auto columns. -->
+<table><tr><td>A</td><td>Bbbbbb</td><td>C</td><td>D</td></tr><tr><td colspan="10">WIDE</td></tr></table>
+
+<!-- Shrink-to-fit. -->
+<table style="width:auto"><tr><td>A</td><td>Bbbbbb</td><td>C</td><td>D</td></tr><tr><td colspan="10">WIDE</td></tr></table>
+
+<!-- The wide cell in the first row. -->
+<table><tr><td colspan="10">WIDE</td></tr><tr><td>A</td><td>B</td><td>C</td><td>D</td></tr></table>
+
+<!-- Long text in the wide cell. -->
+<table><tr><td>A</td><td>B</td><td>C</td><td>D</td></tr><tr><td colspan="10">a much longer text that needs to wrap somewhere in the table</td></tr></table>
+
+<!-- Percent widths. -->
+<table><tr><td style="width:25%">A</td><td style="width:25%">B</td><td style="width:25%">C</td><td style="width:25%">D</td></tr><tr><td colspan="10">WIDE</td></tr></table>
+
+<!-- Separate borders: colspan="1000" adds one spacing at most, not 996. -->
+<table style="width:auto; border-collapse:separate; border-spacing:6px"><tr><td>A</td><td>B</td><td>C</td><td>D</td></tr><tr><td colspan="1000">WIDE</td></tr></table>
+
+<!-- Fixed table layout: the space is shared by all ten columns, as in browsers. -->
+<table style="table-layout:fixed"><tr><td>A</td><td>B</td><td>C</td><td>D</td></tr><tr><td colspan="10">WIDE</td></tr></table>
+</body>
+</html>

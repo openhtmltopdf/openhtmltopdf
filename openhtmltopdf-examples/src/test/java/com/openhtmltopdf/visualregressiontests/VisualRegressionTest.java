@@ -2223,6 +2223,16 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("svg-font-face-no-synthetic-style", TestSupport.WITH_SVG));
     }
 
+    /**
+     * Tests that a colspan past the last column (colspan="1000" to span the whole
+     * table) does not take width from the real columns.
+     * https://github.com/openhtmltopdf/openhtmltopdf/pull/301
+     */
+    @Test
+    public void testTableColspanPastLastColumn() throws IOException {
+        assertTrue(vt.runTest("table-colspan-past-last-column", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
