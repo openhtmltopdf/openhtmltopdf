@@ -184,8 +184,10 @@ public class TableSectionBox extends BlockBox {
         TableCellBox set = cell;
         while (cSpan > 0) {
             int currentSpan;
-            while ( cCol >= getTable().getColumns().size() ) {
-                getTable().appendColumn(1);
+            if (cCol >= getTable().getColumns().size()) {
+                // Past the end of the grid: one column for the rest of the span, as
+                // WebKit does, not one per spanned column (colspan="1000").
+                getTable().appendColumn(cSpan);
             }
             ColumnData cData = columns.get(cCol);
             if (cSpan < cData.getSpan()) {

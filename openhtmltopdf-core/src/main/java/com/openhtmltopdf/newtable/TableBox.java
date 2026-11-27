@@ -1238,21 +1238,24 @@ public class TableBox extends BlockBox {
 
             // assign variable width
             if ( available > 0 ) {
+                // Shared by column, not by effective column: one effective column
+                // can stand for several (a colspan past the last column).
                 int totalVariable = 0;
                 for ( int i = 0; i < nEffCols; i++ ) {
                     Length l = _widths.get(i);
                     if ( l.isVariable() ) {
-                        totalVariable++;
+                        totalVariable += _table.spanOfEffCol(i);
                     }
                 }
 
                 for ( int i = 0; available > 0 && i < nEffCols; i++ ) {
                     Length l = _widths.get(i);
                     if ( l.isVariable() ) {
-                        int w = available / totalVariable;
+                        int span = _table.spanOfEffCol(i);
+                        int w = (int) ((long) available * span / totalVariable);
                         available -= w;
                         calcWidth[i] = w;
-                        totalVariable--;
+                        totalVariable -= span;
                     }
                 }
             }
@@ -1314,7 +1317,7 @@ public class TableBox extends BlockBox {
             for (int i = 0; i < _layoutStruct.length; i++) {
                 _layoutStruct[i] = new Layout();
                 _layoutStruct[i].setMinWidth(0);
-                _layoutStruct[i].setMaxWidth(getMinColWidth());
+                _layoutStruct[i].setMaxWidth(0);
             }
 
             _spanCells = new ArrayList<>();
