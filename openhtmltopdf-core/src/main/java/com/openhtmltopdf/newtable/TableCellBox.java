@@ -696,52 +696,86 @@ public class TableCellBox extends BlockBox {
         return compareBorders(border1, border2, false);
     }
     
+    /**
+     * The collapsed border on the physical left and right of this cell. In an RTL
+     * table the first column is on the right (CSS 2.1, 17.5), so the left border
+     * is the one at the end of the row and the logical sides map to the opposite
+     * physical sides of every box involved.
+     */
     private CollapsedBorderValue collapsedLeftBorder(CssContext c) {
-        BorderPropertySet border = getStyle().getBorder(c);
-        // For border left, we need to check, in order of precedence:
-        // (1) Our left border.
-        CollapsedBorderValue result = CollapsedBorderValue.borderLeft(border, BCELL);
+        return isRtlTable() ? collapsedEndBorder(c, true) : collapsedStartBorder(c, false);
+    }
 
-        // (2) The previous cell's right border.
+    private CollapsedBorderValue collapsedRightBorder(CssContext c) {
+        return isRtlTable() ? collapsedStartBorder(c, true) : collapsedEndBorder(c, false);
+    }
+
+    private boolean isRtlTable() {
+        return getTable().isRtl();
+    }
+
+    /**
+     * The border on the start side of a box: left, or right in an RTL table.
+     */
+    private static CollapsedBorderValue startSide(boolean rtl, BorderPropertySet border, int precedence) {
+        return rtl ? CollapsedBorderValue.borderRight(border, precedence)
+                   : CollapsedBorderValue.borderLeft(border, precedence);
+    }
+
+    /**
+     * The border on the end side of a box: right, or left in an RTL table.
+     */
+    private static CollapsedBorderValue endSide(boolean rtl, BorderPropertySet border, int precedence) {
+        return rtl ? CollapsedBorderValue.borderLeft(border, precedence)
+                   : CollapsedBorderValue.borderRight(border, precedence);
+    }
+
+    private CollapsedBorderValue collapsedStartBorder(CssContext c, boolean rtl) {
+        BorderPropertySet border = getStyle().getBorder(c);
+        // For the start border, we need to check, in order of precedence:
+        // (1) Our start border.
+        CollapsedBorderValue result = startSide(rtl, border, BCELL);
+
+        // (2) The previous cell's end border.
         TableCellBox prevCell = getTable().cellLeft(this);
         if (prevCell != null) {
             result = compareBorders(
-                    result, CollapsedBorderValue.borderRight(prevCell.getStyle().getBorder(c), BCELL));
+                    result, endSide(rtl, prevCell.getStyle().getBorder(c), BCELL));
             if (result.hidden()) {
                 return result;
             }
         } else if (getCol() == 0) {
-            // (3) Our row's left border.
+            // (3) Our row's start border.
             result = compareBorders(
-                    result, CollapsedBorderValue.borderLeft(getParent().getStyle().getDeclaredBorder(c), BROW));
+                    result, startSide(rtl, getParent().getStyle().getDeclaredBorder(c), BROW));
             if (result.hidden()) {
                 return result;
             }
 
-            // (4) Our row group's left border.
+            // (4) Our row group's start border.
             result = compareBorders(
-                    result, CollapsedBorderValue.borderLeft(getSection().getStyle().getDeclaredBorder(c), BROWGROUP));
+                    result, startSide(rtl, getSection().getStyle().getDeclaredBorder(c), BROWGROUP));
             if (result.hidden()) {
                 return result;
             }
         }
 
-        // (5) Our column's left border.
+        // (5) Our column's start border.
         TableColumn colElt = getTable().colElement(getCol());
         if (colElt != null) {
             result = compareBorders(
-                    result, CollapsedBorderValue.borderLeft(colElt.getStyle().getBorder(c), BCOL));
+                    result, startSide(rtl, colElt.getStyle().getBorder(c), BCOL));
             if (result.hidden()) {
                 return result;
             }
         }
 
-        // (6) The previous column's right border.
+        // (6) The previous column's end border.
         if (getCol() > 0) {
             colElt = getTable().colElement(getCol() - 1);
             if (colElt != null) {
                 result = compareBorders(
-                        result, CollapsedBorderValue.borderRight(colElt.getStyle().getBorder(c), BCOL));
+                        result, endSide(rtl, colElt.getStyle().getBorder(c), BCOL));
                 if (result.hidden()) {
                     return result;
                 }
@@ -749,9 +783,9 @@ public class TableCellBox extends BlockBox {
         }
 
         if (getCol() == 0) {
-            // (7) The table's left border.
+            // (7) The table's start border.
             result = compareBorders(
-                    result, CollapsedBorderValue.borderLeft(getTable().getStyle().getBorder(c), BTABLE));
+                    result, startSide(rtl, getTable().getStyle().getBorder(c), BTABLE));
             if (result.hidden()) {
                 return result;
             }
@@ -760,7 +794,7 @@ public class TableCellBox extends BlockBox {
         return result;
     }
     
-    private CollapsedBorderValue collapsedRightBorder(CssContext c) {
+    private CollapsedBorderValue collapsedEndBorder(CssContext c, boolean rtl) {
         TableBox tableElt = getTable();
         boolean inLastColumn = false;
         int effCol = tableElt.colToEffCol(getCol() + getStyle().getColSpan() - 1);
@@ -768,61 +802,61 @@ public class TableCellBox extends BlockBox {
             inLastColumn = true;
         }
 
-        // For border right, we need to check, in order of precedence:
-        // (1) Our right border.
+        // For the end border, we need to check, in order of precedence:
+        // (1) Our end border.
         CollapsedBorderValue result = 
-            CollapsedBorderValue.borderRight(getStyle().getBorder(c), BCELL);
+            endSide(rtl, getStyle().getBorder(c), BCELL);
 
-        // (2) The next cell's left border.
+        // (2) The next cell's start border.
         if (!inLastColumn) {
             TableCellBox nextCell = tableElt.cellRight(this);
             if (nextCell != null) {
                 result = compareBorders(result, 
-                        CollapsedBorderValue.borderLeft(nextCell.getStyle().getBorder(c), BCELL));
+                        startSide(rtl, nextCell.getStyle().getBorder(c), BCELL));
                 if (result.hidden()) {
                     return result;
                 }
             }
         } else {
-            // (3) Our row's right border.
+            // (3) Our row's end border.
             result = compareBorders(result, 
-                    CollapsedBorderValue.borderRight(getParent().getStyle().getDeclaredBorder(c), BROW));
+                    endSide(rtl, getParent().getStyle().getDeclaredBorder(c), BROW));
             if (result.hidden()) {
                 return result;
             }
 
-            // (4) Our row group's right border.
+            // (4) Our row group's end border.
             result = compareBorders(result, 
-                    CollapsedBorderValue.borderRight(getSection().getStyle().getDeclaredBorder(c), BROWGROUP));
+                    endSide(rtl, getSection().getStyle().getDeclaredBorder(c), BROWGROUP));
             if (result.hidden()) {
                 return result;
             }
         }
 
-        // (5) Our column's right border.
+        // (5) Our column's end border.
         TableColumn colElt = getTable().colElement(getCol() + getStyle().getColSpan() - 1);
         if (colElt != null) {
             result = compareBorders(result, 
-                    CollapsedBorderValue.borderRight(colElt.getStyle().getBorder(c), BCOL));
+                    endSide(rtl, colElt.getStyle().getBorder(c), BCOL));
             if (result.hidden()) {
                 return result;
             }
         }
 
-        // (6) The next column's left border.
+        // (6) The next column's start border.
         if (!inLastColumn) {
             colElt = tableElt.colElement(getCol() + getStyle().getColSpan());
             if (colElt != null) {
                 result = compareBorders(result, 
-                        CollapsedBorderValue.borderLeft(colElt.getStyle().getBorder(c), BCOL));
+                        startSide(rtl, colElt.getStyle().getBorder(c), BCOL));
                 if (result.hidden()) {
                     return result;
                 }
             }
         } else {
-            // (7) The table's right border.
+            // (7) The table's end border.
             result = compareBorders(result, 
-                    CollapsedBorderValue.borderRight(tableElt.getStyle().getBorder(c), BTABLE));
+                    endSide(rtl, tableElt.getStyle().getBorder(c), BTABLE));
             if (result.hidden()) {
                 return result;
             }

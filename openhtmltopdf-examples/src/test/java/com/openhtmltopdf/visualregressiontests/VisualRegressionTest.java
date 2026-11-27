@@ -662,6 +662,16 @@ public class VisualRegressionTest {
     }
 
     /**
+     * Tests that the columns of an RTL table run from right to left, with
+     * collapsed borders and column backgrounds on the right physical sides.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/90
+     */
+    @Test
+    public void testRtlTableColumns() throws IOException {
+        assertTrue(vt.runTest("rtl-table-columns", TestSupport.WITH_ARABIC));
+    }
+
+    /**
      * Tests that tds with a background-color do not have fine lines between them.
      * Issues: 291 and 169.
      */

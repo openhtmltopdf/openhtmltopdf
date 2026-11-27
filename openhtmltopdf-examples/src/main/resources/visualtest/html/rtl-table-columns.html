@@ -1,0 +1,87 @@
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+
+@page {
+  size: 520px 560px;
+  margin: 20px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont', sans-serif;
+  font-size: 16px;
+}
+table {
+  width: 300px;
+  margin-bottom: 14px;
+}
+td {
+  border: 2px solid #999;
+  padding: 2px 4px;
+}
+.collapse {
+  border-collapse: collapse;
+}
+.collapse td.a {
+  border-left: 6px solid red;
+  border-right: 6px solid blue;
+}
+.css-rtl {
+  direction: rtl;
+}
+.div-table {
+  display: table;
+  direction: rtl;
+  width: 300px;
+  margin-bottom: 14px;
+}
+.div-table > div {
+  display: table-cell;
+  border: 2px solid green;
+  padding: 2px 4px;
+}
+</style>
+</head>
+<body>
+<!-- Issue #90: in an RTL table the first column is on the right. -->
+<table dir="rtl">
+  <tr><td>one 1</td><td>two 2</td><td>three 3</td></tr>
+</table>
+
+<!-- direction: rtl from CSS, with a colspan and an unequal row. -->
+<table class="css-rtl">
+  <tr><td colspan="2">one-two</td><td>three</td></tr>
+  <tr><td>a</td><td>b</td><td>c</td></tr>
+</table>
+
+<!-- display: table on divs, as in the issue. -->
+<div class="div-table"><div>one 1</div><div>two 2</div><div>three 3</div></div>
+
+<!-- Collapsed borders: red is the physical left and blue the physical right of cell "a". -->
+<table dir="rtl" class="collapse">
+  <tr><td>first</td><td class="a">a</td><td>last</td></tr>
+</table>
+<table class="collapse">
+  <tr><td>first</td><td class="a">a</td><td>last</td></tr>
+</table>
+
+<!-- A column background follows its column. -->
+<table dir="rtl">
+  <col style="background-color: #fdd"/><col/><col/>
+  <tr><td>col 1</td><td>col 2</td><td>col 3</td></tr>
+</table>
+
+<!-- Reference: the same table LTR. -->
+<table>
+  <tr><td>one 1</td><td>two 2</td><td>three 3</td></tr>
+</table>
+</body>
+</html>
