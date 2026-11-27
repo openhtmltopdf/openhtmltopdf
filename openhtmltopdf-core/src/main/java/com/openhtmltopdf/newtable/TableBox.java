@@ -198,10 +198,19 @@ public class TableBox extends BlockBox {
         result += (int)border.left() + (int)border.right();
         if (! getStyle().isCollapseBorders()) {
             RectPropertySet padding = getPadding(c);
-            int hSpacing = getStyle().getBorderHSpacing(c);
-            result += padding.left() + padding.right() + (numEffCols()+1) * hSpacing;
+            result += padding.left() + padding.right() + horizontalSpacing(c);
         }
         return result;
+    }
+
+    /**
+     * The border-spacing between and around the columns, 0 in the collapsing border model.
+     */
+    public int horizontalSpacing(CssContext c) {
+        if (getStyle().isCollapseBorders()) {
+            return 0;
+        }
+        return (numEffCols() + 1) * getStyle().getBorderHSpacing(c);
     }
 
     public List<ColumnData> getColumns() {
@@ -242,7 +251,8 @@ public class TableBox extends BlockBox {
         // containing block and the table has a content width
         if (! isAnonymous()) {
             setDimensionsCalculated(false);
-            calcDimensions(c, getContentWidth());
+            // calcDimensions reads the width as CSS does, so the border box with box-sizing: border-box.
+            calcDimensions(c, getStyle().isBorderBox() ? getBorderBoxWidth(c) : getContentWidth());
         }
 
         _tableLayout.layout(c);
@@ -767,11 +777,14 @@ public class TableBox extends BlockBox {
             int result = (int) getStyle().getFloatPropertyProportionalWidth(
                     CSSName.WIDTH, getContainingBlock().getContentWidth(), c);
 
-            BorderPropertySet border = getBorder(c);
-            result -= (int) border.left() + (int) border.right();
-            if (!getStyle().isCollapseBorders()) {
-                RectPropertySet padding = getPadding(c);
-                result -= (int) padding.left() + (int) padding.right();
+            // With box-sizing: border-box, calcDimensions takes them off itself.
+            if (!getStyle().isBorderBox()) {
+                BorderPropertySet border = getBorder(c);
+                result -= (int) border.left() + (int) border.right();
+                if (!getStyle().isCollapseBorders()) {
+                    RectPropertySet padding = getPadding(c);
+                    result -= (int) padding.left() + (int) padding.right();
+                }
             }
 
             RectPropertySet margin = getMargin(c);
@@ -1689,7 +1702,10 @@ public class TableBox extends BlockBox {
             Length tw = table.getStyle().asLength(c, CSSName.WIDTH);
             if (tw.isFixed() && tw.value() > 0) {
                 table.calcDimensions(c);
-                int width = table.getContentWidth() + table.marginsBordersPaddingAndSpacing(c, true);
+                // The border-spacing is inside the content width, as for a percent
+                // width, not added to it: width: 400px is 400px wide, as in browsers.
+                int width = table.getContentWidth() + table.marginsBordersPaddingAndSpacing(c, true)
+                        - table.horizontalSpacing(c);
                 minWidth = Math.max(minWidth, width);
                 maxWidth = minWidth;
             }

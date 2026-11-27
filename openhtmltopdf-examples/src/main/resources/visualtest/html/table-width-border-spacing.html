@@ -1,0 +1,81 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 440px 640px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 14px;
+}
+.ref {
+  width: 300px;
+  height: 4px;
+  background: #c00;
+  margin-top: 10px;
+  clear: both;
+}
+table {
+  width: 300px;
+  border-spacing: 6px;
+  background: #ccc;
+}
+td {
+  border: 1px solid black;
+  background: white;
+}
+.bp {
+  border: 5px solid #048;
+  padding: 7px;
+}
+</style>
+</head>
+<body>
+<!-- The border-spacing is inside a table's width: every table is exactly as wide
+     as the red bar above it. -->
+
+<div class="ref"></div>
+<table><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+
+<!-- With border and padding. -->
+<div class="ref"></div>
+<table class="bp"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+
+<!-- box-sizing: border-box (border and padding were taken off twice). -->
+<div class="ref"></div>
+<table class="bp" style="box-sizing: border-box"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+
+<!-- Percent width (already right). -->
+<div class="ref"></div>
+<div style="width: 375px"><table class="bp" style="width: 80%"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table></div>
+
+<!-- Fixed table layout (already right). -->
+<div class="ref"></div>
+<table class="bp" style="table-layout: fixed"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+
+<!-- inline-table. -->
+<div class="ref"></div>
+<table style="display: inline-table"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+
+<!-- Floated. -->
+<div class="ref"></div>
+<table class="bp" style="float: left"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+
+<!-- Narrow width that still fits the content. -->
+<div class="ref" style="width: 100px"></div>
+<table style="width: 100px"><tr><td>A</td><td>B</td><td>C</td></tr></table>
+
+<!-- Collapsing borders (already right). -->
+<div class="ref"></div>
+<table class="bp" style="border-collapse: collapse"><tr><td>A</td><td>Bbbb</td><td>C</td></tr></table>
+</body>
+</html>
