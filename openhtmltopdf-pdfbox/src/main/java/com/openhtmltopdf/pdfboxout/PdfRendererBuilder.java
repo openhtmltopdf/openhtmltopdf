@@ -239,6 +239,29 @@ public class PdfRendererBuilder extends BaseRendererBuilder<PdfRendererBuilder, 
     }
 
     /**
+     * Whether the 14 standard PDF fonts (Times, Helvetica, Courier, Symbol and
+     * ZapfDingbats) may be used: for the CSS families <code>serif</code>,
+     * <code>sans-serif</code> and <code>monospace</code>, the families named after
+     * them, and as the last fallback for characters no other font has. They are not
+     * embedded, the PDF viewer supplies them.
+     * <p>
+     * Pass false if every font the document uses is added through this builder. As in
+     * PDF/A documents, a character none of those fonts has is then drawn as
+     * <code>#</code>, and text whose <code>font-family</code> names no added font is
+     * left out. The first time a standard font is drawn with in a JVM, PDFBox
+     * scans the system fonts and writes its font cache, which takes from a few hundred
+     * milliseconds to seconds; with false no text triggers that. (Checkbox, radio and
+     * other form controls still use Helvetica and ZapfDingbats.)
+     * <p>
+     * True by default. PDF/A and PDF/UA documents never use the standard fonts, as
+     * every font in them must be embedded.
+     */
+    public PdfRendererBuilder useStandard14Fonts(boolean useStandard14Fonts) {
+        this.state._useStandard14Fonts = useStandard14Fonts;
+        return this;
+    }
+
+    /**
      * Sets the color profile, written to the PDF as an OutputIntent so
      * viewers know how to interpret the device colors (e.g. display them
      * like a browser displays the equivalent HTML). Needed for PDF/A

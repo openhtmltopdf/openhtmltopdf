@@ -29,6 +29,7 @@ public class PdfRendererBuilderState extends BaseRendererBuilder.BaseRendererBui
 	public PdfAConformance _pdfAConformance = PdfAConformance.NONE;
 	public boolean _pdfUaConform = false;
 	public boolean _useFontKerning = false;
+	public boolean _useStandard14Fonts = true;
 	public byte[] _colorProfile;
 	public PageSupplier _pageSupplier;
 	public NamespaceHandler _namespaceHandler;

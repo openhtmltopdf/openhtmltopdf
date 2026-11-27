@@ -6,6 +6,7 @@ import com.openhtmltopdf.outputdevice.helper.FontFamily;
 import com.openhtmltopdf.outputdevice.helper.FontResolverHelper;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver;
 import com.openhtmltopdf.pdfboxout.PdfBoxFontResolver.FontDescription;
+import com.openhtmltopdf.pdfboxout.PdfBoxRawPDFontMetrics;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
@@ -42,6 +43,20 @@ public abstract class AbstractFontStore {
         public BuiltinFontStore() {
         }
 
+        /**
+         * A built-in font whose PDType1Font is only created when text is drawn with it.
+         * Creating one makes PDFBox look for the font on the system, scanning all system
+         * fonts and writing its font cache the first time, which takes hundreds of
+         * milliseconds. Every font list ends with a built-in font for missing glyphs, so
+         * without this every document paid for it, even one that only uses fonts given
+         * to the builder. The metrics, needed for every line, come from the AFM file
+         * PDFBox ships for each of these fonts. Issue #40.
+         */
+        static PdfBoxFontResolver.FontDescription builtin(Standard14Fonts.FontName name, IdentValue style, int weight) {
+            return new PdfBoxFontResolver.FontDescription(
+                    () -> new PDType1Font(name), PdfBoxRawPDFontMetrics.fromStandard14(name), style, weight);
+        }
+
         static Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> createInitialFontMap() {
             // Family-name lookup is case-insensitive per the CSS spec (CSS Fonts Level 3,
             // section 5.1: https://www.w3.org/TR/css-fonts-3/#font-family-casing).
@@ -58,10 +73,10 @@ public abstract class AbstractFontStore {
         static void addCourier(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> courier = new FontFamily<>("Courier");
 
-            courier.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD_OBLIQUE), IdentValue.OBLIQUE, 700));
-            courier.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.COURIER_OBLIQUE), IdentValue.OBLIQUE, 400));
-            courier.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.COURIER_BOLD), IdentValue.NORMAL, 700));
-            courier.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.COURIER), IdentValue.NORMAL, 400));
+            courier.addFontDescription(builtin(Standard14Fonts.FontName.COURIER_BOLD_OBLIQUE, IdentValue.OBLIQUE, 700));
+            courier.addFontDescription(builtin(Standard14Fonts.FontName.COURIER_OBLIQUE, IdentValue.OBLIQUE, 400));
+            courier.addFontDescription(builtin(Standard14Fonts.FontName.COURIER_BOLD, IdentValue.NORMAL, 700));
+            courier.addFontDescription(builtin(Standard14Fonts.FontName.COURIER, IdentValue.NORMAL, 400));
 
             result.put("DialogInput", courier);
             result.put("Monospaced", courier);
@@ -71,10 +86,10 @@ public abstract class AbstractFontStore {
         static void addTimes(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> times = new FontFamily<>("Times");
 
-            times.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD_ITALIC), IdentValue.ITALIC, 700));
-            times.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.TIMES_ITALIC), IdentValue.ITALIC, 400));
-            times.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.TIMES_BOLD), IdentValue.NORMAL, 700));
-            times.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.TIMES_ROMAN), IdentValue.NORMAL, 400));
+            times.addFontDescription(builtin(Standard14Fonts.FontName.TIMES_BOLD_ITALIC, IdentValue.ITALIC, 700));
+            times.addFontDescription(builtin(Standard14Fonts.FontName.TIMES_ITALIC, IdentValue.ITALIC, 400));
+            times.addFontDescription(builtin(Standard14Fonts.FontName.TIMES_BOLD, IdentValue.NORMAL, 700));
+            times.addFontDescription(builtin(Standard14Fonts.FontName.TIMES_ROMAN, IdentValue.NORMAL, 400));
 
             result.put("Serif", times);
             result.put("TimesRoman", times);
@@ -83,10 +98,10 @@ public abstract class AbstractFontStore {
         static void addHelvetica(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> helvetica = new FontFamily<>("Helvetica");
 
-            helvetica.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE), IdentValue.OBLIQUE, 700));
-            helvetica.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE), IdentValue.OBLIQUE, 400));
-            helvetica.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), IdentValue.NORMAL, 700));
-            helvetica.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.HELVETICA), IdentValue.NORMAL, 400));
+            helvetica.addFontDescription(builtin(Standard14Fonts.FontName.HELVETICA_BOLD_OBLIQUE, IdentValue.OBLIQUE, 700));
+            helvetica.addFontDescription(builtin(Standard14Fonts.FontName.HELVETICA_OBLIQUE, IdentValue.OBLIQUE, 400));
+            helvetica.addFontDescription(builtin(Standard14Fonts.FontName.HELVETICA_BOLD, IdentValue.NORMAL, 700));
+            helvetica.addFontDescription(builtin(Standard14Fonts.FontName.HELVETICA, IdentValue.NORMAL, 400));
 
             result.put("Dialog", helvetica);
             result.put("SansSerif", helvetica);
@@ -96,7 +111,7 @@ public abstract class AbstractFontStore {
         static void addSymbol(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> fontFamily = new FontFamily<>("Symbol");
 
-            fontFamily.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.SYMBOL), IdentValue.NORMAL, 400));
+            fontFamily.addFontDescription(builtin(Standard14Fonts.FontName.SYMBOL, IdentValue.NORMAL, 400));
 
             result.put("Symbol", fontFamily);
         }
@@ -104,7 +119,7 @@ public abstract class AbstractFontStore {
         static void addZapfDingbats(Map<String, FontFamily<PdfBoxFontResolver.FontDescription>> result) {
             FontFamily<PdfBoxFontResolver.FontDescription> fontFamily = new FontFamily<>("ZapfDingbats");
 
-            fontFamily.addFontDescription(new PdfBoxFontResolver.FontDescription(new PDType1Font(Standard14Fonts.FontName.ZAPF_DINGBATS), IdentValue.NORMAL, 400));
+            fontFamily.addFontDescription(builtin(Standard14Fonts.FontName.ZAPF_DINGBATS, IdentValue.NORMAL, 400));
 
             result.put("ZapfDingbats", fontFamily);
         }

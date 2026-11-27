@@ -7,6 +7,7 @@ import org.apache.fontbox.afm.FontMetrics;
 import org.apache.fontbox.ttf.HorizontalHeaderTable;
 import org.apache.fontbox.ttf.PostScriptTable;
 import org.apache.fontbox.ttf.TrueTypeFont;
+import org.apache.fontbox.util.BoundingBox;
 import org.apache.pdfbox.pdmodel.font.PDCIDFont;
 import org.apache.pdfbox.pdmodel.font.PDCIDFontType2;
 import org.apache.pdfbox.pdmodel.font.PDFont;
@@ -91,6 +92,38 @@ public class PdfBoxRawPDFontMetrics implements FSCacheValue {
             underlineThickness,
             typoDescent,
             lineGapFromFontProgram(font));
+    }
+
+    /**
+     * The metrics of one of the 14 standard PDF fonts, read from the AFM file PDFBox
+     * ships for it. Gives the same values as {@link #fromPdfBox(PDFont, PDFontDescriptor)}
+     * for a PDType1Font of that font, without creating one: that makes PDFBox look for
+     * the font among the system fonts.
+     */
+    public static PdfBoxRawPDFontMetrics fromStandard14(Standard14Fonts.FontName name) {
+        FontMetrics afm = Standard14Fonts.getAFM(name.getName());
+        BoundingBox bbox = afm.getFontBBox();
+
+        float ascent = afm.getAscender();
+        float descent = -afm.getDescender();
+        if (!(ascent > 0f && descent > 0f)) {
+            ascent = bbox.getUpperRightY();
+            descent = -bbox.getLowerLeftY();
+        }
+
+        float typoDescent = -afm.getDescender();
+        float underlinePosition = -afm.getUnderlinePosition() > 0f ? -afm.getUnderlinePosition() : typoDescent;
+        float underlineThickness = afm.getUnderlineThickness() > 0f ? afm.getUnderlineThickness() : 50f;
+
+        return new PdfBoxRawPDFontMetrics(
+            ascent,
+            descent,
+            -bbox.getUpperRightY() / 3f, // Strikethrough offset
+            100f,                        // FIXME: Strikethrough thickness
+            underlinePosition,
+            underlineThickness,
+            typoDescent,
+            0f);                         // AFM metrics describe no line gap.
     }
 
     /**

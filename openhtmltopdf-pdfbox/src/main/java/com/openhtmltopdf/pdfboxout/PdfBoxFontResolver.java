@@ -74,6 +74,14 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
     private boolean _defaultFontKerning;
 
     public PdfBoxFontResolver(SharedContext sharedContext, PDDocument doc, FSCacheEx<String, FSCacheValue> pdfMetricsCache, PdfAConformance pdfAConformance, boolean pdfUaConform) {
+        this(sharedContext, doc, pdfMetricsCache, pdfAConformance, pdfUaConform, true);
+    }
+
+    /**
+     * @param useStandard14Fonts whether the standard PDF fonts may be used, see
+     * {@link PdfRendererBuilder#useStandard14Fonts(boolean)}.
+     */
+    public PdfBoxFontResolver(SharedContext sharedContext, PDDocument doc, FSCacheEx<String, FSCacheValue> pdfMetricsCache, PdfAConformance pdfAConformance, boolean pdfUaConform, boolean useStandard14Fonts) {
         this._doc = doc;
 
         this._suppliedFonts = new MainFontStore(sharedContext, doc, pdfMetricsCache);
@@ -82,7 +90,7 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
 
         // All fonts are required to be embedded in PDF/A documents, so we don't add
         // the built-in fonts, if conformance is required.
-        this._builtinFonts = (pdfAConformance == PdfAConformance.NONE && !pdfUaConform) ? 
+        this._builtinFonts = (useStandard14Fonts && pdfAConformance == PdfAConformance.NONE && !pdfUaConform) ? 
                 new AbstractFontStore.BuiltinFontStore() :
                 new AbstractFontStore.EmptyFontStore();
 
@@ -612,6 +620,26 @@ public class PdfBoxFontResolver implements FontResolver, Closeable {
             _isSubset = isSubset;
             _metricsCache = metricsCache;
             _metrics = getFontMetricsFromCache(family, weight, style);
+        }
+
+        /**
+         * Creates a font description from a PDFont supplier with known metrics, so the
+         * supplier is only called upon if {@link #getFont()} is. Used for the PDF
+         * built-in fonts.
+         */
+        public FontDescription(
+                FSSupplier<PDFont> fontSupplier, PdfBoxRawPDFontMetrics metrics,
+                IdentValue style, int weight) {
+            _fontSupplier = fontSupplier;
+            _metrics = metrics;
+            _style = style;
+            _weight = weight;
+            _supplier = null;
+            _doc = null;
+            _family = null;
+            _isFromFontFace = false;
+            _isSubset = false;
+            _metricsCache = null;
         }
 
         public String getFamily() {
