@@ -2233,6 +2233,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("table-colspan-past-last-column", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that a table's border-spacing is inside its width, not added to it,
+     * and that box-sizing: border-box doesn't take border and padding off twice.
+     */
+    @Test
+    public void testTableWidthBorderSpacing() throws IOException {
+        assertTrue(vt.runTest("table-width-border-spacing", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
