@@ -90,6 +90,15 @@ public class Java2DManualTest {
         run("sized-repeat-images");
     }
 
+    /**
+     * Tests that JPEG images are turned as their EXIF orientation says.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/82
+     */
+    @Test
+    public void testImageExifOrientation() throws IOException {
+        run("image-exif-orientation");
+    }
+
     @Test
     public void testFootnotes() throws IOException {
         run("footnotes");

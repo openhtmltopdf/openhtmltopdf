@@ -293,6 +293,14 @@ public class PdfContentStreamAdapter {
         }
     }
 
+    public void drawImage(PDImageXObject xobject, Matrix matrix) {
+        try {
+            cs.drawImage(xobject, matrix);
+        } catch (IOException e) {
+            logAndThrow("drawImage", e);
+        }
+    }
+
     public void drawImage(PDImageXObject xobject, float x, float y, float w,
             float h) {
         try {

@@ -1590,6 +1590,18 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.ImageRenderingBuilder()
             );
     
+    /**
+     * Unique CSSName instance for CSS3 property.
+     */
+    public final static CSSName IMAGE_ORIENTATION =
+            addProperty(
+                    "image-orientation",
+                    PRIMITIVE,
+                    "from-image",
+                    INHERITS,
+                    new PrimitivePropertyBuilders.ImageOrientationBuilder()
+            );
+
     public final static CSSName BOX_SIZING =
             addProperty(
                     "box-sizing",

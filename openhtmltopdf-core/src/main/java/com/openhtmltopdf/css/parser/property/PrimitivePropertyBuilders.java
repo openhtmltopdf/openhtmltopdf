@@ -1972,6 +1972,17 @@ public class PrimitivePropertyBuilders {
         }
     }
     
+    public static class ImageOrientationBuilder extends SingleIdent {
+        // from-image | none
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.FROM_IMAGE, IdentValue.NONE });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class BoxSizing extends SingleIdent {
         // border-box | content-box
         private static final BitSet ALLOWED = setFor(
