@@ -213,7 +213,7 @@ public class PdfBoxRenderer implements Closeable, PageSupplier {
             userAgent.setSharedContext(_sharedContext);
             _outputDevice.setSharedContext(_sharedContext);
 
-            fontResolver = new PdfBoxFontResolver(_sharedContext, _pdfDoc, state._caches.get(CacheStore.PDF_FONT_METRICS), state._pdfAConformance, state._pdfUaConform);
+            fontResolver = new PdfBoxFontResolver(_sharedContext, _pdfDoc, state._caches.get(CacheStore.PDF_FONT_METRICS), state._pdfAConformance, state._pdfUaConform, state._useStandard14Fonts);
             fontResolver.setDefaultFontKerning(state._useFontKerning);
             _sharedContext.setFontResolver(fontResolver);
 

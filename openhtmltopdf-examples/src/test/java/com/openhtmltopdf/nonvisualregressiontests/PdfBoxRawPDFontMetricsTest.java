@@ -98,4 +98,27 @@ public class PdfBoxRawPDFontMetricsTest {
 
         assertEquals("Helvetica line gap", 0f, metrics._lineGap, 0.001f);
     }
+
+    /**
+     * Tests that the metrics of the standard 14 fonts read from their AFM files, which
+     * the built-in font store uses so that it doesn't create a PDType1Font, are those of
+     * a PDType1Font. Issue #40.
+     */
+    @Test
+    public void testStandard14MetricsMatchPDType1Font() throws IOException {
+        for (FontName name : FontName.values()) {
+            PDType1Font font = new PDType1Font(name);
+            PdfBoxRawPDFontMetrics expected = PdfBoxRawPDFontMetrics.fromPdfBox(font, font.getFontDescriptor());
+            PdfBoxRawPDFontMetrics actual = PdfBoxRawPDFontMetrics.fromStandard14(name);
+
+            assertEquals(name + " ascent", expected._ascent, actual._ascent, 0f);
+            assertEquals(name + " descent", expected._descent, actual._descent, 0f);
+            assertEquals(name + " strikethrough offset", expected._strikethroughOffset, actual._strikethroughOffset, 0f);
+            assertEquals(name + " strikethrough thickness", expected._strikethroughThickness, actual._strikethroughThickness, 0f);
+            assertEquals(name + " underline position", expected._underlinePosition, actual._underlinePosition, 0f);
+            assertEquals(name + " underline thickness", expected._underlineThickness, actual._underlineThickness, 0f);
+            assertEquals(name + " typo descent", expected._typoDescent, actual._typoDescent, 0f);
+            assertEquals(name + " line gap", expected._lineGap, actual._lineGap, 0f);
+        }
+    }
 }
