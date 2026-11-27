@@ -44,6 +44,7 @@ import com.openhtmltopdf.render.*;
 import com.openhtmltopdf.render.displaylist.DisplayListContainer;
 import com.openhtmltopdf.simple.extend.ReplacedElementScaleHelper;
 import com.openhtmltopdf.util.ArrayUtil;
+import com.openhtmltopdf.util.ExifOrientation;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.OpenUtil;
 import com.openhtmltopdf.util.XRLog;
@@ -64,6 +65,7 @@ import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.graphics.shading.PDShading;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.pdmodel.graphics.state.RenderingMode;
+import org.apache.pdfbox.util.Matrix;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -1121,6 +1123,11 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 		}
         
 
+        if (img.getOrientation() != ExifOrientation.NORMAL) {
+            drawOrientedImage(xobject, img, x, y);
+            return;
+        }
+
         AffineTransform transformer = (AffineTransform) getTransform().clone();
         transformer.translate(x, y);
         transformer.translate(0, img.getHeight());
@@ -1134,6 +1141,25 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
                 (float) mx[3]);
     }
     
+    /**
+     * Draws an image turned and mirrored as its EXIF orientation says (CSS
+     * image-orientation: from-image), into the box of its shown size.
+     */
+    private void drawOrientedImage(PDImageXObject xobject, PdfBoxImage img, int x, int y) {
+        AffineTransform transformer = (AffineTransform) getTransform().clone();
+        transformer.translate(x, y);
+        AffineTransform normalized = normalizeMatrix(transformer);
+        // The shown box, y down...
+        normalized.scale(img.getWidth(), img.getHeight());
+        // ...the stored image turned into it, both as unit squares...
+        normalized.concatenate(ExifOrientation.transform(img.getOrientation(), 1, 1));
+        // ...and the image space of PDF, where the first row of the image is at the top.
+        normalized.translate(0, 1);
+        normalized.scale(1, -1);
+
+        _cp.drawImage(xobject, new Matrix(normalized));
+    }
+
     @Override
     public void drawPdfAsImage(PDFormXObject _srcObject, Rectangle contentBounds, float intrinsicWidth, float intrinsicHeight) {
         // We start with the page margins...

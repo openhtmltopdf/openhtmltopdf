@@ -89,7 +89,7 @@ public class PdfBoxReplacedElementFactory implements ReplacedElementFactory {
                     return null;
                 }
 
-                FSImage fsImage = uac.getImageResource(srcAttr).getImage();
+                FSImage fsImage = box.getStyle().applyImageOrientation(uac.getImageResource(srcAttr).getImage());
                 if (fsImage != null) {
                     return new PdfBoxImageElement(e,fsImage,c.getSharedContext(), box.getStyle().isImageRenderingInterpolate());
                 }

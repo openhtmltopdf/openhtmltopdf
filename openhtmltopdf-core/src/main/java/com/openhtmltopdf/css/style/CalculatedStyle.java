@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import com.openhtmltopdf.context.StyleReference;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.css.newmatch.CascadedStyle;
 import com.openhtmltopdf.css.parser.CSSParser;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
@@ -1419,6 +1420,21 @@ public class CalculatedStyle {
     }
     public boolean isImageRenderingInterpolate(){
         return !isImageRenderingPixelated();
+    }
+
+    /**
+     * @return whether images keep the orientation they are stored in, ignoring the one
+     * in their EXIF data (image-orientation: none).
+     */
+    public boolean isImageOrientationNone() {
+        return isIdent(CSSName.IMAGE_ORIENTATION, IdentValue.NONE);
+    }
+
+    /**
+     * @return image as image-orientation asks for it to be shown.
+     */
+    public FSImage applyImageOrientation(FSImage image) {
+        return image != null && isImageOrientationNone() ? image.withoutImageOrientation() : image;
     }
 
     public int getMinWidth(CssContext c, int cbWidth) {

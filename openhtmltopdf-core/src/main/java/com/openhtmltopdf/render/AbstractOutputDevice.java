@@ -379,7 +379,8 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             } else {
                 assert bgImage.type == BackgroundImageType.URI;
 
-                FSImage backgroundImage = getBackgroundImage(bgImage.imageGradientOrNone, c);
+                FSImage backgroundImage = style.applyImageOrientation(
+                        getBackgroundImage(bgImage.imageGradientOrNone, c));
 
                 // If the image width or height is zero, then there's nothing to draw.
                 // Also prevents infinte loop when trying to tile an image with zero size.

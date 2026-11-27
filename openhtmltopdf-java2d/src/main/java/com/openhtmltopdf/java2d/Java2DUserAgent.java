@@ -16,6 +16,7 @@ import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
 import com.openhtmltopdf.render.FSSVGImage;
 import com.openhtmltopdf.resource.ImageResource;
 import com.openhtmltopdf.swing.NaiveUserAgent;
+import com.openhtmltopdf.util.ExifOrientation;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.OpenUtil;
 import com.openhtmltopdf.util.SVGUriDetector;
@@ -98,7 +99,7 @@ public class Java2DUserAgent extends NaiveUserAgent {
                     throw new IOException("ImageIO.read() returned null");
                 }
 
-                AWTFSImage fsImage2 = (AWTFSImage) AWTFSImage.createImage(img);
+                AWTFSImage fsImage2 = (AWTFSImage) AWTFSImage.createImage(img, ExifOrientation.read(content));
 
                 ir = new ImageResource(resolved, fsImage2);
                 _imageCache.put(resolved, ir);

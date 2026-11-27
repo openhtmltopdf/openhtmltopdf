@@ -21,6 +21,7 @@
 package com.openhtmltopdf.java2d.image;
 
 import com.openhtmltopdf.extend.FSImage;
+import com.openhtmltopdf.util.ExifOrientation;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -42,6 +43,30 @@ public abstract class AWTFSImage implements FSImage {
         }
     }
 
+    /**
+     * @param orientation the EXIF orientation of the image, see {@link ExifOrientation}.
+     * The image is turned as it says (CSS image-orientation: from-image).
+     */
+    public static FSImage createImage(Image img, int orientation) {
+        FSImage stored = createImage(img);
+        if (orientation == ExifOrientation.NORMAL || !(stored instanceof NewAWTFSImage)) {
+            return stored;
+        }
+        BufferedImage raw = ((NewAWTFSImage) stored).getImage();
+        boolean swap = ExifOrientation.swapsAxes(orientation);
+        int width = swap ? raw.getHeight() : raw.getWidth();
+        int height = swap ? raw.getWidth() : raw.getHeight();
+
+        BufferedImage shown = new BufferedImage(width, height, raw.getType() == 0 ? BufferedImage.TYPE_INT_ARGB : raw.getType());
+        Graphics2D g = shown.createGraphics();
+        try {
+            g.drawImage(raw, ExifOrientation.transform(orientation, width, height), null);
+        } finally {
+            g.dispose();
+        }
+        return new NewAWTFSImage(shown, raw);
+    }
+
     protected AWTFSImage() {
     }
 
@@ -50,9 +75,21 @@ public abstract class AWTFSImage implements FSImage {
 
     static class NewAWTFSImage extends AWTFSImage {
         private BufferedImage img;
+        /** The image as stored, if it is shown turned by its EXIF orientation. */
+        private final BufferedImage stored;
 
         public NewAWTFSImage(BufferedImage img) {
+            this(img, null);
+        }
+
+        NewAWTFSImage(BufferedImage img, BufferedImage stored) {
             this.img = img;
+            this.stored = stored;
+        }
+
+        @Override
+        public FSImage withoutImageOrientation() {
+            return stored != null ? new NewAWTFSImage(stored) : this;
         }
 
         @Override

@@ -1,0 +1,91 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 880px 560px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+p {
+  margin: 6px 0 2px 0;
+}
+img {
+  margin-right: 6px;
+  vertical-align: top;
+}
+.bg {
+  display: inline-block;
+  width: 90px;
+  height: 60px;
+  margin-right: 6px;
+  border: 1px solid #888;
+  background-repeat: no-repeat;
+}
+</style>
+</head>
+<body>
+<!-- The images store a picture turned or mirrored in all eight ways their EXIF
+     orientation can say. Shown as their EXIF orientation says, they all look the same:
+     an upright F, red corner top left, blue corner bottom right, 90 by 60 pixels. -->
+
+<p>image-orientation: from-image (the default)</p>
+<img src="../../demos/images/exif/orientation-1.jpg"/>
+<img src="../../demos/images/exif/orientation-2.jpg"/>
+<img src="../../demos/images/exif/orientation-3.jpg"/>
+<img src="../../demos/images/exif/orientation-4.jpg"/>
+<img src="../../demos/images/exif/orientation-5.jpg"/>
+<img src="../../demos/images/exif/orientation-6.jpg"/>
+<img src="../../demos/images/exif/orientation-7.jpg"/>
+<img src="../../demos/images/exif/orientation-8.jpg"/>
+
+<p>Scaled by width</p>
+<img src="../../demos/images/exif/orientation-1.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-2.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-3.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-4.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-5.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-6.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-7.jpg" style="width: 60px"/>
+<img src="../../demos/images/exif/orientation-8.jpg" style="width: 60px"/>
+
+<p>image-orientation: none: as stored</p>
+<div style="image-orientation: none">
+<img src="../../demos/images/exif/orientation-1.jpg"/>
+<img src="../../demos/images/exif/orientation-2.jpg"/>
+<img src="../../demos/images/exif/orientation-3.jpg"/>
+<img src="../../demos/images/exif/orientation-4.jpg"/>
+<img src="../../demos/images/exif/orientation-5.jpg"/>
+<img src="../../demos/images/exif/orientation-6.jpg"/>
+<img src="../../demos/images/exif/orientation-7.jpg"/>
+<img src="../../demos/images/exif/orientation-8.jpg"/>
+</div>
+
+<p>Background images</p>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-1.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-2.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-3.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-4.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-5.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-6.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-7.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-8.jpg)"></div>
+
+<p>Background images, image-orientation: none</p>
+<div style="image-orientation: none">
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-3.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-6.jpg)"></div>
+<div class="bg" style="background-image: url(../../demos/images/exif/orientation-8.jpg)"></div>
+</div>
+</body>
+</html>

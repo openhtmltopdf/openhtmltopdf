@@ -257,6 +257,11 @@ public class IdentValue implements FSDerivedValue {
     public static final IdentValue CRISP_EDGES = addValue("crisp-edges");
 
     /*
+     * image-orientation
+     */
+    public static final IdentValue FROM_IMAGE = addValue("from-image");
+
+    /*
      * Box-sizing
      */
     public static final IdentValue BORDER_BOX = addValue("border-box");

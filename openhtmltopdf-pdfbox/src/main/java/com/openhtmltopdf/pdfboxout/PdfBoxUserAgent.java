@@ -80,7 +80,7 @@ public class PdfBoxUserAgent extends NaiveUserAgent {
         if (resource != null && resource.getImage() instanceof PdfBoxImage) {
             // Make copy of PdfBoxImage so we don't stuff up the cache.
             PdfBoxImage original = (PdfBoxImage) resource.getImage();
-            PdfBoxImage copy = new PdfBoxImage(original.getBytes(), original.getUri(), original.getWidth(), original.getHeight(), original.getXObject());
+            PdfBoxImage copy = original.copy();
             return new ImageResource(resource.getImageUri(), copy);
         } else if (resource != null && resource.getImage() instanceof FSSVGImage) {
             // Same again: the size of an SVG image is set by whoever uses it.

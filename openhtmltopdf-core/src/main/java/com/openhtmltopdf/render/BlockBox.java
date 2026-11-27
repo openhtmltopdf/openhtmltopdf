@@ -403,7 +403,7 @@ public class BlockBox extends Box {
             LayoutContext c, StrutMetrics structMetrics, String image) {
         FSImage img;
         if (! image.equals("none")) {
-            img = c.getUac().getImageResource(image).getImage();
+            img = getStyle().applyImageOrientation(c.getUac().getImageResource(image).getImage());
             if (img != null) {
                 if (img.getHeight() > structMetrics.getAscent()) {
                     img.scale(-1, (int) structMetrics.getAscent());

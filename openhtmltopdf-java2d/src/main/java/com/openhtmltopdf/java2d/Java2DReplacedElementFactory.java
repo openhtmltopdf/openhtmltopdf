@@ -100,7 +100,8 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
     }
 
     private ReplacedElement replaceImage(Element elem, String uri, int width, int height, BlockBox box, LayoutContext context, UserAgentCallback uac) {
-        ReplacedElement replaced = _sizedImageCache.get(new SizedImageCacheKey(uri, width, height));
+        boolean orientationNone = box.getStyle().isImageOrientationNone();
+        ReplacedElement replaced = _sizedImageCache.get(new SizedImageCacheKey(uri, width, height, orientationNone));
 
         if (replaced != null) {
             return replaced;
@@ -114,7 +115,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
             return null;
         }
 
-        FSImage awtfsImage = ir.getImage();
+        FSImage awtfsImage = box.getStyle().applyImageOrientation(ir.getImage());
 
         if (awtfsImage instanceof FSSVGImage && _svgImpl != null) {
             // The URI gave no hint that this was an SVG, but the content turned out to be one.
@@ -139,7 +140,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
 
             replaced = new ImageReplacedElement(newImg, width, height);
 
-            _sizedImageCache.put(new SizedImageCacheKey(uri, width, height), replaced);
+            _sizedImageCache.put(new SizedImageCacheKey(uri, width, height, orientationNone), replaced);
         } else {
             replaced = new ImageReplacedElement(newImg, width, height);
         }
@@ -151,11 +152,13 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
         final String uri;
         final int width;
         final int height;
+        final boolean orientationNone;
 
-        public SizedImageCacheKey(final String uri, final int width, final int height) {
+        public SizedImageCacheKey(final String uri, final int width, final int height, final boolean orientationNone) {
             this.uri = uri;
             this.width = width;
             this.height = height;
+            this.orientationNone = orientationNone;
         }
 
         @Override
@@ -167,6 +170,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
 
             if (width != cacheKey.width ||
                 height != cacheKey.height ||
+                orientationNone != cacheKey.orientationNone ||
                 !Objects.equals(uri, cacheKey.uri)) {
                 return false;
             }
@@ -176,7 +180,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
 
         @Override
         public int hashCode() {
-            return Objects.hash(uri, width, height);
+            return Objects.hash(uri, width, height, orientationNone);
         }
     }
 }

@@ -23,4 +23,14 @@ public interface FSImage {
     public int getWidth();
     public int getHeight();
     public void scale(int width, int height);
+
+    /**
+     * The image the way it is stored, without turning it as its EXIF orientation says
+     * (CSS image-orientation: none). Called before the image is scaled.
+     *
+     * @return this image if it has no orientation of its own, else a new image.
+     */
+    default FSImage withoutImageOrientation() {
+        return this;
+    }
 }

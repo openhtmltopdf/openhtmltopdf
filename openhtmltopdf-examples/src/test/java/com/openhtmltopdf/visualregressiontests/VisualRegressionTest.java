@@ -2242,6 +2242,16 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("table-width-border-spacing", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that JPEG images are turned as their EXIF orientation says, for img and
+     * background images, and that image-orientation: none keeps them as stored.
+     * https://github.com/openhtmltopdf/openhtmltopdf/issues/82
+     */
+    @Test
+    public void testImageExifOrientation() throws IOException {
+        assertTrue(vt.runTest("image-exif-orientation", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
