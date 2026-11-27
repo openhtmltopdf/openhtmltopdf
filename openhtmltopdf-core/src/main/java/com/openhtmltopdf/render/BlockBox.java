@@ -1097,11 +1097,10 @@ public class BlockBox extends Box {
     }
 
     /**
-     * A block narrower than its right-to-left containing block starts at its right
-     * edge: with no auto margin the widths are over-constrained, and CSS 2.1 section
-     * 10.3.3 then ignores margin-left instead of margin-right. Unlike browsers, a block
-     * wider than its containing block is not moved to the left of it, where it would be
-     * cut off the page.
+     * A block in a right-to-left containing block starts at its right edge: with no
+     * auto margin the widths are over-constrained, and CSS 2.1 section 10.3.3 then
+     * ignores margin-left instead of margin-right. So a narrower block moves right and
+     * a wider one sticks out on the left, as in browsers.
      */
     private void alignToStartInRtl(LayoutContext c, RectPropertySet padding, BorderPropertySet border) {
         if (isAnonymous() ||
@@ -1121,7 +1120,7 @@ public class BlockBox extends Box {
                 (int) padding.right() + (int) border.right() + (int) margin.right();
         int marginLeft = getContainingBlockWidth() - used;
 
-        if (marginLeft > (int) margin.left()) {
+        if (marginLeft != (int) margin.left()) {
             setMarginLeft(c, marginLeft);
             setLeftMBP(marginLeft + (int) border.left() + (int) padding.left());
         }
