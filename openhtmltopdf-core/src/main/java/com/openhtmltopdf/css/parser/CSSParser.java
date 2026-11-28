@@ -2208,21 +2208,27 @@ public class CSSParser {
         Token t = next();
         if (t == Token.TK_HASH) {
             String s = getTokenValue(t);
-            if ((s.length() != 3 && s.length() != 6) || !isHexString(s)) {
+            int len = s.length();
+            if ((len != 3 && len != 4 && len != 6 && len != 8) || !isHexString(s)) {
                 save(t);
                 throw new CSSParseException('#' + s + " is not a valid color definition", getCurrentLine());
             }
             FSRGBColor color = null;
-            if (s.length() == 3) {
+            if (len == 3 || len == 4) {
+                // #rgb, #rgba: each digit doubled.
+                int alpha = len == 4 ? convertToInteger(s.charAt(3), s.charAt(3)) : 255;
                 color = new FSRGBColor(
                         convertToInteger(s.charAt(0), s.charAt(0)),
                         convertToInteger(s.charAt(1), s.charAt(1)),
-                        convertToInteger(s.charAt(2), s.charAt(2)));
-            } else { /* s.length == 6 */
+                        convertToInteger(s.charAt(2), s.charAt(2)),
+                        alpha / 255f);
+            } else { /* #rrggbb, #rrggbbaa */
+                int alpha = len == 8 ? convertToInteger(s.charAt(6), s.charAt(7)) : 255;
                 color = new FSRGBColor(
                         convertToInteger(s.charAt(0), s.charAt(1)),
                         convertToInteger(s.charAt(2), s.charAt(3)),
-                        convertToInteger(s.charAt(4), s.charAt(5)));
+                        convertToInteger(s.charAt(4), s.charAt(5)),
+                        alpha / 255f);
             }
             result = new PropertyValue(color);
             skip_whitespace();
