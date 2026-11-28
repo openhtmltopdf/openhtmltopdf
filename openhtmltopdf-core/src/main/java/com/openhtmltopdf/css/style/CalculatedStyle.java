@@ -1515,6 +1515,12 @@ public class CalculatedStyle {
         Length result = new Length();
 
         FSDerivedValue value = valueByName(cssName);
+        if (value instanceof LengthValue && ((LengthValue) value).getCalc() != null &&
+            ((LengthValue) value).getCalc().hasPercentage()) {
+            // Neither a fixed length nor a plain percentage: left as auto.
+            return result;
+        }
+
         if (value instanceof LengthValue || value instanceof NumberValue) {
             if (value.hasAbsoluteUnit()) {
                 result.setValue((int) value.getFloatProportionalTo(cssName, 0, c));

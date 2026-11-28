@@ -19,6 +19,8 @@
  */
 package com.openhtmltopdf.css.parser;
 
+import com.openhtmltopdf.css.parser.property.AbstractPropertyBuilder;
+
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.constants.MarginBoxName;
@@ -1987,6 +1989,14 @@ public class CSSParser {
         if (t == Token.TK_FUNCTION) {
             String f = getTokenValue(t);
             skip_whitespace();
+
+            if (CalcExpression.isMathFunction(f)) {
+                // Parsed with its own grammar, up to and including the closing parenthesis.
+                result = mathFunction(f);
+                skip_whitespace();
+                return result;
+            }
+
             List<PropertyValue> params = expr(false);
             t = next();
             if (t != Token.TK_RPAREN) {
@@ -2022,6 +2032,119 @@ public class CSSParser {
         }
 
         return result;
+    }
+
+    /**
+     * Parses the arguments of calc(), min(), max() or clamp() and the closing
+     * parenthesis (CSS Values 4, 10. Mathematical Expressions).
+     */
+    private PropertyValue mathFunction(String functionToken) throws IOException {
+        String name = functionToken.substring(0, functionToken.length() - 1).toLowerCase(Locale.ROOT);
+
+        CalcExpression expression;
+        if (name.equals("calc")) {
+            expression = new CalcExpression.Calc(mathSum());
+        } else {
+            List<CalcExpression> arguments = new ArrayList<>();
+            arguments.add(mathSum());
+            while (nextWithSave() == Token.TK_COMMA) {
+                next();
+                skip_whitespace();
+                arguments.add(mathSum());
+            }
+            if (name.equals("clamp") && arguments.size() != 3) {
+                throw new CSSParseException("clamp() takes three arguments", getCurrentLine());
+            }
+            expression = new CalcExpression.Comparison(name, arguments);
+        }
+
+        Token t = next();
+        if (t != Token.TK_RPAREN) {
+            save(t);
+            throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
+        }
+
+        if (expression.varReferences().isEmpty()) {
+            String error = CalcExpression.typeError(expression);
+            if (error != null) {
+                throw new CSSParseException(error + " in " + expression.toCSS(), getCurrentLine());
+            }
+        }
+
+        return new PropertyValue(expression);
+    }
+
+    private CalcExpression mathSum() throws IOException {
+        List<CalcExpression> terms = new ArrayList<>();
+        List<Boolean> subtract = new ArrayList<>();
+        terms.add(mathProduct());
+
+        while (true) {
+            Token t = nextWithSave();
+            if (t != Token.TK_PLUS && t != Token.TK_MINUS) {
+                break;
+            }
+            next();
+            skip_whitespace();
+            subtract.add(t == Token.TK_MINUS);
+            terms.add(mathProduct());
+        }
+
+        return terms.size() == 1 ? terms.get(0) : new CalcExpression.Sum(terms, subtract);
+    }
+
+    private CalcExpression mathProduct() throws IOException {
+        CalcExpression left = mathValue();
+
+        while (true) {
+            Token t = nextWithSave();
+            if (t != Token.TK_ASTERISK && t != Token.TK_VIRGULE) {
+                break;
+            }
+            next();
+            skip_whitespace();
+            left = new CalcExpression.Product(left, mathValue(), t == Token.TK_VIRGULE);
+        }
+
+        return left;
+    }
+
+    private CalcExpression mathValue() throws IOException {
+        Token t = nextWithSave();
+        if (t.getType() == Token.OTHER && "(".equals(getTokenValue(t))) {
+            next();
+            skip_whitespace();
+            CalcExpression inner = mathSum();
+            Token close = next();
+            if (close != Token.TK_RPAREN) {
+                save(close);
+                throw new CSSParseException(close, Token.TK_RPAREN, getCurrentLine());
+            }
+            skip_whitespace();
+            return inner;
+        }
+
+        PropertyValue value = term(false);
+
+        if (value.getCalc() != null) {
+            // A nested calc(), min(), max() or clamp().
+            return value.getCalc();
+        }
+
+        if (value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
+            value.getFunction() != null && "var".equalsIgnoreCase(value.getFunction().getName())) {
+            return new CalcExpression.VarReference(value);
+        }
+
+        short type = value.getPrimitiveType();
+        if (type == CSSPrimitiveValue.CSS_NUMBER) {
+            return new CalcExpression.Leaf(value, CalcExpression.Kind.NUMBER);
+        } else if (type == CSSPrimitiveValue.CSS_PERCENTAGE ||
+                   AbstractPropertyBuilder.isLengthHelper(value)) {
+            return new CalcExpression.Leaf(value, CalcExpression.Kind.LENGTH);
+        }
+
+        throw new CSSParseException(value.getCssText() + " is not allowed in a math function", getCurrentLine());
     }
 
     private FSCMYKColor createCMYKColorFromFunction(List<PropertyValue> params) {

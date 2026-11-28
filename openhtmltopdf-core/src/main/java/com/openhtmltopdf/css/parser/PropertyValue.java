@@ -56,6 +56,7 @@ public class PropertyValue implements CSSPrimitiveValue {
     private List<PropertyValue> _values;
     private List<CounterData> _counters;
     private FSFunction _function;
+    private CalcExpression _calc;
 
     public PropertyValue(short type, float floatValue, String cssText) {
         _type = type;
@@ -122,6 +123,40 @@ public class PropertyValue implements CSSPrimitiveValue {
         _propertyValueType = VALUE_TYPE_COUNTERS;
     }
     
+    /**
+     * A calc(), min(), max() or clamp() expression. One that results in a number is
+     * evaluated now; one that references var() keeps them as function parameters, so
+     * that the declaration is parsed again once they are substituted.
+     */
+    public PropertyValue(CalcExpression calc) {
+        List<PropertyValue> varReferences = calc.varReferences();
+        _cssText = calc.toCSS();
+        _calc = calc;
+
+        if (!varReferences.isEmpty()) {
+            _type = CSSPrimitiveValue.CSS_UNKNOWN;
+            _cssValueType = CSSValue.CSS_CUSTOM;
+            _function = new FSFunction("calc", varReferences);
+            _propertyValueType = VALUE_TYPE_FUNCTION;
+        } else if (calc.getKind() == CalcExpression.Kind.NUMBER) {
+            _type = CSSPrimitiveValue.CSS_NUMBER;
+            _cssValueType = CSSValue.CSS_PRIMITIVE_VALUE;
+            _floatValue = calc.evaluate((type, value, text) -> value);
+            _propertyValueType = VALUE_TYPE_NUMBER;
+        } else {
+            _type = CSSPrimitiveValue.CSS_CALC;
+            _cssValueType = CSSValue.CSS_PRIMITIVE_VALUE;
+            _propertyValueType = VALUE_TYPE_LENGTH;
+        }
+    }
+
+    /**
+     * @return the calc(), min(), max() or clamp() expression of this value, or null.
+     */
+    public CalcExpression getCalc() {
+        return _calc;
+    }
+
     public PropertyValue(FSFunction function) {
         _type = CSSPrimitiveValue.CSS_UNKNOWN;
         _cssValueType = CSSValue.CSS_CUSTOM;

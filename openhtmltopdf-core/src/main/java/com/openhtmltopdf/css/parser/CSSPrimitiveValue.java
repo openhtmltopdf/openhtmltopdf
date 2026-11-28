@@ -41,6 +41,8 @@ public interface CSSPrimitiveValue extends CSSValue {
     public static final short CSS_VMIN = 30;
     /** 1% of the larger of the viewport's width and height. */
     public static final short CSS_VMAX = 31;
+    /** A calc(), min(), max() or clamp() expression resulting in a length, see {@link CalcExpression}. */
+    public static final short CSS_CALC = 32;
 
     public short getPrimitiveType();
     public float getFloatValue(short unitType);

@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.ValueConstants;
 import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
+import com.openhtmltopdf.css.parser.CalcExpression;
 import com.openhtmltopdf.css.parser.PropertyValue;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
@@ -51,6 +52,9 @@ public class LengthValue extends DerivedValue {
      * The specified primitive SAC data type given for this length, from the CSS text
      */
     private short _lengthPrimitiveType;
+
+    /** A calc(), min(), max() or clamp() expression, evaluated against the percentage base. */
+    private final CalcExpression _calc;
     
     public short getLengthPrimitiveType() {
 		return _lengthPrimitiveType;
@@ -62,11 +66,23 @@ public class LengthValue extends DerivedValue {
         _style = style;
         _lengthAsFloat = value.getFloatValue();
         _lengthPrimitiveType = value.getPrimitiveType();
+        _calc = value.getCalc();
     }
 
+    /**
+     * @return the number as written; NaN for a calc() expression, which has none:
+     * use {@link #getFloatProportionalTo(CSSName, float, CssContext)}.
+     */
     @Override
     public float asFloat() {
-        return _lengthAsFloat;
+        return _calc != null ? Float.NaN : _lengthAsFloat;
+    }
+
+    /**
+     * @return the calc(), min(), max() or clamp() expression of this length, or null.
+     */
+    public CalcExpression getCalc() {
+        return _calc;
     }
 
     /**
@@ -83,6 +99,12 @@ public class LengthValue extends DerivedValue {
     public float getFloatProportionalTo(CSSName cssName,
                                         float baseValue,
                                         CssContext ctx) {
+        if (_calc != null) {
+            CalculatedStyle style = getStyle();
+            return _calc.evaluate((type, value, text) ->
+                    calcFloatProportionalValue(style, cssName, text, value, type, baseValue, ctx));
+        }
+
         return calcFloatProportionalValue(getStyle(),
                 cssName,
                 getStringValue(),
@@ -94,6 +116,10 @@ public class LengthValue extends DerivedValue {
 
     @Override
     public boolean hasAbsoluteUnit() {
+        if (_calc != null) {
+            // Without a percentage it does not need a base.
+            return !_calc.hasPercentage();
+        }
         return ValueConstants.isAbsoluteUnit(getCssSacUnitType());
     }
     
@@ -170,6 +196,19 @@ public class LengthValue extends DerivedValue {
                 FontSpecification font = cssName == CSSName.FONT_SIZE ?
                         style.getParent().getFont(ctx) : style.getFont(ctx);
                 absVal = relVal * ctx.getTextRenderer().getWidth(ctx.getFontContext(), ctx.getFont(font), "0");
+                break;
+            }
+            case CSSPrimitiveValue.CSS_CALC: {
+                // Callers that only pass the parts of a value: the expression is
+                // parsed again from its text.
+                CalcExpression calc = CalcExpression.fromCSS(stringValue);
+                if (calc == null) {
+                    absVal = 0;
+                } else {
+                    float base = baseValue;
+                    absVal = calc.evaluate((type, value, text) ->
+                            calcFloatProportionalValue(style, cssName, text, value, type, base, ctx));
+                }
                 break;
             }
             case CSSPrimitiveValue.CSS_VW:

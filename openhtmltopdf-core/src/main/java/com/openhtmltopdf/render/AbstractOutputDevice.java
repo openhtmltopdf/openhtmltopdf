@@ -526,14 +526,14 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE) {
             float percent = value.getFloatValue() / 100.0f;
             return Math.round(boundsDim*percent - imageDim*percent);
-        } else { /* it's a <length> */
+        } else { /* it's a <length>, or a calc() whose percentages are of the free space */
             return (int)LengthValue.calcFloatProportionalValue(
                     style,
                     CSSName.BACKGROUND_POSITION,
                     value.getCssText(),
                     value.getFloatValue(),
                     value.getPrimitiveType(),
-                    0,
+                    boundsDim - imageDim,
                     c);
         }
     }

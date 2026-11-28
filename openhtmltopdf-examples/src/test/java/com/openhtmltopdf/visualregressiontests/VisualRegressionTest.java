@@ -2277,6 +2277,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-units", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests calc(), min(), max() and clamp() in lengths, with percentages, var() and
+     * nesting.
+     */
+    @Test
+    public void testCssCalc() throws IOException {
+        assertTrue(vt.runTest("css-calc", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

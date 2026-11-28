@@ -1,0 +1,59 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 640px;
+  margin: 10px;
+}
+:root {
+  --gap: 30px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+.b {
+  background: #9cf;
+  margin-bottom: 4px;
+  height: 10px;
+}
+</style>
+</head>
+<body>
+<!-- Widths, against the 580px wide page area. -->
+<div class="b" style="width: calc(50% - 20px)"></div>
+<div class="b" style="width: calc((100% - 40px) / 3)"></div>
+<div class="b" style="width: calc(2 * 50px + 1em)"></div>
+<div class="b" style="width: min(100px, 50%)"></div>
+<div class="b" style="width: max(100px, 50%)"></div>
+<div class="b" style="width: clamp(50px, 10%, 200px)"></div>
+<div class="b" style="width: clamp(50px, 80%, 200px)"></div>
+<div class="b" style="width: calc(100% - var(--gap) * 2)"></div>
+<div class="b" style="width: calc(min(300px, 80%) - 10px)"></div>
+<div class="b" style="width: calc(10vw + 2ch)"></div>
+<div class="b" style="width: calc(-20px + 100px)"></div>
+<div class="b" style="width: calc(100%/4)"></div>
+
+<!-- Other lengths. -->
+<div class="b" style="width: 200px; margin-left: calc(25% + 5px)"></div>
+<div class="b" style="width: 100px; padding-left: calc(2em + 5px)"></div>
+<div class="b" style="width: 100px; height: calc(10px * 2)"></div>
+<div class="b" style="width: 120px; border-left: calc(1px + 9px) solid #c00"></div>
+<div class="b" style="width: 200px; height: 40px; border-radius: calc(5px + 10px)"></div>
+<div style="width: 200px; height: 40px; margin-bottom: 4px; background: #eee url(../../demos/images/flyingsaucer.png) no-repeat; background-size: 30px; background-position: calc(100% - 10px) center"></div>
+<div style="position: relative; height: 40px; margin-bottom: 4px; background: #eee">
+  <div class="b" style="position: absolute; width: 50px; left: calc(50% - 25px); top: calc(100% - 15px)"></div>
+</div>
+<div style="font-size: calc(12px + 0.5em)">font-size: calc(12px + 0.5em)</div>
+<div style="line-height: calc(1em + 10px); background: #eee">line-height: calc(1em + 10px)</div>
+<div style="margin-top: 4px; width: calc(200px * 1.5); background: #eee; padding: calc(1em / 2)">padding: calc(1em / 2)</div>
+</body>
+</html>

@@ -178,6 +178,7 @@ public abstract class AbstractPropertyBuilder implements PropertyBuilder {
                 || unit == CSSPrimitiveValue.CSS_CH
                 || unit == CSSPrimitiveValue.CSS_VW || unit == CSSPrimitiveValue.CSS_VH
                 || unit == CSSPrimitiveValue.CSS_VMIN || unit == CSSPrimitiveValue.CSS_VMAX
+                || unit == CSSPrimitiveValue.CSS_CALC
                 || (unit == CSSPrimitiveValue.CSS_NUMBER && value.getFloatValue(CSSPrimitiveValue.CSS_IN) == 0.0f);
     }
     

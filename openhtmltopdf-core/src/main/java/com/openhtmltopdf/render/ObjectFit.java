@@ -79,7 +79,8 @@ public class ObjectFit {
     /**
      * A percentage aligns that point of the content with the same point of the box,
      * so it is a share of the free space, which is negative when the content is larger.
-     * A length moves the content's edge from the box's edge.
+     * A length moves the content's edge from the box's edge; percentages in a calc()
+     * are of the free space too.
      */
     private static double offset(CssContext c, CalculatedStyle style, PropertyValue value, double freeSpace) {
         if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE) {
@@ -92,7 +93,7 @@ public class ObjectFit {
                 value.getCssText(),
                 value.getFloatValue(),
                 value.getPrimitiveType(),
-                0,
+                (float) freeSpace,
                 c);
     }
 }

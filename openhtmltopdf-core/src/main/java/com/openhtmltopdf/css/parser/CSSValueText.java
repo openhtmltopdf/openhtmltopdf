@@ -89,7 +89,9 @@ public final class CSSValueText {
     }
 
     private static void appendValue(StringBuilder sb, PropertyValue value) {
-        if (value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
+        if (value.getCalc() != null) {
+            sb.append(value.getCalc().toCSS());
+        } else if (value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
                 value.getFunction() != null) {
             FSFunction function = value.getFunction();
             sb.append(function.getName());
