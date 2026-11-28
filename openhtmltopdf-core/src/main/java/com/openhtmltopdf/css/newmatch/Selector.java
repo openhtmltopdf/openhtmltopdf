@@ -73,6 +73,15 @@ public class Selector {
     public final static int DESCENDANT_AXIS = 0;
     public final static int CHILD_AXIS = 1;
     public final static int IMMEDIATE_SIBLING_AXIS = 2;
+    /** The subsequent-sibling combinator, a ~ b. */
+    public final static int SUBSEQUENT_SIBLING_AXIS = 3;
+
+    /**
+     * @return whether axis is one of the sibling combinators.
+     */
+    public static boolean isSiblingAxis(int axis) {
+        return axis == IMMEDIATE_SIBLING_AXIS || axis == SUBSEQUENT_SIBLING_AXIS;
+    }
 
     public final static int VISITED_PSEUDOCLASS = 2;
     public final static int HOVER_PSEUDOCLASS = 4;
@@ -102,12 +111,23 @@ public class Selector {
      */
     public boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
         if (siblingSelector != null) {
-            Object sib = siblingSelector.getAppropriateSibling(e, treeRes);
-            if (sib == null) {
-                return false;
-            }
-            if (!siblingSelector.matches(sib, attRes, treeRes)) {
-                return false;
+            if (siblingSelector._axis == SUBSEQUENT_SIBLING_AXIS) {
+                boolean found = false;
+                for (Object sib = treeRes.getPreviousSiblingElement(e); sib != null && !found;
+                     sib = treeRes.getPreviousSiblingElement(sib)) {
+                    found = siblingSelector.matches(sib, attRes, treeRes);
+                }
+                if (!found) {
+                    return false;
+                }
+            } else {
+                Object sib = siblingSelector.getAppropriateSibling(e, treeRes);
+                if (sib == null) {
+                    return false;
+                }
+                if (!siblingSelector.matches(sib, attRes, treeRes)) {
+                    return false;
+                }
             }
         }
         if (_name == null || treeRes.matchesElement(e, _namespaceURI, _name)) {
@@ -171,12 +191,24 @@ public class Selector {
      */
     public boolean matchesDynamic(Object e, AttributeResolver attRes, TreeResolver treeRes) {
         if (siblingSelector != null) {
-            Object sib = siblingSelector.getAppropriateSibling(e, treeRes);
-            if (sib == null) {
-                return false;
-            }
-            if (!siblingSelector.matchesDynamic(sib, attRes, treeRes)) {
-                return false;
+            if (siblingSelector._axis == SUBSEQUENT_SIBLING_AXIS) {
+                boolean found = false;
+                for (Object sib = treeRes.getPreviousSiblingElement(e); sib != null && !found;
+                     sib = treeRes.getPreviousSiblingElement(sib)) {
+                    found = siblingSelector.matches(sib, attRes, treeRes) &&
+                            siblingSelector.matchesDynamic(sib, attRes, treeRes);
+                }
+                if (!found) {
+                    return false;
+                }
+            } else {
+                Object sib = siblingSelector.getAppropriateSibling(e, treeRes);
+                if (sib == null) {
+                    return false;
+                }
+                if (!siblingSelector.matchesDynamic(sib, attRes, treeRes)) {
+                    return false;
+                }
             }
         }
         if (isPseudoClass(VISITED_PSEUDOCLASS)) {
@@ -252,6 +284,55 @@ public class Selector {
     public void addNthChildCondition(String number) {
         _specificityC++;
         addCondition(Condition.createNthChildCondition(number));
+    }
+
+    /**
+     * :nth-child(An+B of S): counts only the siblings matching S. Adds the
+     * specificity of the most specific selector in S.
+     */
+    public void addNthChildCondition(String number, List<ComplexSelector> of) {
+        _specificityC++;
+        addMostSpecific(of);
+        addCondition(Condition.createNthChildCondition(number, of));
+    }
+
+    /**
+     * :is(), :where() and :not(): whether the element matches one of the selectors
+     * (or, negated, none). :is() and :not() add the specificity of the most specific
+     * selector, :where() none.
+     */
+    public void addSelectorListCondition(String name, List<ComplexSelector> selectors) {
+        if (!name.equals("where")) {
+            addMostSpecific(selectors);
+        }
+        addCondition(Condition.createSelectorListCondition(name, selectors, name.equals("not")));
+    }
+
+    /**
+     * :has(): whether an element relative to this one matches one of the relative
+     * selectors. Adds the specificity of the most specific one.
+     */
+    public void addHasCondition(List<ComplexSelector> selectors) {
+        addMostSpecific(selectors);
+        addCondition(Condition.createHasCondition(selectors));
+    }
+
+    private void addMostSpecific(List<ComplexSelector> selectors) {
+        ComplexSelector most = null;
+        for (ComplexSelector s : selectors) {
+            if (most == null ||
+                s.getSpecificityB() > most.getSpecificityB() ||
+                (s.getSpecificityB() == most.getSpecificityB() && s.getSpecificityC() > most.getSpecificityC()) ||
+                (s.getSpecificityB() == most.getSpecificityB() && s.getSpecificityC() == most.getSpecificityC() &&
+                 s.getSpecificityD() > most.getSpecificityD())) {
+                most = s;
+            }
+        }
+        if (most != null) {
+            _specificityB += most.getSpecificityB();
+            _specificityC += most.getSpecificityC();
+            _specificityD += most.getSpecificityD();
+        }
     }
 
     /**

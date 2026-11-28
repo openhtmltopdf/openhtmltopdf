@@ -473,7 +473,7 @@ public class Matcher {
                     descendantsTmp[descendantCount++] = i;
                 }
 
-                if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+                if (Selector.isSiblingAxis(sel.getAxis())) {
                     // Always visited, so mapChild still throws on it.
                     universalTmp[universalCount++] = i;
                 } else if (sel.indexId() != null) {
@@ -703,7 +703,7 @@ public class Matcher {
             for (int pos : candidates) {
                 Selector sel = index.selector(pos);
 
-                if (sel.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+                if (Selector.isSiblingAxis(sel.getAxis())) {
                     throw new RuntimeException();
                 }
 
@@ -771,7 +771,7 @@ public class Matcher {
                     }
 
                     mappedSelectors.add(sel);
-                } else if (chain.getAxis() == Selector.IMMEDIATE_SIBLING_AXIS) {
+                } else if (Selector.isSiblingAxis(chain.getAxis())) {
                     throw new RuntimeException();
                 } else {
                     if (chainedSelectors == null) {

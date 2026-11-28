@@ -26,6 +26,7 @@ import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.constants.MarginBoxName;
 import com.openhtmltopdf.css.constants.SVGProperty;
 import com.openhtmltopdf.css.extend.TreeResolver;
+import com.openhtmltopdf.css.newmatch.ComplexSelector;
 import com.openhtmltopdf.css.newmatch.Selector;
 import com.openhtmltopdf.css.parser.property.PropertyBuilder;
 import com.openhtmltopdf.css.sheet.*;
@@ -865,6 +866,13 @@ public class CSSParser {
     private Token combinator() throws IOException {
         //System.out.println("combinator()");
         Token t = next();
+        if (t == Token.TK_S && isTilde(nextWithSave())) {
+            t = next();
+        }
+        if (isTilde(t)) {
+            skip_whitespace();
+            return TK_TILDE;
+        }
         if (t == Token.TK_PLUS || t == Token.TK_GREATER) {
             skip_whitespace();
         } else if (t != Token.TK_S) {
@@ -1009,7 +1017,7 @@ public class CSSParser {
         LOOP:
         while (true) {
             Token t = nextWithSave();
-            switch (t.getType()) {
+            switch (isTilde(t) ? Token.PLUS : t.getType()) {
                 case Token.PLUS:
                 case Token.GREATER:
                 case Token.S:
@@ -1035,6 +1043,91 @@ public class CSSParser {
             }
         }
         ruleset.addFSSelector(mergeSimpleSelectors(selectors, combinators));
+    }
+
+    /** The subsequent-sibling combinator ~, which the tokenizer gives as an OTHER token. */
+    private static final Token TK_TILDE = Token.createOtherToken("~");
+
+    private boolean isTilde(Token t) {
+        return t == TK_TILDE || (t.getType() == Token.OTHER && "~".equals(getTokenValue(t)));
+    }
+
+    /**
+     * A comma separated list of complex selectors, the argument of :is(), :where(),
+     * :not(), :has() or the S of :nth-child(An+B of S). Leaves the closing
+     * parenthesis.
+     */
+    private List<ComplexSelector> complexSelectorList(Ruleset ruleset, boolean relative) throws IOException {
+        List<ComplexSelector> result = new ArrayList<>();
+        skip_whitespace();
+        result.add(complexSelector(ruleset, relative));
+        while (nextWithSave() == Token.TK_COMMA) {
+            next();
+            skip_whitespace();
+            result.add(complexSelector(ruleset, relative));
+        }
+        return result;
+    }
+
+    private ComplexSelector complexSelector(Ruleset ruleset, boolean relative) throws IOException {
+        int leading = -1;
+        if (relative) {
+            leading = ComplexSelector.DESCENDANT;
+            int c = combinatorType(nextWithSave());
+            if (c >= 0) {
+                next();
+                skip_whitespace();
+                leading = c;
+            }
+        }
+
+        List<Selector> compounds = new ArrayList<>();
+        List<Integer> combinators = new ArrayList<>();
+        compounds.add(simple_selector(ruleset));
+
+        while (true) {
+            Token t = nextWithSave();
+            int c;
+            if (t == Token.TK_S) {
+                next();
+                t = nextWithSave();
+                if (t == Token.TK_COMMA || t == Token.TK_RPAREN) {
+                    break;
+                }
+                c = combinatorType(t);
+                if (c >= 0) {
+                    next();
+                    skip_whitespace();
+                } else {
+                    c = ComplexSelector.DESCENDANT;
+                }
+            } else {
+                c = combinatorType(t);
+                if (c < 0) {
+                    break;
+                }
+                next();
+                skip_whitespace();
+            }
+            combinators.add(c);
+            compounds.add(simple_selector(ruleset));
+        }
+
+        return new ComplexSelector(compounds, combinators, leading);
+    }
+
+    /**
+     * @return the combinator t is (but whitespace), see {@link ComplexSelector}, or -1.
+     */
+    private int combinatorType(Token t) {
+        if (t == Token.TK_GREATER) {
+            return ComplexSelector.CHILD;
+        } else if (t == Token.TK_PLUS) {
+            return ComplexSelector.NEXT_SIBLING;
+        } else if (isTilde(t)) {
+            return ComplexSelector.SUBSEQUENT_SIBLING;
+        }
+        return -1;
     }
 
     private Selector mergeSimpleSelectors(List<Selector> selectors, List<Token> combinators) {
@@ -1065,6 +1158,9 @@ public class CSSParser {
                 lastDescendantOrChildAxis = Selector.CHILD_AXIS;
             } else if (combinator == Token.TK_PLUS) {
                 first.setAxis(Selector.IMMEDIATE_SIBLING_AXIS);
+                sibling = true;
+            } else if (combinator == TK_TILDE) {
+                first.setAxis(Selector.SUBSEQUENT_SIBLING_AXIS);
                 sibling = true;
             }
 
@@ -1409,14 +1505,33 @@ public class CSSParser {
                 save(t);
                 throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
             }
+        } else if (f.equals("is") || f.equals("matches") || f.equals("where") || f.equals("not")) {
+            List<ComplexSelector> selectors = complexSelectorList(selector.getRuleset(), false);
+            selector.addSelectorListCondition(f.equals("matches") ? "is" : f, selectors);
+            t = next();
+        } else if (f.equals("has")) {
+            List<ComplexSelector> selectors = complexSelectorList(selector.getRuleset(), true);
+            selector.addHasCondition(selectors);
+            t = next();
         } else if (f.equals("nth-child")) {
             StringBuilder number = new StringBuilder();
+            List<ComplexSelector> of = null;
             while ((t = next()) != null && (t == Token.TK_IDENT || t == Token.TK_S || t == Token.TK_NUMBER || t == Token.TK_DIMENSION || t == Token.TK_PLUS || t == Token.TK_MINUS)) {
+                if (t == Token.TK_IDENT && "of".equalsIgnoreCase(getTokenValue(t))) {
+                    // :nth-child(An+B of S)
+                    of = complexSelectorList(selector.getRuleset(), false);
+                    t = next();
+                    break;
+                }
                 number.append(getTokenValue(t));
             }
 
             try {
-                selector.addNthChildCondition(number.toString());
+                if (of != null) {
+                    selector.addNthChildCondition(number.toString(), of);
+                } else {
+                    selector.addNthChildCondition(number.toString());
+                }
             } catch (CSSParseException e) {
                 e.setLine(getCurrentLine());
                 save(t);

@@ -2286,6 +2286,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-calc", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the :is(), :where(), :not(), :has() and :nth-child(An+B of S) selectors,
+     * their specificity, and the ~ combinator.
+     */
+    @Test
+    public void testCssSelectors() throws IOException {
+        assertTrue(vt.runTest("css-selectors", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
