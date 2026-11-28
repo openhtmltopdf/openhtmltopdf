@@ -2261,6 +2261,14 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("rtl-blocks-and-lists", TestSupport.WITH_ARABIC));
     }
 
+    /**
+     * Tests object-fit and object-position for images and PDF pages in img elements.
+     */
+    @Test
+    public void testObjectFit() throws IOException {
+        assertTrue(vt.runTest("object-fit", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

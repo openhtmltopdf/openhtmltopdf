@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>PDF/UA object-fit Test</title>
+  <meta name="subject" content="PDF/UA object-fit validation"/>
+  <meta name="author" content="openhtmltopdf.com team"/>
+  <meta name="description" content="Tests that images clipped to their box by object-fit stay valid PDF/UA-1"/>
+  <style>
+  body {
+    margin: 0;
+    font-family: 'TestFont';
+    font-size: 15px;
+  }
+  img {
+    width: 120px;
+    height: 40px;
+  }
+  </style>
+</head>
+<body>
+  <h1>object-fit</h1>
+  <p><img src="../images/flyingsaucer.png" alt="Cover" style="object-fit: cover;"/></p>
+  <p><img src="../images/flyingsaucer.png" alt="None" style="object-fit: none; object-position: right bottom;"/></p>
+  <p><img src="../images/flyingsaucer.png" alt="Contain" style="object-fit: contain;"/></p>
+</body>
+</html>

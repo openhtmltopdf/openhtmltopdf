@@ -99,6 +99,14 @@ public class Java2DManualTest {
         run("image-exif-orientation");
     }
 
+    /**
+     * Tests object-fit and object-position for images.
+     */
+    @Test
+    public void testObjectFit() throws IOException {
+        run("object-fit");
+    }
+
     @Test
     public void testFootnotes() throws IOException {
         run("footnotes");

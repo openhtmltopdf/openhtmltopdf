@@ -31,6 +31,7 @@ import com.openhtmltopdf.extend.ReplacedElement;
 import com.openhtmltopdf.extend.StructureType;
 import com.openhtmltopdf.java2d.api.Java2DRendererBuilder;
 import com.openhtmltopdf.java2d.image.AWTFSImage;
+import com.openhtmltopdf.java2d.image.FittedImageReplacedElement;
 import com.openhtmltopdf.java2d.image.ImageReplacedElement;
 import com.openhtmltopdf.render.*;
 
@@ -96,7 +97,9 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
     @Override
     public void paintReplacedElement(RenderingContext c, BlockBox box) {
         ReplacedElement replaced = box.getReplacedElement();
-        if (replaced instanceof ImageReplacedElement) {
+        if (replaced instanceof FittedImageReplacedElement) {
+            ((FittedImageReplacedElement) replaced).paint(_graphics, c, box);
+        } else if (replaced instanceof ImageReplacedElement) {
             Image image = ((ImageReplacedElement)replaced).getImage();
             
             Point location = replaced.getLocation();

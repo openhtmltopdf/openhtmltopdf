@@ -10,6 +10,9 @@ import org.w3c.dom.Element;
 
 import com.openhtmltopdf.extend.*;
 import com.openhtmltopdf.java2d.image.AWTFSImage;
+import com.openhtmltopdf.css.constants.CSSName;
+import com.openhtmltopdf.css.constants.IdentValue;
+import com.openhtmltopdf.java2d.image.FittedImageReplacedElement;
 import com.openhtmltopdf.java2d.image.ImageReplacedElement;
 import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.outputdevice.helper.ExternalResourceType;
@@ -101,7 +104,12 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
 
     private ReplacedElement replaceImage(Element elem, String uri, int width, int height, BlockBox box, LayoutContext context, UserAgentCallback uac) {
         boolean orientationNone = box.getStyle().isImageOrientationNone();
-        ReplacedElement replaced = _sizedImageCache.get(new SizedImageCacheKey(uri, width, height, orientationNone));
+        // With object-fit other than fill, an image in a box of both a set width and
+        // height is fitted into it when painted.
+        boolean fitted = width > -1 && height > -1 &&
+                !box.getStyle().isIdent(CSSName.OBJECT_FIT, IdentValue.FILL);
+        SizedImageCacheKey key = new SizedImageCacheKey(uri, width, height, orientationNone, fitted);
+        ReplacedElement replaced = _sizedImageCache.get(key);
 
         if (replaced != null) {
             return replaced;
@@ -134,13 +142,17 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
             return null;
         }
 
-        if (width > -1 || height > -1) {
+        if (fitted) {
+            replaced = new FittedImageReplacedElement(newImg, width, height);
+
+            _sizedImageCache.put(key, replaced);
+        } else if (width > -1 || height > -1) {
             XRLog.log(Level.FINE, LogMessageId.LogMessageId4Param.LOAD_IMAGE_LOADER_SCALING_URI_TO,
                     this, uri, width, height);
 
             replaced = new ImageReplacedElement(newImg, width, height);
 
-            _sizedImageCache.put(new SizedImageCacheKey(uri, width, height, orientationNone), replaced);
+            _sizedImageCache.put(key, replaced);
         } else {
             replaced = new ImageReplacedElement(newImg, width, height);
         }
@@ -153,12 +165,15 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
         final int width;
         final int height;
         final boolean orientationNone;
+        final boolean fitted;
 
-        public SizedImageCacheKey(final String uri, final int width, final int height, final boolean orientationNone) {
+        public SizedImageCacheKey(final String uri, final int width, final int height,
+                final boolean orientationNone, final boolean fitted) {
             this.uri = uri;
             this.width = width;
             this.height = height;
             this.orientationNone = orientationNone;
+            this.fitted = fitted;
         }
 
         @Override
@@ -171,6 +186,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
             if (width != cacheKey.width ||
                 height != cacheKey.height ||
                 orientationNone != cacheKey.orientationNone ||
+                fitted != cacheKey.fitted ||
                 !Objects.equals(uri, cacheKey.uri)) {
                 return false;
             }
@@ -180,7 +196,7 @@ public class Java2DReplacedElementFactory implements ReplacedElementFactory {
 
         @Override
         public int hashCode() {
-            return Objects.hash(uri, width, height, orientationNone);
+            return Objects.hash(uri, width, height, orientationNone, fitted);
         }
     }
 }

@@ -262,6 +262,12 @@ public class IdentValue implements FSDerivedValue {
     public static final IdentValue FROM_IMAGE = addValue("from-image");
 
     /*
+     * object-fit
+     */
+    public static final IdentValue FILL = addValue("fill");
+    public static final IdentValue SCALE_DOWN = addValue("scale-down");
+
+    /*
      * Box-sizing
      */
     public static final IdentValue BORDER_BOX = addValue("border-box");

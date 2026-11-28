@@ -25,11 +25,13 @@ import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.pdfboxout.PdfBoxLinkManager.IPdfBoxElementWithShapedLinks;
 import com.openhtmltopdf.render.BlockBox;
+import com.openhtmltopdf.render.ObjectFit;
 import com.openhtmltopdf.render.RenderingContext;
 import com.openhtmltopdf.swing.ImageMapParser;
 import org.w3c.dom.Element;
 
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.Map;
 
 public class PdfBoxImageElement implements PdfBoxReplacedElement, IPdfBoxElementWithShapedLinks {
@@ -39,8 +41,16 @@ public class PdfBoxImageElement implements PdfBoxReplacedElement, IPdfBoxElement
     private Point _location = new Point(0, 0);
     private final Map<Shape, String> imageMap;
 
+    /** The size of the image before it is scaled into its box, in dots. */
+    private final int _naturalWidth;
+    private final int _naturalHeight;
+
     public PdfBoxImageElement(Element e, FSImage image, SharedContext c, boolean interpolate) {
-        _image = image;
+        // A copy: painting scales the image, which must not change the cached one
+        // other img elements with the same source get.
+        _image = image instanceof PdfBoxImage ? ((PdfBoxImage) image).copy() : image;
+        _naturalWidth = image.getWidth();
+        _naturalHeight = image.getHeight();
         this.interpolate = interpolate;
         imageMap = ImageMapParser.findAndParseMap(e, c);
     }
@@ -90,10 +100,20 @@ public class PdfBoxImageElement implements PdfBoxReplacedElement, IPdfBoxElement
         ReplacedElement element = box.getReplacedElement();
         
         FSImage img = ((PdfBoxImageElement) element).getImage();
-        img.scale(contentBounds.width, contentBounds.height);
-        
+        Rectangle2D target = ObjectFit.destination(c, box.getStyle(), contentBounds, _naturalWidth, _naturalHeight);
+        boolean clip = ObjectFit.overflows(target, contentBounds);
+
+        if (clip) {
+            outputDevice.pushClip(contentBounds);
+        }
+
+        img.scale((int) Math.round(target.getWidth()), (int) Math.round(target.getHeight()));
         outputDevice.drawImage(img,
-                contentBounds.x, contentBounds.y, interpolate);
+                (int) Math.round(target.getX()), (int) Math.round(target.getY()), interpolate);
+
+        if (clip) {
+            outputDevice.popClip();
+        }
     }
 
     @Override
