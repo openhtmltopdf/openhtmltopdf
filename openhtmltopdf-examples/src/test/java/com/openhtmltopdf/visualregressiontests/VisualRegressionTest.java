@@ -2380,6 +2380,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-intrinsic-width", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests text-overflow: ellipsis on lines that overflow a block with overflow
+     * hidden.
+     */
+    @Test
+    public void testCssTextOverflow() throws IOException {
+        assertTrue(vt.runTest("css-text-overflow", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

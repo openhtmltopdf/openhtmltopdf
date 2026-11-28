@@ -1635,6 +1635,17 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    public static class TextOverflow extends SingleIdent {
+        // clip | ellipsis
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.CLIP, IdentValue.ELLIPSIS });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class TextUnderlineOffset extends LengthLikeWithAuto {
         // auto | <length> | <percentage>
     }

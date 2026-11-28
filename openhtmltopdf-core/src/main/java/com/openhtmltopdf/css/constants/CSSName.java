@@ -1126,6 +1126,19 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.TextDecorationThickness()
             );
 
+    /**
+     * What a line that overflows a block with overflow other than visible shows at
+     * its end: clip, or ellipsis (an ellipsis character where it is cut).
+     */
+    public final static CSSName TEXT_OVERFLOW =
+            addProperty(
+                    "text-overflow",
+                    PRIMITIVE,
+                    "clip",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.TextOverflow()
+            );
+
     public final static CSSName TEXT_UNDERLINE_OFFSET =
             addProperty(
                     "text-underline-offset",

@@ -98,6 +98,8 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue FIT_CONTENT = addValue("fit-content");
     public final static IdentValue MIN_CONTENT = addValue("min-content");
     public final static IdentValue MAX_CONTENT = addValue("max-content");
+    public final static IdentValue CLIP = addValue("clip");
+    public final static IdentValue ELLIPSIS = addValue("ellipsis");
     public final static IdentValue FROM_FONT = addValue("from-font");
     public final static IdentValue DYNAMIC = addValue("dynamic");
     public final static IdentValue END = addValue("end");

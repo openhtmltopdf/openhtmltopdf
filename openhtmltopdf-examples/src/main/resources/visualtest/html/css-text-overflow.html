@@ -1,0 +1,38 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 400px 260px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 14px;
+}
+div {
+  width: 200px;
+  margin-bottom: 8px;
+  background: #eee;
+  white-space: nowrap;
+  overflow: hidden;
+}
+</style>
+</head>
+<body>
+<div style="text-overflow: ellipsis">text-overflow: ellipsis on a long line of text</div>
+<div style="text-overflow: clip">text-overflow: clip on a long line of text</div>
+<div style="text-overflow: ellipsis">Short line</div>
+<div style="text-overflow: ellipsis">With <b style="color: #c00">an inline element</b> where it is cut</div>
+<div style="text-overflow: ellipsis"><span style="color: #00c">The cut falls in</span> the second text run here</div>
+<div style="text-overflow: ellipsis; overflow: visible">overflow: visible shows no ellipsis and overflows</div>
+<div style="text-overflow: ellipsis; white-space: normal; width: 120px">Wraps, but an extraordinarilylongword overflows</div>
+</body>
+</html>
