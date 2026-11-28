@@ -1,0 +1,41 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 420px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 10px;
+}
+div {
+  height: 24px;
+  margin-bottom: 4px;
+  padding-left: 300px;
+  line-height: 24px;
+}
+</style>
+</head>
+<body>
+<div style="background: color-mix(in srgb, red, blue)">in srgb, red, blue</div>
+<div style="background: color-mix(in srgb, red 25%, blue)">in srgb, red 25%, blue</div>
+<div style="background: color-mix(in srgb-linear, red, blue)">in srgb-linear, red, blue</div>
+<div style="background: color-mix(in oklab, red, blue)">in oklab, red, blue</div>
+<div style="background: color-mix(in oklch, red, blue)">in oklch, red, blue</div>
+<div style="background: color-mix(in oklab, #3b82f6 60%, white)">in oklab, #3b82f6 60%, white</div>
+<div style="background: color-mix(in srgb, #0a0 30%, transparent)">in srgb, #0a0 30%, transparent</div>
+<div style="background: color-mix(in srgb, red 20%, blue 30%)">red 20%, blue 30%: half transparent</div>
+<div style="background: color-mix(in oklab, rgb(255 0 0 / 50%), #00f)">semi-transparent red, blue</div>
+<div style="color: color-mix(in srgb, red 70%, black); padding-left: 0">text in color-mix(in srgb, red 70%, black)</div>
+<div style="border-left: 20px solid color-mix(in oklch, yellow, purple); padding-left: 280px">border color</div>
+</body>
+</html>

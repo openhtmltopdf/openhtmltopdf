@@ -2129,6 +2129,8 @@ public class CSSParser {
                 result = new PropertyValue(createRGBColorFromFunction(params));
             } else if (f.equals("hsl(") || f.equals("hsla(")) {
                 result = new PropertyValue(createRGBColorFromHSLFunction(params));
+            } else if (f.equalsIgnoreCase("color-mix(")) {
+                result = new PropertyValue(ColorMix.mix(params, getCurrentLine()));
             } else if (f.equals("cmyk(")) {
                 if (!isSupportCMYKColors()) {
                     throw new CSSParseException(

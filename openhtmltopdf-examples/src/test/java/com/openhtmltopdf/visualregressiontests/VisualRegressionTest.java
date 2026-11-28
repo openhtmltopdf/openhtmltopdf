@@ -2337,6 +2337,14 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-gradients", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests color-mix() in the srgb, srgb-linear, oklab and oklch color spaces.
+     */
+    @Test
+    public void testCssColorMix() throws IOException {
+        assertTrue(vt.runTest("css-color-mix", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
