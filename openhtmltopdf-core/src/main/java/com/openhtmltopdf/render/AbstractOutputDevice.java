@@ -36,6 +36,7 @@ import com.openhtmltopdf.css.style.CalculatedStyle.BackgroundImageType;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.style.derived.LengthValue;
 import com.openhtmltopdf.css.value.FontSpecification;
 import com.openhtmltopdf.extend.FSImage;
@@ -386,13 +387,21 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 FSLinearGradient backgroundLinearGradient =
                         style.getLinearGradient(bgImage.imageGradientOrNone, c, (int) (bgImageContainer.width - border.width()), (int) (bgImageContainer.height - border.height()));
 
-                if (backgroundLinearGradient != null) {
+                FSRadialGradient backgroundRadialGradient =
+                        style.getRadialGradient(bgImage.imageGradientOrNone, c, (int) (bgImageContainer.width - border.width()), (int) (bgImageContainer.height - border.height()));
+
+                if (backgroundLinearGradient != null || backgroundRadialGradient != null) {
                     Dimension xyoff = calcInitialXYOff(bgImage, bgImageContainer, border, style, c);
 
                     int xoff = xyoff.width;
                     int yoff = xyoff.height;
 
-                    drawLinearGradient(backgroundLinearGradient, new Rectangle(xoff, yoff, bgImageContainer.width, bgImageContainer.height));
+                    Rectangle bounds = new Rectangle(xoff, yoff, bgImageContainer.width, bgImageContainer.height);
+                    if (backgroundLinearGradient != null) {
+                        drawLinearGradient(backgroundLinearGradient, bounds);
+                    } else if (backgroundRadialGradient.isDrawable()) {
+                        drawRadialGradient(backgroundRadialGradient, bounds);
+                    }
                 }
             } else if (bgImage.type == BackgroundImageType.NONE) {
                 // Do nothing...

@@ -2328,6 +2328,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-text-shadow", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests radial-gradient, the repeating gradients, linear-gradient without a
+     * direction and color stops with two positions.
+     */
+    @Test
+    public void testCssGradients() throws IOException {
+        assertTrue(vt.runTest("css-gradients", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

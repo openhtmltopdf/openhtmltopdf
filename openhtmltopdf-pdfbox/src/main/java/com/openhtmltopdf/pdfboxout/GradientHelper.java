@@ -8,6 +8,7 @@ import java.awt.Shape;
 
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient.StopPoint;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
@@ -22,6 +23,7 @@ import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
 import org.apache.pdfbox.pdmodel.graphics.shading.PDShading;
 import org.apache.pdfbox.pdmodel.graphics.shading.PDShadingType2;
+import org.apache.pdfbox.pdmodel.graphics.shading.PDShadingType3;
 
 public class GradientHelper {
     /**
@@ -90,6 +92,78 @@ public class GradientHelper {
         shading.setFunction(type3);
         shading.setExtend(extend);
         return shading;
+    }
+
+    /**
+     * A radial gradient as a radial shading of a unit circle at the origin, from the
+     * first stop's radius to the last's, extended both ways. {@link #radialGradientMatrix}
+     * maps the unit circle onto the gradient's ellipse on the page.
+     */
+    public static PDShading createRadialGradient(FSRadialGradient gradient) {
+        PDShadingType3 shading = new PDShadingType3(new COSDictionary());
+        shading.setShadingType(PDShading.SHADING_TYPE3);
+        shading.setColorSpace(PDDeviceRGB.INSTANCE);
+
+        List<StopPoint> stopPoints = gradient.getStopPoints();
+        for (StopPoint stop : stopPoints) {
+            if (stop.getColor() instanceof FSRGBColor && ((FSRGBColor) stop.getColor()).hasAlpha()) {
+                XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_GRADIENT_STOP_ALPHA_NOT_SUPPORTED);
+                break;
+            }
+        }
+
+        float axisStart = gradient.getAxisStart();
+        float axisEnd = gradient.getAxisEnd();
+        float rx = gradient.getRadiusX();
+
+        COSArray coords = new COSArray();
+        coords.add(new COSFloat(0));
+        coords.add(new COSFloat(0));
+        coords.add(new COSFloat(Math.max(0, axisStart / rx)));
+        coords.add(new COSFloat(0));
+        coords.add(new COSFloat(0));
+        coords.add(new COSFloat(axisEnd / rx));
+        shading.setCoords(coords);
+
+        if (axisStart < 0) {
+            // A repeating gradient's stops may start before the center; the
+            // shading starts at the center, at that point of the function.
+            COSArray domain = new COSArray();
+            domain.add(new COSFloat(-axisStart / (axisEnd - axisStart)));
+            domain.add(new COSFloat(1));
+            shading.getCOSObject().setItem(COSName.DOMAIN, domain);
+        }
+
+        shading.setFunction(buildType3Function(stopPoints, axisStart, axisEnd - axisStart));
+
+        COSArray extend = new COSArray();
+        extend.add(COSBoolean.TRUE);
+        extend.add(COSBoolean.TRUE);
+        shading.setExtend(extend);
+        return shading;
+    }
+
+    /**
+     * The matrix, for the cm operator, that maps the unit circle of
+     * {@link #createRadialGradient} onto the gradient's ellipse in bounds.
+     */
+    public static AffineTransform radialGradientMatrix(PdfBoxFastOutputDevice od, AffineTransform transform,
+            FSRadialGradient gradient, Shape bounds) {
+        Rectangle rect = bounds.getBounds();
+        float cx = (float) rect.getMinX() + gradient.getCenterX();
+        float cy = (float) rect.getMinY() + gradient.getCenterY();
+
+        Point2D c = transform.transform(new Point2D.Float(cx, cy), null);
+        Point2D u = transform.transform(new Point2D.Float(cx + gradient.getRadiusX(), cy), null);
+        Point2D v = transform.transform(new Point2D.Float(cx, cy + gradient.getRadiusY()), null);
+
+        double x0 = c.getX();
+        double y0 = od.normalizeY((float) c.getY());
+
+        return new AffineTransform(
+                u.getX() - x0, od.normalizeY((float) u.getY()) - y0,
+                v.getX() - x0, od.normalizeY((float) v.getY()) - y0,
+                x0, y0);
     }
 
     /**
@@ -186,18 +260,44 @@ public class GradientHelper {
         domain.add(new COSFloat(0));
         domain.add(new COSFloat(1));
 
+        // One segment from each stop to the next. Two stops at the same position (a
+        // hard change of color) get no segment between them: the color jumps where
+        // one segment ends and the next begins. A segment of no width there is
+        // evaluated differently by different viewers.
+        COSArray functions = new COSArray();
+        COSArray bounds = new COSArray();
         COSArray encode = new COSArray();
 
-        COSArray range = new COSArray();
-        range.add(new COSFloat(0));
-        range.add(new COSFloat(1));
-        COSArray bounds = new COSArray();
-        for (int i = 1; i < stopPoints.size() - 1; i++) {
-            float pos = (stopPoints.get(i).getLength() - axisStart) / axisLength;
-            bounds.add(new COSFloat(pos));
+        StopPoint first = stopPoints.get(0);
+        StopPoint last = stopPoints.get(stopPoints.size() - 1);
+
+        float previousPos = (first.getLength() - axisStart) / axisLength;
+        if (previousPos > 0) {
+            // The axis starts a little before a hard change of color at the first
+            // stop: the first color up to it.
+            addSegment(functions, encode, first, first, domain);
         }
 
-        COSArray functions = buildType2Functions(stopPoints, domain, encode);
+        for (int i = 1; i < stopPoints.size(); i++) {
+            float pos = (stopPoints.get(i).getLength() - axisStart) / axisLength;
+            if (pos <= previousPos) {
+                continue;
+            }
+            if (functions.size() > 0) {
+                bounds.add(new COSFloat(previousPos));
+            }
+            addSegment(functions, encode, stopPoints.get(i - 1), stopPoints.get(i), domain);
+            previousPos = pos;
+        }
+
+        if (functions.size() == 0 || previousPos < 1) {
+            // The last color from the last stop, after a hard change of color there,
+            // to the end of the axis.
+            if (functions.size() > 0) {
+                bounds.add(new COSFloat(previousPos));
+            }
+            addSegment(functions, encode, last, last, domain);
+        }
 
         function.setItem(COSName.FUNCTIONS, functions);
         function.setItem(COSName.BOUNDS, bounds);
@@ -207,53 +307,31 @@ public class GradientHelper {
         return type3;
     }
 
+    private static void addSegment(COSArray functions, COSArray encode,
+            StopPoint from, StopPoint to, COSArray domain) {
+        functions.add(buildType2Function(from, to, domain));
+        encode.add(new COSFloat(0));
+        encode.add(new COSFloat(1));
+    }
+
     /**
-     * This method is used for setting colours to linear gradient.
-     * 
-     * @return the COSArray, which is an important parameter for setting linear
-     *         gradient.
-     * @param stopPoints
-     *            colours to use.
-     * @param domain
-     *            parameter for setting functiontype2
-     * @param encode
-     *            encoding COSArray
+     * An exponential function (n = 1) from the color of one stop to that of the next.
      */
-    private static COSArray buildType2Functions(List<StopPoint> stopPoints, COSArray domain, COSArray encode)
-    {
-        FSRGBColor prevColor = (FSRGBColor) stopPoints.get(0).getColor();
+    private static COSDictionary buildType2Function(StopPoint from, StopPoint to, COSArray domain) {
+        COSDictionary type2Function = new COSDictionary();
+        type2Function.setInt(COSName.FUNCTION_TYPE, 2);
+        type2Function.setItem(COSName.C0, rgb((FSRGBColor) from.getColor()));
+        type2Function.setItem(COSName.C1, rgb((FSRGBColor) to.getColor()));
+        type2Function.setInt(COSName.N, 1);
+        type2Function.setItem(COSName.DOMAIN, domain);
+        return type2Function;
+    }
 
-        COSArray functions = new COSArray();
-        for (int i = 1; i < stopPoints.size(); i++)
-        {
-
-            FSRGBColor color = (FSRGBColor) stopPoints.get(i).getColor();
-
-            float[] component = new float[] { prevColor.getRed() / 255f, prevColor.getGreen() / 255f, prevColor.getBlue() / 255f };
-            PDColor prevPdColor = new PDColor(component, PDDeviceRGB.INSTANCE);
-
-            float[] component1 = new float[] { color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f };
-            PDColor pdColor = new PDColor(component1, PDDeviceRGB.INSTANCE);
-
-            COSArray c0 = new COSArray();
-            COSArray c1 = new COSArray();
-            for (float component2 : prevPdColor.getComponents())
-                c0.add(new COSFloat(component2));
-            for (float component3 : pdColor.getComponents())
-                c1.add(new COSFloat(component3));
-
-            COSDictionary type2Function = new COSDictionary();
-            type2Function.setInt(COSName.FUNCTION_TYPE, 2);
-            type2Function.setItem(COSName.C0, c0);
-            type2Function.setItem(COSName.C1, c1);
-            type2Function.setInt(COSName.N, 1);
-            type2Function.setItem(COSName.DOMAIN, domain);
-            functions.add(type2Function);
-
-            encode.add(new COSFloat(0));
-            encode.add(new COSFloat(1));
-            prevColor = color;
-        }
-        return functions;
+    private static COSArray rgb(FSRGBColor color) {
+        COSArray c = new COSArray();
+        c.add(new COSFloat(color.getRed() / 255f));
+        c.add(new COSFloat(color.getGreen() / 255f));
+        c.add(new COSFloat(color.getBlue() / 255f));
+        return c;
     }
 }

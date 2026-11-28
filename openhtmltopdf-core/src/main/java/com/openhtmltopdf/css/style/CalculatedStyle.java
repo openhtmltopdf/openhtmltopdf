@@ -56,6 +56,7 @@ import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.CountersValue;
 import com.openhtmltopdf.css.style.derived.DerivedValueFactory;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.style.derived.FunctionValue;
 import com.openhtmltopdf.css.style.derived.LengthValue;
 import com.openhtmltopdf.css.style.derived.ListValue;
@@ -1823,7 +1824,30 @@ public class CalculatedStyle {
 
     public boolean isLinearGradient(PropertyValue value) {
         return value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
-               Objects.equals(value.getFunction().getName(), "linear-gradient");
+               (Objects.equals(value.getFunction().getName(), "linear-gradient") ||
+                Objects.equals(value.getFunction().getName(), "repeating-linear-gradient"));
+    }
+
+    public boolean isRadialGradient(PropertyValue value) {
+        return value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
+               (Objects.equals(value.getFunction().getName(), "radial-gradient") ||
+                Objects.equals(value.getFunction().getName(), "repeating-radial-gradient"));
+    }
+
+    /**
+     * @return whether name is one of the gradient functions supported as an image.
+     */
+    public static boolean isGradientFunction(String name) {
+        return "linear-gradient".equals(name) || "repeating-linear-gradient".equals(name) ||
+               "radial-gradient".equals(name) || "repeating-radial-gradient".equals(name);
+    }
+
+    public FSRadialGradient getRadialGradient(
+            PropertyValue value, CssContext cssContext, int boxWidth, int boxHeight) {
+        if (!isRadialGradient(value)) {
+            return null;
+        }
+        return new FSRadialGradient(this, value.getFunction(), boxWidth, boxHeight, cssContext);
     }
 
     public FSLinearGradient getLinearGradient(
@@ -1866,7 +1890,7 @@ public class CalculatedStyle {
             BackgroundContainer bg = new BackgroundContainer();
             PropertyValue img = images.get(i);
 
-            if (isLinearGradient(img)) {
+            if (isLinearGradient(img) || isRadialGradient(img)) {
                 bg.type = BackgroundImageType.GRADIENT;
             } else if (img.getIdentValue() == IdentValue.NONE) {
                 bg.type = BackgroundImageType.NONE;
