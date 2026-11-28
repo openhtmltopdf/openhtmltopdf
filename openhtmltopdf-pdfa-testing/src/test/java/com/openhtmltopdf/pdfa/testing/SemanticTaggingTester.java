@@ -445,6 +445,56 @@ public class SemanticTaggingTester {
         return new COSDictionary();
     }
 
+    /**
+     * A list inside role="doc-toc" is tagged TOC with TOCI items. A TOCI takes no
+     * LBody: a link alone goes into a Reference, a line followed by a nested list
+     * into a P next to the nested TOC. GH issue #158.
+     */
+    @Test
+    public void testTableOfContentsIsTaggedTocAndToci() throws Exception {
+        assertTrue(run("pdfua-table-of-contents"));
+        assertEquals(Arrays.asList(
+                "TOC[TOCI[Lbl, Reference[Link]], TOCI[Lbl, P[Link], TOC[TOCI[Lbl, Reference[Link]]]]]",
+                "TOC[TOCI[Reference[Link]]]",
+                "L[LI[Lbl, LBody]]"),
+                lists("pdfua-table-of-contents"));
+    }
+
+    /**
+     * @return the outermost lists (L and TOC) of the structure tree, each written as
+     * Type[child, ...] with structure elements only.
+     */
+    private static List<String> lists(String resource) throws Exception {
+        List<String> lists = new ArrayList<>();
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
+            collectLists(doc.getDocumentCatalog().getStructureTreeRoot(), lists);
+        }
+        return lists;
+    }
+
+    private static void collectLists(PDStructureNode node, List<String> lists) {
+        for (Object kid : node.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                PDStructureElement element = (PDStructureElement) kid;
+                if ("L".equals(element.getStructureType()) || "TOC".equals(element.getStructureType())) {
+                    lists.add(shape(element));
+                } else {
+                    collectLists(element, lists);
+                }
+            }
+        }
+    }
+
+    private static String shape(PDStructureElement element) {
+        List<String> kids = new ArrayList<>();
+        for (Object kid : element.getKids()) {
+            if (kid instanceof PDStructureElement) {
+                kids.add(shape((PDStructureElement) kid));
+            }
+        }
+        return kids.isEmpty() ? element.getStructureType() : element.getStructureType() + kids;
+    }
+
     private static List<String> structureTypes(String resource) throws Exception {
         List<String> types = new ArrayList<>();
         try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/" + resource + "--PDFUA_1.pdf"))) {
