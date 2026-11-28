@@ -94,6 +94,8 @@ public class IdentValue implements FSDerivedValue {
     public final static IdentValue DISC = addValue("disc");
     public final static IdentValue DOTTED = addValue("dotted");
     public final static IdentValue DOUBLE = addValue("double");
+    public final static IdentValue WAVY = addValue("wavy");
+    public final static IdentValue FROM_FONT = addValue("from-font");
     public final static IdentValue DYNAMIC = addValue("dynamic");
     public final static IdentValue END = addValue("end");
     public final static IdentValue FIXED = addValue("fixed");

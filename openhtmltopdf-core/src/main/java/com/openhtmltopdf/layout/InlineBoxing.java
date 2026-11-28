@@ -1099,6 +1099,26 @@ public class InlineBoxing {
         return result;
     }
 
+    /**
+     * @return the thickness text-decoration-thickness asks for, or 0 for that of the
+     * font (auto, from-font). A percentage is of 1em.
+     */
+    private static int textDecorationThickness(CssContext c, CalculatedStyle style) {
+        FSDerivedValue value = style.valueByName(CSSName.TEXT_DECORATION_THICKNESS);
+        if (value.isIdent()) {
+            return 0;
+        }
+        return Math.round(style.getFloatPropertyProportionalTo(
+                CSSName.TEXT_DECORATION_THICKNESS, style.getFSFont(c).getSize2D(), c));
+    }
+
+    private static void decorate(TextDecoration decoration, IdentValue lineStyle, int thickness) {
+        if (thickness > 0) {
+            decoration.setThickness(thickness);
+        }
+        decoration.setStyle(lineStyle);
+    }
+
     public static List<TextDecoration> calculateTextDecorations(CssContext c, Box box, int baseline,
             FSFontMetrics fm) {
         List<TextDecoration> result = null;
@@ -1108,6 +1128,8 @@ public class InlineBoxing {
         if (idents != null) {
             result = new ArrayList<>(idents.size());
             FSColor decorationColor = style.getTextDecorationColor();
+            IdentValue lineStyle = style.getIdent(CSSName.TEXT_DECORATION_STYLE);
+            int thickness = textDecorationThickness(c, style);
 
             if (idents.contains(IdentValue.UNDERLINE)) {
                 TextDecoration decoration = new TextDecoration(IdentValue.UNDERLINE);
@@ -1145,6 +1167,7 @@ public class InlineBoxing {
 
                 decoration.setOffset(offset);
                 decoration.setColor(decorationColor);
+                decorate(decoration, lineStyle, thickness);
                 result.add(decoration);
             }
 
@@ -1153,6 +1176,7 @@ public class InlineBoxing {
                 decoration.setOffset(Math.round(baseline + fm.getStrikethroughOffset()));
                 decoration.setThickness(Math.round(fm.getStrikethroughThickness()));
                 decoration.setColor(decorationColor);
+                decorate(decoration, lineStyle, thickness);
                 result.add(decoration);
             }
 
@@ -1161,6 +1185,7 @@ public class InlineBoxing {
                 decoration.setOffset(0);
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
                 decoration.setColor(decorationColor);
+                decorate(decoration, lineStyle, thickness);
                 result.add(decoration);
             }
         }

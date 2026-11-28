@@ -2362,6 +2362,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-list-style-string", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests text-decoration-style and text-decoration-thickness, also in the
+     * text-decoration shorthand.
+     */
+    @Test
+    public void testCssTextDecorationStyle() throws IOException {
+        assertTrue(vt.runTest("css-text-decoration-style", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

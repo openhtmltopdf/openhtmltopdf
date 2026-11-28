@@ -1466,6 +1466,10 @@ public class PrimitivePropertyBuilders {
                     inherited.add(new PropertyDeclaration(cssName, value, important, origin));
                     inherited.add(new PropertyDeclaration(
                             CSSName.TEXT_DECORATION_COLOR, value, important, origin));
+                    inherited.add(new PropertyDeclaration(
+                            CSSName.TEXT_DECORATION_STYLE, value, important, origin));
+                    inherited.add(new PropertyDeclaration(
+                            CSSName.TEXT_DECORATION_THICKNESS, value, important, origin));
                     return inherited;
                 }
 
@@ -1486,6 +1490,8 @@ public class PrimitivePropertyBuilders {
 
             List<PropertyValue> lines = new ArrayList<>(values.size());
             PropertyValue color = null;
+            PropertyValue lineStyle = null;
+            PropertyValue thickness = null;
 
             for (Iterator<PropertyValue> i = values.iterator(); i.hasNext(); ) {
                 PropertyValue value = i.next();
@@ -1506,10 +1512,25 @@ public class PrimitivePropertyBuilders {
                     continue;
                 }
 
+                if (value.getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT &&
+                    (isLength(value) || value.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE)) {
+                    // text-decoration-thickness
+                    thickness = value;
+                    continue;
+                }
+
                 checkIdentType(cssName, value);
                 IdentValue ident = checkIdent(cssName, value);
                 if (ident == IdentValue.NONE) {
                     throw new CSSParseException("Value none may not be used in this position", -1);
+                }
+                if (TextDecorationStyle.ALLOWED.get(ident.FS_ID)) {
+                    lineStyle = value;
+                    continue;
+                }
+                if (ident == IdentValue.FROM_FONT) {
+                    thickness = value;
+                    continue;
                 }
                 checkValidity(cssName, getAllowed(), ident);
                 lines.add(value);
@@ -1521,10 +1542,15 @@ public class PrimitivePropertyBuilders {
                     ? color
                     : new PropertyValue(IdentValue.CURRENT_COLOR);
 
-            List<PropertyDeclaration> result = new ArrayList<>(2);
+            List<PropertyDeclaration> result = new ArrayList<>(4);
             result.add(new PropertyDeclaration(cssName, new PropertyValue(lines), important, origin));
             result.add(new PropertyDeclaration(
                     CSSName.TEXT_DECORATION_COLOR, colorValue, important, origin));
+            // ... and the style and thickness longhands.
+            result.add(new PropertyDeclaration(CSSName.TEXT_DECORATION_STYLE,
+                    lineStyle != null ? lineStyle : new PropertyValue(IdentValue.SOLID), important, origin));
+            result.add(new PropertyDeclaration(CSSName.TEXT_DECORATION_THICKNESS,
+                    thickness != null ? thickness : new PropertyValue(IdentValue.AUTO), important, origin));
 
             return result;
         }
@@ -1578,6 +1604,34 @@ public class PrimitivePropertyBuilders {
         @Override
         protected BitSet getAllowed() {
             return ALLOWED;
+        }
+    }
+
+    public static class TextDecorationStyle extends SingleIdent {
+        // solid | double | dotted | dashed | wavy
+        static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.SOLID, IdentValue.DOUBLE, IdentValue.DOTTED,
+                                   IdentValue.DASHED, IdentValue.WAVY });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
+    public static class TextDecorationThickness extends LengthLikeWithIdent {
+        // auto | from-font | <length> | <percentage>
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.FROM_FONT });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+
+        @Override
+        protected boolean isNegativeValuesAllowed() {
+            return false;
         }
     }
 

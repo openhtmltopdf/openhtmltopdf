@@ -1102,6 +1102,30 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS text-underline-offset property.
      */
+    /**
+     * The style of the lines of text-decoration; also set by the shorthand.
+     */
+    public final static CSSName TEXT_DECORATION_STYLE =
+            addProperty(
+                    "text-decoration-style",
+                    PRIMITIVE,
+                    "solid",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.TextDecorationStyle()
+            );
+
+    /**
+     * The thickness of the lines of text-decoration; also set by the shorthand.
+     */
+    public final static CSSName TEXT_DECORATION_THICKNESS =
+            addProperty(
+                    "text-decoration-thickness",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.TextDecorationThickness()
+            );
+
     public final static CSSName TEXT_UNDERLINE_OFFSET =
             addProperty(
                     "text-underline-offset",

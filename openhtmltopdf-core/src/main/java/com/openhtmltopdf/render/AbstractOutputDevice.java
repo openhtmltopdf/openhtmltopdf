@@ -210,8 +210,49 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
         Rectangle edge = iB.getContentAreaEdge(iB.getAbsX(), iB.getAbsY(), c);
 
-        fillRect(edge.x, iB.getAbsY() + decoration.getOffset(),
-                    edge.width, decoration.getThickness());
+        drawDecorationLine(c, decoration, edge.x, iB.getAbsY() + decoration.getOffset(), edge.width);
+    }
+
+    /**
+     * Draws a line of text-decoration in its style, from x along width, with its top
+     * at y.
+     */
+    private void drawDecorationLine(RenderingContext c, TextDecoration decoration, int x, int y, int width) {
+        int t = Math.max(1, decoration.getThickness());
+        IdentValue style = decoration.getStyle();
+
+        if (style == IdentValue.DOUBLE) {
+            // Two lines with a gap as wide as one between them.
+            fillRect(x, y, width, t);
+            fillRect(x, y + 2 * t, width, t);
+        } else if (style == IdentValue.DOTTED || style == IdentValue.DASHED) {
+            int on = style == IdentValue.DOTTED ? t : 3 * t;
+            int off = style == IdentValue.DOTTED ? t : 2 * t;
+            for (int pos = 0; pos < width; pos += on + off) {
+                fillRect(x + pos, y, Math.min(on, width - pos), t);
+            }
+        } else if (style == IdentValue.WAVY) {
+            // Waves about as big as Chrome's: per unit of the thickness, at least one
+            // pixel, half a wave 5.5 long and 6 high from crest to trough.
+            float unit = Math.max(t, c.getDotsPerPixel());
+            float half = 5.5f * unit;
+            float amplitude = 3f * unit;
+            float mid = y + t / 2f;
+            java.awt.geom.GeneralPath path = new java.awt.geom.GeneralPath();
+            path.moveTo(x, mid);
+            boolean up = true;
+            for (float pos = 0; pos < width; pos += half) {
+                float end = Math.min(pos + half, width);
+                path.quadTo(x + (pos + end) / 2, mid + (up ? -2 * amplitude : 2 * amplitude), x + end, mid);
+                up = !up;
+            }
+            java.awt.Stroke oldStroke = getStroke();
+            setStroke(new java.awt.BasicStroke(t));
+            draw(path);
+            setStroke(oldStroke);
+        } else {
+            fillRect(x, y, width, t);
+        }
     }
 
     @Override
@@ -224,16 +265,14 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             setColor(decorationColor != null ? decorationColor : lineBox.getStyle().getColor());
             if (parent.getStyle().isIdent(
                     CSSName.FS_TEXT_DECORATION_EXTENT, IdentValue.BLOCK)) {
-                fillRect(
+                drawDecorationLine(c, textDecoration,
                     lineBox.getAbsX(),
                     lineBox.getAbsY() + textDecoration.getOffset(),
-                    parent.getAbsX() + parent.getTx() + parent.getContentWidth() - lineBox.getAbsX(),
-                    textDecoration.getThickness());
+                    parent.getAbsX() + parent.getTx() + parent.getContentWidth() - lineBox.getAbsX());
             } else {
-                fillRect(
+                drawDecorationLine(c, textDecoration,
                     lineBox.getAbsX(), lineBox.getAbsY() + textDecoration.getOffset(),
-                    lineBox.getContentWidth(),
-                    textDecoration.getThickness());
+                    lineBox.getContentWidth());
             }
         }
     }
