@@ -377,8 +377,11 @@ public class BlockBox extends Box {
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
             result.setTextMarker(makeTextMarker(c, markerStyle));
         } else if ((listStyle != IdentValue.NONE || listStyleType!=null)  && ! imageMarker) {
-            if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
-                    listStyle == IdentValue.DISC || listStyleType!=null) {
+            if (listStyleType != null) {
+                // A string, such as list-style-type: "→ ", is the marker as it is.
+                result.setTextMarker(makeStringMarker(c, listStyleType));
+            } else if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
+                    listStyle == IdentValue.DISC) {
                 result.setGlyphMarker(makeGlyphMarker(strutMetrics));
             } else {
                 result.setTextMarker(makeTextMarker(c, listStyle));
@@ -415,6 +418,14 @@ public class BlockBox extends Box {
             }
         }
         return null;
+    }
+
+    private MarkerData.TextMarker makeStringMarker(LayoutContext c, String text) {
+        MarkerData.TextMarker result = new MarkerData.TextMarker();
+        result.setAlignment(IdentValue.END);
+        result.setLayoutWidth(c.getTextRenderer().getWidth(c.getFontContext(), getStyle().getFSFont(c), text));
+        result.setText(text);
+        return result;
     }
 
     private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle) {

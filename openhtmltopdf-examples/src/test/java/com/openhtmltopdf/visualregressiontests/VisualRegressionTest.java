@@ -2354,6 +2354,14 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-individual-transforms", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests strings as list-style-type, which are the marker as they are.
+     */
+    @Test
+    public void testCssListStyleString() throws IOException {
+        assertTrue(vt.runTest("css-list-style-string", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
