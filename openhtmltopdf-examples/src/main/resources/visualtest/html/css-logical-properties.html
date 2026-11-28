@@ -1,0 +1,64 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 560px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 11px;
+}
+.box {
+  background: #9cf;
+  margin-bottom: 4px;
+}
+.wrap {
+  background: #eee;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+.pos {
+  position: relative;
+  height: 30px;
+  background: #eee;
+  margin-bottom: 4px;
+}
+.pos div {
+  position: absolute;
+  background: #9cf;
+}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="box" style="margin-inline: 40px 120px">margin-inline: 40px 120px</div></div>
+<div class="wrap" dir="rtl"><div class="box" style="margin-inline: 40px 120px">margin-inline: 40px 120px (rtl)</div></div>
+<div class="box" style="padding-inline: 60px 10px">padding-inline: 60px 10px</div>
+<div class="box" dir="rtl" style="padding-inline: 60px 10px">padding-inline: 60px 10px (rtl)</div>
+<div class="wrap"><div class="box" style="margin-block: 10px 20px">margin-block: 10px 20px</div></div>
+<div class="box" style="padding-block: 8px 2px">padding-block: 8px 2px</div>
+<div class="box" style="padding-block-start: 12px; padding-block-end: 0">padding-block-start: 12px</div>
+<div class="box" style="border-inline-start: 6px solid #c00; border-inline-end: 2px dashed #00c">border-inline-start / -end</div>
+<div class="box" dir="rtl" style="border-inline-start: 6px solid #c00; border-inline-end: 2px dashed #00c">border-inline-start / -end (rtl)</div>
+<div class="box" style="border-block: 3px solid #090">border-block: 3px solid</div>
+<div class="box" style="border-block-start: 4px solid #c00; border-block-end-width: 1px; border-block-end-style: solid">border-block-start, border-block-end-width/-style</div>
+<div class="box" style="border-inline: 4px solid #090; border-inline-end-color: #c00">border-inline, border-inline-end-color</div>
+<div class="box" style="border-inline-width: 2px 8px; border-inline-style: solid">border-inline-width: 2px 8px</div>
+<div class="pos"><div style="inset: 5px 50% 5px 20px">inset: 5px 50% 5px 20px</div></div>
+<div class="pos"><div style="inset-inline-start: 30px; inset-block: 2px 10px">inset-inline-start, inset-block</div></div>
+<div class="pos" dir="rtl"><div style="inset-inline-start: 30px; inset-block-start: 2px">inset-inline-start (rtl)</div></div>
+<div class="pos"><div style="inset-inline: 100px 200px; top: 5px">inset-inline: 100px 200px</div></div>
+<!-- The later of a logical and a physical property wins. -->
+<div class="box" style="margin-inline-start: 80px; margin-left: 10px">margin-left after margin-inline-start: 10px</div>
+<div class="box" style="margin-left: 10px; margin-inline-start: 80px">margin-inline-start after margin-left: 80px</div>
+<div class="box" style="padding-top: 20px; padding-block-start: 2px">padding-block-start after padding-top: 2px</div>
+</body>
+</html>

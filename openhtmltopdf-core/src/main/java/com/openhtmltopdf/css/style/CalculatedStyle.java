@@ -716,23 +716,58 @@ public class CalculatedStyle {
     }
 
     /**
-     * Applies padding-inline-start/end and margin-inline-start/end to the left or
-     * right side, by the direction of this element: start is left in left-to-right
-     * text, right in right-to-left text. A logical property and the physical one it
-     * maps to share a value, so whichever comes later in the cascade wins.
+     * The logical properties of the inline direction, each with the physical
+     * property it applies to in left-to-right and in right-to-left text.
+     */
+    private static CSSName[][] logicalInlineProperties;
+
+    public static CSSName[][] getLogicalInlineProperties() {
+        if (logicalInlineProperties == null) {
+            logicalInlineProperties = new CSSName[][] {
+                { CSSName.PADDING_INLINE_START, CSSName.PADDING_LEFT, CSSName.PADDING_RIGHT },
+                { CSSName.PADDING_INLINE_END, CSSName.PADDING_RIGHT, CSSName.PADDING_LEFT },
+                { CSSName.MARGIN_INLINE_START, CSSName.MARGIN_LEFT, CSSName.MARGIN_RIGHT },
+                { CSSName.MARGIN_INLINE_END, CSSName.MARGIN_RIGHT, CSSName.MARGIN_LEFT },
+                { CSSName.INSET_INLINE_START, CSSName.LEFT, CSSName.RIGHT },
+                { CSSName.INSET_INLINE_END, CSSName.RIGHT, CSSName.LEFT },
+                { CSSName.BORDER_INLINE_START_WIDTH, CSSName.BORDER_LEFT_WIDTH, CSSName.BORDER_RIGHT_WIDTH },
+                { CSSName.BORDER_INLINE_START_STYLE, CSSName.BORDER_LEFT_STYLE, CSSName.BORDER_RIGHT_STYLE },
+                { CSSName.BORDER_INLINE_START_COLOR, CSSName.BORDER_LEFT_COLOR, CSSName.BORDER_RIGHT_COLOR },
+                { CSSName.BORDER_INLINE_END_WIDTH, CSSName.BORDER_RIGHT_WIDTH, CSSName.BORDER_LEFT_WIDTH },
+                { CSSName.BORDER_INLINE_END_STYLE, CSSName.BORDER_RIGHT_STYLE, CSSName.BORDER_LEFT_STYLE },
+                { CSSName.BORDER_INLINE_END_COLOR, CSSName.BORDER_RIGHT_COLOR, CSSName.BORDER_LEFT_COLOR },
+            };
+        }
+        return logicalInlineProperties;
+    }
+
+    /**
+     * Applies the logical properties of the inline direction (padding-inline-start,
+     * margin-inline-end, inset-inline-start, border-inline-start-width, ...) to the
+     * left or right side, by the direction of this element: start is left in
+     * left-to-right text, right in right-to-left text. A logical property and the
+     * physical one it maps to share a value, so whichever comes later in the cascade
+     * wins.
      */
     private void applyLogicalProperties(CascadedStyle matched) {
-        if (!(matched.hasProperty(CSSName.PADDING_INLINE_START) || matched.hasProperty(CSSName.PADDING_INLINE_END) ||
-              matched.hasProperty(CSSName.MARGIN_INLINE_START) || matched.hasProperty(CSSName.MARGIN_INLINE_END))) {
+        CSSName[][] table = getLogicalInlineProperties();
+
+        boolean any = false;
+        for (CSSName[] row : table) {
+            if (matched.hasProperty(row[0])) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) {
             return;
         }
 
         boolean rtl = valueByName(CSSName.DIRECTION) == IdentValue.RTL;
 
-        applyLogicalProperty(matched, CSSName.PADDING_INLINE_START, rtl ? CSSName.PADDING_RIGHT : CSSName.PADDING_LEFT);
-        applyLogicalProperty(matched, CSSName.PADDING_INLINE_END, rtl ? CSSName.PADDING_LEFT : CSSName.PADDING_RIGHT);
-        applyLogicalProperty(matched, CSSName.MARGIN_INLINE_START, rtl ? CSSName.MARGIN_RIGHT : CSSName.MARGIN_LEFT);
-        applyLogicalProperty(matched, CSSName.MARGIN_INLINE_END, rtl ? CSSName.MARGIN_LEFT : CSSName.MARGIN_RIGHT);
+        for (CSSName[] row : table) {
+            applyLogicalProperty(matched, row[0], rtl ? row[2] : row[1]);
+        }
     }
 
     private void applyLogicalProperty(CascadedStyle matched, CSSName logical, CSSName physical) {

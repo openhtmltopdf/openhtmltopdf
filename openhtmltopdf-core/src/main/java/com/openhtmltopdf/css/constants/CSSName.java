@@ -37,6 +37,7 @@ import com.openhtmltopdf.css.parser.property.ContentPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.CounterPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.FontPropertyBuilder;
 import com.openhtmltopdf.css.parser.property.ListStylePropertyBuilder;
+import com.openhtmltopdf.css.parser.property.LogicalPropertyBuilders;
 import com.openhtmltopdf.css.parser.property.OneToFourPropertyBuilders;
 import com.openhtmltopdf.css.parser.property.PrimitivePropertyBuilders;
 import com.openhtmltopdf.css.parser.property.PropertyBuilder;
@@ -1610,6 +1611,82 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.MarginRight()
             );
 
+    /**
+     * Logical longhands for left and right, applied by direction like
+     * padding-inline-start, see CalculatedStyle#applyLogicalProperties.
+     */
+    public final static CSSName INSET_INLINE_START =
+            addProperty(
+                    "inset-inline-start",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.Left()
+            );
+
+    public final static CSSName INSET_INLINE_END =
+            addProperty(
+                    "inset-inline-end",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.Right()
+            );
+
+    public final static CSSName BORDER_INLINE_START_WIDTH =
+            addProperty(
+                    "border-inline-start-width",
+                    PRIMITIVE,
+                    "medium",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BorderLeftWidth()
+            );
+
+    public final static CSSName BORDER_INLINE_START_STYLE =
+            addProperty(
+                    "border-inline-start-style",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BorderLeftStyle()
+            );
+
+    public final static CSSName BORDER_INLINE_START_COLOR =
+            addProperty(
+                    "border-inline-start-color",
+                    PRIMITIVE,
+                    "=color",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BorderLeftColor()
+            );
+
+    public final static CSSName BORDER_INLINE_END_WIDTH =
+            addProperty(
+                    "border-inline-end-width",
+                    PRIMITIVE,
+                    "medium",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BorderRightWidth()
+            );
+
+    public final static CSSName BORDER_INLINE_END_STYLE =
+            addProperty(
+                    "border-inline-end-style",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BorderRightStyle()
+            );
+
+    public final static CSSName BORDER_INLINE_END_COLOR =
+            addProperty(
+                    "border-inline-end-color",
+                    PRIMITIVE,
+                    "=color",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.BorderRightColor()
+            );
+
     public final static CSSName PADDING_LEFT =
             addProperty(
                     "padding-left",
@@ -1971,6 +2048,290 @@ public final class CSSName implements Comparable<CSSName> {
                     new PrimitivePropertyBuilders.TransformOriginPropertyBuilder()
             );
 
+    /**
+     * Logical shorthands and the block-direction properties, which are top and
+     * bottom without writing-mode, see LogicalPropertyBuilders.
+     */
+    public final static CSSName MARGIN_INLINE_SHORTHAND =
+            addProperty(
+                    "margin-inline",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.MARGIN_INLINE_START, CSSName.MARGIN_INLINE_END })
+            );
+
+    public final static CSSName PADDING_INLINE_SHORTHAND =
+            addProperty(
+                    "padding-inline",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.PADDING_INLINE_START, CSSName.PADDING_INLINE_END })
+            );
+
+    public final static CSSName INSET_INLINE_SHORTHAND =
+            addProperty(
+                    "inset-inline",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.INSET_INLINE_START, CSSName.INSET_INLINE_END })
+            );
+
+    public final static CSSName MARGIN_BLOCK_START =
+            addProperty(
+                    "margin-block-start",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.MARGIN_TOP })
+            );
+
+    public final static CSSName MARGIN_BLOCK_END =
+            addProperty(
+                    "margin-block-end",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.MARGIN_BOTTOM })
+            );
+
+    public final static CSSName MARGIN_BLOCK_SHORTHAND =
+            addProperty(
+                    "margin-block",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.MARGIN_TOP, CSSName.MARGIN_BOTTOM })
+            );
+
+    public final static CSSName PADDING_BLOCK_START =
+            addProperty(
+                    "padding-block-start",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.PADDING_TOP })
+            );
+
+    public final static CSSName PADDING_BLOCK_END =
+            addProperty(
+                    "padding-block-end",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.PADDING_BOTTOM })
+            );
+
+    public final static CSSName PADDING_BLOCK_SHORTHAND =
+            addProperty(
+                    "padding-block",
+                    SHORTHAND,
+                    "0",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.PADDING_TOP, CSSName.PADDING_BOTTOM })
+            );
+
+    public final static CSSName INSET_BLOCK_START =
+            addProperty(
+                    "inset-block-start",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.TOP })
+            );
+
+    public final static CSSName INSET_BLOCK_END =
+            addProperty(
+                    "inset-block-end",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BOTTOM })
+            );
+
+    public final static CSSName INSET_BLOCK_SHORTHAND =
+            addProperty(
+                    "inset-block",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.TOP, CSSName.BOTTOM })
+            );
+
+    public final static CSSName INSET_SHORTHAND =
+            addProperty(
+                    "inset",
+                    SHORTHAND,
+                    "auto",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.TOP, CSSName.RIGHT, CSSName.BOTTOM, CSSName.LEFT })
+            );
+
+    public final static CSSName BORDER_BLOCK_START_SHORTHAND =
+            addProperty(
+                    "border-block-start",
+                    SHORTHAND,
+                    "medium none black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.SameAs(() -> new CSSName[] { CSSName.BORDER_TOP_SHORTHAND })
+            );
+
+    public final static CSSName BORDER_BLOCK_END_SHORTHAND =
+            addProperty(
+                    "border-block-end",
+                    SHORTHAND,
+                    "medium none black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.SameAs(() -> new CSSName[] { CSSName.BORDER_BOTTOM_SHORTHAND })
+            );
+
+    public final static CSSName BORDER_BLOCK_SHORTHAND =
+            addProperty(
+                    "border-block",
+                    SHORTHAND,
+                    "medium none black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.SameAs(() -> new CSSName[] { CSSName.BORDER_TOP_SHORTHAND, CSSName.BORDER_BOTTOM_SHORTHAND })
+            );
+
+    public final static CSSName BORDER_BLOCK_START_WIDTH =
+            addProperty(
+                    "border-block-start-width",
+                    SHORTHAND,
+                    "medium",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_TOP_WIDTH })
+            );
+
+    public final static CSSName BORDER_BLOCK_END_WIDTH =
+            addProperty(
+                    "border-block-end-width",
+                    SHORTHAND,
+                    "medium",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_BOTTOM_WIDTH })
+            );
+
+    public final static CSSName BORDER_BLOCK_WIDTH_SHORTHAND =
+            addProperty(
+                    "border-block-width",
+                    SHORTHAND,
+                    "medium",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_TOP_WIDTH, CSSName.BORDER_BOTTOM_WIDTH })
+            );
+
+    public final static CSSName BORDER_INLINE_WIDTH_SHORTHAND =
+            addProperty(
+                    "border-inline-width",
+                    SHORTHAND,
+                    "medium",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_INLINE_START_WIDTH, CSSName.BORDER_INLINE_END_WIDTH })
+            );
+
+    public final static CSSName BORDER_BLOCK_START_STYLE =
+            addProperty(
+                    "border-block-start-style",
+                    SHORTHAND,
+                    "none",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_TOP_STYLE })
+            );
+
+    public final static CSSName BORDER_BLOCK_END_STYLE =
+            addProperty(
+                    "border-block-end-style",
+                    SHORTHAND,
+                    "none",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_BOTTOM_STYLE })
+            );
+
+    public final static CSSName BORDER_BLOCK_STYLE_SHORTHAND =
+            addProperty(
+                    "border-block-style",
+                    SHORTHAND,
+                    "none",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_TOP_STYLE, CSSName.BORDER_BOTTOM_STYLE })
+            );
+
+    public final static CSSName BORDER_INLINE_STYLE_SHORTHAND =
+            addProperty(
+                    "border-inline-style",
+                    SHORTHAND,
+                    "none",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_INLINE_START_STYLE, CSSName.BORDER_INLINE_END_STYLE })
+            );
+
+    public final static CSSName BORDER_BLOCK_START_COLOR =
+            addProperty(
+                    "border-block-start-color",
+                    SHORTHAND,
+                    "black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_TOP_COLOR })
+            );
+
+    public final static CSSName BORDER_BLOCK_END_COLOR =
+            addProperty(
+                    "border-block-end-color",
+                    SHORTHAND,
+                    "black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_BOTTOM_COLOR })
+            );
+
+    public final static CSSName BORDER_BLOCK_COLOR_SHORTHAND =
+            addProperty(
+                    "border-block-color",
+                    SHORTHAND,
+                    "black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_TOP_COLOR, CSSName.BORDER_BOTTOM_COLOR })
+            );
+
+    public final static CSSName BORDER_INLINE_COLOR_SHORTHAND =
+            addProperty(
+                    "border-inline-color",
+                    SHORTHAND,
+                    "black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.Sides(() -> new CSSName[] { CSSName.BORDER_INLINE_START_COLOR, CSSName.BORDER_INLINE_END_COLOR })
+            );
+
+    public final static CSSName BORDER_INLINE_START_SHORTHAND =
+            addProperty(
+                    "border-inline-start",
+                    SHORTHAND,
+                    "medium none black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.SameAs(() -> new CSSName[] { CSSName.BORDER_LEFT_SHORTHAND }, () -> renames(CSSName.BORDER_LEFT_WIDTH, CSSName.BORDER_INLINE_START_WIDTH, CSSName.BORDER_LEFT_STYLE, CSSName.BORDER_INLINE_START_STYLE, CSSName.BORDER_LEFT_COLOR, CSSName.BORDER_INLINE_START_COLOR))
+            );
+
+    public final static CSSName BORDER_INLINE_END_SHORTHAND =
+            addProperty(
+                    "border-inline-end",
+                    SHORTHAND,
+                    "medium none black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.SameAs(() -> new CSSName[] { CSSName.BORDER_RIGHT_SHORTHAND }, () -> renames(CSSName.BORDER_RIGHT_WIDTH, CSSName.BORDER_INLINE_END_WIDTH, CSSName.BORDER_RIGHT_STYLE, CSSName.BORDER_INLINE_END_STYLE, CSSName.BORDER_RIGHT_COLOR, CSSName.BORDER_INLINE_END_COLOR))
+            );
+
+    public final static CSSName BORDER_INLINE_SHORTHAND =
+            addProperty(
+                    "border-inline",
+                    SHORTHAND,
+                    "medium none black",
+                    NOT_INHERITED,
+                    new LogicalPropertyBuilders.SameAs(() -> new CSSName[] { CSSName.BORDER_LEFT_SHORTHAND, CSSName.BORDER_RIGHT_SHORTHAND }, () -> renames(CSSName.BORDER_LEFT_WIDTH, CSSName.BORDER_INLINE_START_WIDTH, CSSName.BORDER_LEFT_STYLE, CSSName.BORDER_INLINE_START_STYLE, CSSName.BORDER_LEFT_COLOR, CSSName.BORDER_INLINE_START_COLOR, CSSName.BORDER_RIGHT_WIDTH, CSSName.BORDER_INLINE_END_WIDTH, CSSName.BORDER_RIGHT_STYLE, CSSName.BORDER_INLINE_END_STYLE, CSSName.BORDER_RIGHT_COLOR, CSSName.BORDER_INLINE_END_COLOR))
+            );
+
+
     public final static CSSSideProperties MARGIN_SIDE_PROPERTIES =
             new CSSSideProperties(
                     CSSName.MARGIN_TOP,
@@ -2075,6 +2436,14 @@ public final class CSSName implements Comparable<CSSName> {
      * @return Returns
      */
     // CLEAN: method is now unnecessary
+    private static java.util.Map<CSSName, CSSName> renames(CSSName... pairs) {
+        java.util.Map<CSSName, CSSName> map = new java.util.HashMap<>();
+        for (int i = 0; i < pairs.length; i += 2) {
+            map.put(pairs[i], pairs[i + 1]);
+        }
+        return map;
+    }
+
     public static String initialValue(CSSName cssName) {
         return cssName.initialValue;
     }

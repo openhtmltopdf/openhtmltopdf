@@ -2303,6 +2303,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-style-in-body", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the logical margin, padding, inset and border properties of the inline
+     * (left to right and right to left) and block directions.
+     */
+    @Test
+    public void testCssLogicalProperties() throws IOException {
+        assertTrue(vt.runTest("css-logical-properties", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
