@@ -1771,6 +1771,18 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS3 property.
      */
+    /**
+     * Shadows painted below the text, see BoxShadow; blur is not supported.
+     */
+    public final static CSSName TEXT_SHADOW =
+            addProperty(
+                    "text-shadow",
+                    PRIMITIVE,
+                    "none",
+                    INHERITS,
+                    new BoxShadowPropertyBuilder(true)
+            );
+
     public final static CSSName BOX_SHADOW =
             addProperty(
                     "box-shadow",

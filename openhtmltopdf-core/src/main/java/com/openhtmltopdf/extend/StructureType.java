@@ -10,5 +10,10 @@ public enum StructureType {
     INLINE,
     INLINE_CHILD_BOX,
     LIST_MARKER,
-    REPLACED;
+    REPLACED,
+    /**
+     * The shadows of text (text-shadow), painted before the text: a copy of it that is
+     * not content.
+     */
+    TEXT_SHADOW;
 }

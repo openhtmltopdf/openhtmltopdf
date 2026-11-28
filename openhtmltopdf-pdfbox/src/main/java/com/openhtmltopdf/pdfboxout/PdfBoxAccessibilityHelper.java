@@ -2171,6 +2171,12 @@ public class PdfBoxAccessibilityHelper {
                 }
                 return FALSE_TOKEN;
             }
+            case TEXT_SHADOW: {
+                // A copy of the text in the shadow's color: decoration, so that the text
+                // is not read or extracted twice.
+                _cs.beginMarkedContent(COSName.ARTIFACT, createLineBreakArtifact());
+                return TRUE_TOKEN;
+            }
             case LIST_MARKER: {
                 if (box instanceof BlockBox) {
                     MarkerData markers = ((BlockBox) box).getMarkerData();

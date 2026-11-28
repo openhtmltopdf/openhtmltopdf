@@ -158,6 +158,45 @@ public class PdfUaTester {
     }
 
     /**
+     * The copies of the text drawn for text-shadow are artifacts: the structure tree
+     * holds each text once.
+     */
+    @Test
+    public void testTextShadowPdfUa1() throws Exception {
+        assertTrue(run("pdfua-text-shadow"));
+        assertMarkedContentReferencesResolve("pdfua-text-shadow", false);
+
+        // Count the text showing operators inside Span (content) and Artifact marked
+        // content: the heading has two shadows, the paragraph one.
+        try (PDDocument doc = Loader.loadPDF(new File("target/test/pdf/pdfua-text-shadow--PDFUA_1.pdf"))) {
+            List<Object> tokens = new org.apache.pdfbox.pdfparser.PDFStreamParser(doc.getPage(0)).parse();
+            java.util.Deque<String> open = new java.util.ArrayDeque<>();
+            int inSpan = 0;
+            int inArtifact = 0;
+            for (int i = 0; i < tokens.size(); i++) {
+                Object token = tokens.get(i);
+                if (token instanceof org.apache.pdfbox.contentstream.operator.Operator) {
+                    String op = ((org.apache.pdfbox.contentstream.operator.Operator) token).getName();
+                    if (op.equals("BDC") || op.equals("BMC")) {
+                        Object tag = tokens.get(i - (op.equals("BDC") ? 2 : 1));
+                        open.push(((org.apache.pdfbox.cos.COSName) tag).getName());
+                    } else if (op.equals("EMC")) {
+                        open.pop();
+                    } else if (op.equals("Tj") || op.equals("TJ")) {
+                        if (open.contains("Artifact")) {
+                            inArtifact++;
+                        } else if (open.contains("Span")) {
+                            inSpan++;
+                        }
+                    }
+                }
+            }
+            assertEquals("the text once, as content", 2, inSpan);
+            assertEquals("each shadow as an artifact", 3, inArtifact);
+        }
+    }
+
+    /**
      * object-fit: cover and none clip the image to its content box, inside its Figure.
      */
     @Test

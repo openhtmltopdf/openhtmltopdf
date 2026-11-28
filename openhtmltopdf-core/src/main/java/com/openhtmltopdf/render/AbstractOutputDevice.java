@@ -63,6 +63,27 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
     @Override
     public void drawText(RenderingContext c, InlineText inlineText) {
+        drawText(c, inlineText, null);
+
+        if (c.debugDrawFontMetrics()) {
+            drawFontMetrics(c, inlineText);
+        }
+    }
+
+    @Override
+    public void drawTextShadows(RenderingContext c, InlineText inlineText) {
+        List<BoxShadow> shadows = inlineText.getParent().getStyle().getTextShadows(c);
+        // The first shadow is on top, so it is painted last.
+        for (int i = shadows.size() - 1; i >= 0; i--) {
+            drawText(c, inlineText, shadows.get(i));
+        }
+    }
+
+    /**
+     * Draws the text, or with shadow given, a copy of it moved by the shadow's offset
+     * in the shadow's color.
+     */
+    private void drawText(RenderingContext c, InlineText inlineText, BoxShadow shadow) {
         InlineLayoutBox iB = inlineText.getParent();
         String text = inlineText.isEndsOnSoftHyphen() ? inlineText.getSubstring() + '-' : inlineText.getSubstring();
 
@@ -77,17 +98,16 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         }
 
         if (text != null && text.length() > 0) {
-            setColor(iB.getStyle().getColor());
+            setColor(shadow != null ? shadow.getColor() : iB.getStyle().getColor());
             setFontSpecification(iB.getStyle().getFontSpecification());
             setFont(iB.getStyle().getFSFont(c));
             JustificationInfo info = createSpacingInfo(inlineText);
 
-            drawInlineTextString(c, inlineText, text,
-                    iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline(), info);
-        }
+            float dx = shadow != null ? shadow.getOffsetX() : 0;
+            float dy = shadow != null ? shadow.getOffsetY() : 0;
 
-        if (c.debugDrawFontMetrics()) {
-            drawFontMetrics(c, inlineText);
+            drawInlineTextString(c, inlineText, text,
+                    iB.getAbsX() + inlineText.getX() + dx, iB.getAbsY() + iB.getBaseline() + dy, info);
         }
     }
 

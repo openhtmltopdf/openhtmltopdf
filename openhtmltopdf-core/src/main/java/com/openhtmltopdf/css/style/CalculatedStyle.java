@@ -439,6 +439,18 @@ public class CalculatedStyle {
         return getBorderProperty(this, ctx);
     }
 
+    private List<BoxShadow> _textShadows;
+
+    /**
+     * @return the shadows of text-shadow, the first painted on top.
+     */
+    public List<BoxShadow> getTextShadows(CssContext ctx) {
+        if (_textShadows == null) {
+            _textShadows = BoxShadow.fromStyle(this, ctx, CSSName.TEXT_SHADOW);
+        }
+        return _textShadows;
+    }
+
     public List<BoxShadow> getBoxShadows(CssContext ctx) {
         if (_boxShadows == null) {
             _boxShadows = BoxShadow.fromStyle(this, ctx);

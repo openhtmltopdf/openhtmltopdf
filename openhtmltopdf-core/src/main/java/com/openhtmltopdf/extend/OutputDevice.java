@@ -72,6 +72,12 @@ public interface OutputDevice {
     
     public void drawImage(FSImage image, int x, int y, boolean interpolate);
 
+    /**
+     * Draws the shadows of text-shadow of the text, below where the text goes.
+     */
+    default public void drawTextShadows(RenderingContext c, InlineText inlineText) {
+    }
+
     default public void drawLinearGradient(FSLinearGradient backgroundLinearGradient, Shape bounds) {
     	XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_LINEAR_GRADIENT_IS_NOT_SUPPORTED);
     }

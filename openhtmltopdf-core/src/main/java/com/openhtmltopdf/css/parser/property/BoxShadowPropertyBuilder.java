@@ -28,6 +28,17 @@ public class BoxShadowPropertyBuilder extends AbstractPropertyBuilder {
     private static final PropertyValue ZERO_LENGTH =
             new PropertyValue(CSSPrimitiveValue.CSS_PX, 0f, "0");
 
+    /** text-shadow: no inset, no spread, and the color defaults to currentColor. */
+    private final boolean text;
+
+    public BoxShadowPropertyBuilder() {
+        this(false);
+    }
+
+    public BoxShadowPropertyBuilder(boolean text) {
+        this.text = text;
+    }
+
     @Override
     public List<PropertyDeclaration> buildDeclarations(
             CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
@@ -78,11 +89,19 @@ public class BoxShadowPropertyBuilder extends AbstractPropertyBuilder {
             short type = token.getPrimitiveType();
 
             if (type == CSSPrimitiveValue.CSS_IDENT) {
-                if ("inset".equalsIgnoreCase(token.getStringValue())) {
+                if (!text && "inset".equalsIgnoreCase(token.getStringValue())) {
                     if (inset) {
                         throw new CSSParseException("'inset' may only be specified once for " + cssName, -1);
                     }
                     inset = true;
+                    continue;
+                }
+
+                if ("currentcolor".equalsIgnoreCase(token.getStringValue())) {
+                    if (color != null) {
+                        throw new CSSParseException(cssName + " cannot have two colors", -1);
+                    }
+                    color = new PropertyValue(IdentValue.CURRENT_COLOR);
                     continue;
                 }
 
@@ -101,8 +120,8 @@ public class BoxShadowPropertyBuilder extends AbstractPropertyBuilder {
                 }
                 color = token;
             } else if (isLengthHelper(token)) {
-                if (lengths.size() == 4) {
-                    throw new CSSParseException(cssName + " may not have more than four lengths", -1);
+                if (lengths.size() == (text ? 3 : 4)) {
+                    throw new CSSParseException(cssName + " may not have more than " + (text ? "three" : "four") + " lengths", -1);
                 }
                 if (lengths.size() == 2 && token.getFloatValue() < 0.0f) {
                     throw new CSSParseException("blur-radius for " + cssName + " may not be negative", -1);
@@ -124,7 +143,8 @@ public class BoxShadowPropertyBuilder extends AbstractPropertyBuilder {
         result.add(lengths.get(1));
         result.add(lengths.size() >= 3 ? lengths.get(2) : ZERO_LENGTH);
         result.add(lengths.size() == 4 ? lengths.get(3) : ZERO_LENGTH);
-        result.add(color != null ? color : new PropertyValue(FSRGBColor.BLACK));
+        result.add(color != null ? color :
+                text ? new PropertyValue(IdentValue.CURRENT_COLOR) : new PropertyValue(FSRGBColor.BLACK));
         return result;
     }
 }
