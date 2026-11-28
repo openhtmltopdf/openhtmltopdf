@@ -2295,6 +2295,14 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-selectors", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests that style elements in the body apply, as in browsers, and are not shown.
+     */
+    @Test
+    public void testCssStyleInBody() throws IOException {
+        assertTrue(vt.runTest("css-style-in-body", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
