@@ -2371,6 +2371,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-text-decoration-style", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests width: fit-content, min-content and max-content, with auto margins and
+     * in right-to-left text.
+     */
+    @Test
+    public void testCssIntrinsicWidth() throws IOException {
+        assertTrue(vt.runTest("css-intrinsic-width", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

@@ -1229,8 +1229,25 @@ public class CalculatedStyle {
         return isAbsolute() || isFixed() || isRelative();
     }
 
+    /**
+     * @return whether the width is auto, or one of the keywords fit-content,
+     * min-content and max-content, which start out as auto and are then shrunk to
+     * the content, see {@link #getIntrinsicWidth()}.
+     */
     public boolean isAutoWidth() {
-        return isIdent(CSSName.WIDTH, IdentValue.AUTO);
+        FSDerivedValue width = valueByName(CSSName.WIDTH);
+        return width == IdentValue.AUTO || width == IdentValue.FIT_CONTENT ||
+               width == IdentValue.MIN_CONTENT || width == IdentValue.MAX_CONTENT;
+    }
+
+    /**
+     * @return fit-content, min-content or max-content when the width is one of
+     * them, else null.
+     */
+    public IdentValue getIntrinsicWidth() {
+        FSDerivedValue width = valueByName(CSSName.WIDTH);
+        return width == IdentValue.FIT_CONTENT || width == IdentValue.MIN_CONTENT ||
+               width == IdentValue.MAX_CONTENT ? (IdentValue) width : null;
     }
 
     public boolean isAbsoluteWidth() {

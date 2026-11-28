@@ -1714,7 +1714,17 @@ public class PrimitivePropertyBuilders {
         }
     }
 
-    public static class Width extends LengthLikeWithAuto {
+    public static class Width extends LengthLikeWithIdent {
+        // auto | fit-content | min-content | max-content | <length> | <percentage>
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.FIT_CONTENT,
+                                   IdentValue.MIN_CONTENT, IdentValue.MAX_CONTENT });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+
         @Override
         protected boolean isNegativeValuesAllowed() {
             return false;

@@ -1104,7 +1104,7 @@ public class BlockBox extends Box {
                 if (re != null) {
 
                 } else if (cssWidth == -1 && pinnedContentWidth == -1 &&
-                        style.isCanBeShrunkToFit()) {
+                        (style.isCanBeShrunkToFit() || (style.getIntrinsicWidth() != null && !isAnonymous()))) {
                     setNeedShrinkToFitCalculation(true);
                 }
 
@@ -1372,6 +1372,21 @@ public class BlockBox extends Box {
             setContentWidth(calcShrinkToFitWidth(c) - getLeftMBP() - getRightMBP());
             applyCSSMinMaxWidth(c);
             setNeedShrinkToFitCalculation(false);
+
+            if (getStyle().getIntrinsicWidth() != null && getStyle().isNeedAutoMarginResolution()) {
+                // A block in the flow sized by fit-content, min-content or
+                // max-content: auto margins (centering, as with margin: 0 auto) and
+                // right-to-left alignment follow the width it shrank to.
+                RectPropertySet padding = getPadding(c);
+                BorderPropertySet border = getBorder(c);
+                if (getStyle().isAutoLeftMargin() || getStyle().isAutoRightMargin()) {
+                    resolveAutoMargins(c, getContentWidth(), padding, border);
+                }
+                RectPropertySet margin = getMargin(c);
+                setLeftMBP((int) margin.left() + (int) border.left() + (int) padding.left());
+                setRightMBP((int) padding.right() + (int) border.right() + (int) margin.right());
+                alignToStartInRtl(c, padding, border);
+            }
         }
     }
 
@@ -2052,6 +2067,13 @@ public class BlockBox extends Box {
 
     private int calcShrinkToFitWidth(LayoutContext c) {
         calcMinMaxWidth(c);
+
+        IdentValue intrinsic = getStyle().getIntrinsicWidth();
+        if (intrinsic == IdentValue.MIN_CONTENT) {
+            return getMinWidth();
+        } else if (intrinsic == IdentValue.MAX_CONTENT) {
+            return getMaxWidth();
+        }
 
         return Math.min(Math.max(getMinWidth(), getAvailableWidth(c)), getMaxWidth());
     }
