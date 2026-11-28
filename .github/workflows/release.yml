@@ -2,6 +2,12 @@ name: release
 
 on:
   workflow_dispatch:
+    inputs:
+      increment:
+        description: "Version part to increment"
+        type: choice
+        options: [patch, minor, major]
+        default: patch
   push:
     branches:
       - main
@@ -59,12 +65,31 @@ jobs:
           distribution: temurin
           java-version: 8
           cache: maven
+      # A patch release by default; "[minor]" or "[major]" in the message of the
+      # pushed commit (the squash title of a pull request) asks for a bigger step.
+      - name: Step 4a - Choose the version part to increment
+        id: increment
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+          INPUT: ${{ inputs.increment }}
+        run: |
+          if [ -n "$INPUT" ]; then
+            part="$INPUT"
+          elif printf '%s' "$MESSAGE" | grep -qF '[major]'; then
+            part=major
+          elif printf '%s' "$MESSAGE" | grep -qF '[minor]'; then
+            part=minor
+          else
+            part=patch
+          fi
+          echo "Incrementing the $part version"
+          echo "part=$part" >> "$GITHUB_OUTPUT"
       - name: Step 4 - Get next version
         uses: reecetech/version-increment@2023.9.3
         id: version
         with:
           scheme: semver
-          increment: patch
+          increment: ${{ steps.increment.outputs.part }}
       - name: Step 5 - Prepare and perform release
         run: ./mvnw -B deploy --no-transfer-progress -e -Prelease -Drevision=${{ steps.version.outputs.version }} -s settings.xml
         env:
