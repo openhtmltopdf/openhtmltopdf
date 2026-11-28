@@ -13,7 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import java.util.logging.Level;
 
 import com.openhtmltopdf.util.LogMessageId;
@@ -66,7 +66,7 @@ public class PdfBoxAccessibilityHelper {
     private final Document _doc;
     private final GenericStructualElement _root;
 
-    private static final Map<String, Supplier<AbstractStructualElement>> _tagSuppliers = createTagSuppliers();
+    private static final Map<String, Function<org.w3c.dom.Element, AbstractStructualElement>> _tagSuppliers = createTagSuppliers();
 
     private int _nextMcid;
 
@@ -99,26 +99,50 @@ public class PdfBoxAccessibilityHelper {
      */
     private final Map<org.w3c.dom.Element, AnchorStuctualElement> _runningLinkCache = new HashMap<>();
 
-    private static Map<String, Supplier<AbstractStructualElement>> createTagSuppliers() {
-        Map<String, Supplier<AbstractStructualElement>> suppliers = new HashMap<>();
+    private static Map<String, Function<org.w3c.dom.Element, AbstractStructualElement>> createTagSuppliers() {
+        Map<String, Function<org.w3c.dom.Element, AbstractStructualElement>> suppliers = new HashMap<>();
 
-        suppliers.put("ul", ListStructualElement::new);
-        suppliers.put("ol", ListStructualElement::new);
-        suppliers.put("li", ListItemStructualElement::new);
+        // A list inside an element with role="doc-toc" (or with that role itself) is a
+        // table of contents: TOC with TOCI items instead of L with LI. GH issue #158.
+        suppliers.put("ul", e -> isInTableOfContents(e) ? new TocStructualElement() : new ListStructualElement());
+        suppliers.put("ol", e -> isInTableOfContents(e) ? new TocStructualElement() : new ListStructualElement());
+        suppliers.put("li", e -> isTableOfContentsItem(e) ? new TocItemStructualElement() : new ListItemStructualElement());
 
-        suppliers.put("dl", DescriptionListStructualElement::new);
-        suppliers.put("dt", DescriptionTermStructualElement::new);
-        suppliers.put("dd", DescriptionDetailsStructualElement::new);
+        suppliers.put("dl", e -> new DescriptionListStructualElement());
+        suppliers.put("dt", e -> new DescriptionTermStructualElement());
+        suppliers.put("dd", e -> new DescriptionDetailsStructualElement());
 
-        suppliers.put("table", TableStructualElement::new);
-        suppliers.put("tr", TableRowStructualElement::new);
-        suppliers.put("td", TableCellStructualElement::new);
-        suppliers.put("th", TableHeaderStructualElement::new);
+        suppliers.put("table", e -> new TableStructualElement());
+        suppliers.put("tr", e -> new TableRowStructualElement());
+        suppliers.put("td", e -> new TableCellStructualElement());
+        suppliers.put("th", e -> new TableHeaderStructualElement());
 
-        suppliers.put("a", AnchorStuctualElement::new);
-        suppliers.put("abbr", AbbrStuctualElement::new);
+        suppliers.put("a", e -> new AnchorStuctualElement());
+        suppliers.put("abbr", e -> new AbbrStuctualElement());
 
         return suppliers;
+    }
+
+    /**
+     * @return whether the element or one of its ancestors has the ARIA role doc-toc.
+     */
+    static boolean isInTableOfContents(org.w3c.dom.Element element) {
+        for (Node node = element; node instanceof org.w3c.dom.Element; node = node.getParentNode()) {
+            String role = ((org.w3c.dom.Element) node).getAttribute("role");
+            if (!role.isEmpty() && Arrays.asList(role.trim().split("\\s+")).contains("doc-toc")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isTableOfContentsItem(org.w3c.dom.Element li) {
+        Node parent = li.getParentNode();
+        if (!(parent instanceof org.w3c.dom.Element)) {
+            return false;
+        }
+        String tag = ((org.w3c.dom.Element) parent).getTagName();
+        return ("ul".equals(tag) || "ol".equals(tag)) && isInTableOfContents((org.w3c.dom.Element) parent);
     }
 
     public PdfBoxAccessibilityHelper(PdfBoxFastOutputDevice od, Box root, Document doc) {
@@ -645,7 +669,7 @@ public class PdfBoxAccessibilityHelper {
                 // marked-content ids but had no structure element (PDF/UA-1 7.1). An L takes only
                 // LI children, so the child goes into the LBody of a synthetic LI, as a description
                 // list does with its parts.
-                ListItemStructualElement item = new ListItemStructualElement();
+                ListItemStructualElement item = newSyntheticItem();
                 item.synthetic = true;
                 item.parent = this;
                 if (child instanceof AbstractStructualElement) {
@@ -665,13 +689,27 @@ public class PdfBoxAccessibilityHelper {
             }
         }
 
+        ListItemStructualElement newSyntheticItem() {
+            return new ListItemStructualElement();
+        }
+
         @Override
         void finish(AbstractStructualElement parent) {
             ListStructualElement child = this;
 
             createPdfStrucureElement(parent, child);
 
-            IdentValue listStyleType = child.box.getStyle().getIdent(CSSName.LIST_STYLE_TYPE);
+            if (!(child instanceof TocStructualElement)) {
+                setListNumbering();
+            }
+
+            handleGlobalAttributes();
+
+            finishTreeItems(child.listItems, child);
+        }
+
+        private void setListNumbering() {
+            IdentValue listStyleType = box.getStyle().getIdent(CSSName.LIST_STYLE_TYPE);
             String listType;
 
             if (listStyleType == IdentValue.NONE) {
@@ -704,10 +742,62 @@ public class PdfBoxAccessibilityHelper {
             listNumbering.setItem(COSName.O, COSName.getPDFName("List"));
             listNumbering.setItem(COSName.getPDFName("ListNumbering"), COSName.getPDFName(listType));
             setAttributeDictionary(listNumbering);
+        }
+    }
+
+    /**
+     * A list inside role="doc-toc": a TOC whose items are TOCI. A TOC nested in a
+     * TOCI is a sub-table of contents.
+     */
+    private static class TocStructualElement extends ListStructualElement {
+        @Override
+        String getPdfTag() {
+            return StandardStructureTypes.TOC;
+        }
+
+        @Override
+        ListItemStructualElement newSyntheticItem() {
+            return new TocItemStructualElement();
+        }
+    }
+
+    /**
+     * A TOCI takes Lbl, Reference, NonStruct, P and TOC children, but no LBody
+     * (ISO 32000-2, Annex L). An item holding only inline content, usually a link to
+     * its heading, puts it in a Reference; an item with block content (a line and a
+     * nested list) puts its blocks, P and TOC, straight into the TOCI.
+     */
+    private static class TocItemStructualElement extends ListItemStructualElement {
+        @Override
+        String getPdfTag() {
+            return StandardStructureTypes.TOCI;
+        }
+
+        @Override
+        void finish(AbstractStructualElement parent) {
+            TocItemStructualElement child = this;
+
+            createPdfStrucureElement(parent, child);
 
             handleGlobalAttributes();
 
-            finishTreeItems(child.listItems, child);
+            finishTreeItem(child.label, child);
+
+            if (holdsInlineContent()) {
+                child.body.tag = StandardStructureTypes.REFERENCE;
+                finishTreeItem(child.body, child);
+            } else {
+                finishTreeItems(child.body.children, child);
+            }
+
+            if (child.synthetic) {
+                child.elem.getCOSObject().setBoolean(SYNTHETIC_LIST_ITEM, true);
+            }
+        }
+
+        private boolean holdsInlineContent() {
+            return box instanceof BlockBox &&
+                   ((BlockBox) box).getChildrenContentType() == BlockBox.ContentType.INLINE;
         }
     }
 
@@ -788,9 +878,12 @@ public class PdfBoxAccessibilityHelper {
     }
 
     private static class ListBodyStructualElement extends GenericStructualElement {
+        /** Set by a TOCI, which takes no LBody. */
+        String tag = StandardStructureTypes.L_BODY;
+
         @Override
         String getPdfTag() {
-            return StandardStructureTypes.L_BODY;
+            return tag;
         }
 
         @Override
@@ -1807,7 +1900,7 @@ public class PdfBoxAccessibilityHelper {
             if (child == null && box.getElement() != null && !box.isAnonymous() &&
                 box.getPseudoElementOrClass() == null) {
                 String htmlTag = box.getElement().getTagName();
-                Supplier<AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
+                Function<org.w3c.dom.Element, AbstractStructualElement> supplier = _tagSuppliers.get(htmlTag);
 
                 // A <table> laid out as something other than a table (an e-mail's
                 // display:block table) is not the Table: its rows sit in an anonymous
@@ -1815,7 +1908,7 @@ public class PdfBoxAccessibilityHelper {
                 // Table drop that box as an incompatible child, leaving everything inside
                 // it with marked content but no structure element.
                 if (supplier != null && !("table".equals(htmlTag) && !(box instanceof TableBox))) {
-                    child = supplier.get();
+                    child = supplier.apply(box.getElement());
                 }
             }
 

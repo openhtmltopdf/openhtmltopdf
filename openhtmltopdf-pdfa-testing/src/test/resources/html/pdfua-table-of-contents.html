@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>PDF/UA Table of Contents Test</title>
+  <meta name="subject" content="PDF/UA table of contents validation"/>
+  <meta name="author" content="openhtmltopdf.com team"/>
+  <meta name="description" content="Tests lists inside role=doc-toc mapping to TOC/TOCI for PDF/UA-1"/>
+  <style>
+  body {
+    margin: 0;
+    font-family: 'TestFont';
+    font-size: 15px;
+  }
+  </style>
+</head>
+<body>
+  <!-- A list inside role="doc-toc" is a TOC; a nested list a TOC in its TOCI. -->
+  <nav role="doc-toc">
+    <h1>Contents</h1>
+    <ol>
+      <li><a href="#one">One</a></li>
+      <li><a href="#two">Two</a>
+        <ol>
+          <li><a href="#two-a">Two A</a></li>
+        </ol>
+      </li>
+    </ol>
+  </nav>
+
+  <!-- The role on the list itself. -->
+  <ul role="doc-toc" style="list-style: none;">
+    <li><a href="#one">One</a></li>
+  </ul>
+
+  <!-- Any other list stays an L. -->
+  <ul>
+    <li>Plain item</li>
+  </ul>
+
+  <h1 id="one">One</h1>
+  <p>Text one.</p>
+  <h1 id="two">Two</h1>
+  <h2 id="two-a">Two A</h2>
+  <p>Text two.</p>
+</body>
+</html>
