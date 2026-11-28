@@ -1983,6 +1983,59 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    /**
+     * aspect-ratio: auto | ratio | auto ratio, where ratio is a number or two numbers
+     * separated by a slash. Built as the ident auto, or as the number width / height,
+     * negative for "auto ratio" (the natural ratio of an image wins over it).
+     */
+    public static class AspectRatioBuilder extends AbstractPropertyBuilder {
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, 4, values.size());
+
+            boolean auto = false;
+            List<PropertyValue> numbers = new ArrayList<>(2);
+            for (PropertyValue value : values) {
+                if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
+                    checkInheritAllowed(value, inheritAllowed);
+                    if (value.getCssValueType() == CSSValue.CSS_INHERIT) {
+                        return Collections.singletonList(new PropertyDeclaration(cssName, value, important, origin));
+                    }
+                    if (auto || checkIdent(cssName, value) != IdentValue.AUTO) {
+                        throw new CSSParseException("Invalid aspect-ratio", -1);
+                    }
+                    auto = true;
+                } else if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_NUMBER && value.getFloatValue() >= 0) {
+                    numbers.add(value);
+                } else {
+                    throw new CSSParseException("Value for aspect-ratio must be auto or a ratio", -1);
+                }
+            }
+
+            if (numbers.size() > 2 || (numbers.size() == 2 && numbers.get(1).getOperator() != Token.TK_VIRGULE)) {
+                throw new CSSParseException("Invalid ratio for aspect-ratio", -1);
+            }
+
+            float ratio = 0;
+            if (numbers.size() == 1) {
+                ratio = numbers.get(0).getFloatValue();
+            } else if (numbers.size() == 2 && numbers.get(1).getFloatValue() > 0) {
+                ratio = numbers.get(0).getFloatValue() / numbers.get(1).getFloatValue();
+            }
+
+            if (ratio <= 0 || java.lang.Float.isInfinite(ratio)) {
+                // auto, or a degenerate ratio, which behaves as auto.
+                return Collections.singletonList(
+                        new PropertyDeclaration(cssName, new PropertyValue(IdentValue.AUTO), important, origin));
+            }
+
+            float stored = auto ? -ratio : ratio;
+            return Collections.singletonList(new PropertyDeclaration(cssName,
+                    new PropertyValue(CSSPrimitiveValue.CSS_NUMBER, stored, java.lang.Float.toString(stored)), important, origin));
+        }
+    }
+
     public static class ObjectFitBuilder extends SingleIdent {
         // fill | contain | cover | none | scale-down
         private static final BitSet ALLOWED = setFor(

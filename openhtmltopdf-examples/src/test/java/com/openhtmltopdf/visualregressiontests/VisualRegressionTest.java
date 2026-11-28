@@ -2312,6 +2312,14 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-logical-properties", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests aspect-ratio for blocks and images.
+     */
+    @Test
+    public void testCssAspectRatio() throws IOException {
+        assertTrue(vt.runTest("css-aspect-ratio", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

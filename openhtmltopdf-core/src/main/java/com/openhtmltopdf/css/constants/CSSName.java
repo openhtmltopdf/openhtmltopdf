@@ -1712,6 +1712,19 @@ public final class CSSName implements Comparable<CSSName> {
      * Unique CSSName instance for CSS3 property.
      */
     /**
+     * The preferred ratio of width to height of a box, see
+     * CalculatedStyle#getAspectRatio().
+     */
+    public final static CSSName ASPECT_RATIO =
+            addProperty(
+                    "aspect-ratio",
+                    PRIMITIVE,
+                    "auto",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.AspectRatioBuilder()
+            );
+
+    /**
      * How the content of a replaced element (an image, a PDF page) is sized within
      * its content box.
      */

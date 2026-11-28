@@ -1490,6 +1490,15 @@ public class CalculatedStyle {
      * @return whether images keep the orientation they are stored in, ignoring the one
      * in their EXIF data (image-orientation: none).
      */
+    /**
+     * @return the preferred ratio of width to height from aspect-ratio: 0 for auto,
+     * negative for "auto ratio", whose ratio an image's own ratio overrides.
+     */
+    public float getAspectRatio() {
+        FSDerivedValue value = valueByName(CSSName.ASPECT_RATIO);
+        return value instanceof IdentValue ? 0 : value.asFloat();
+    }
+
     public boolean isImageOrientationNone() {
         return isIdent(CSSName.IMAGE_ORIENTATION, IdentValue.NONE);
     }
