@@ -2269,6 +2269,14 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("object-fit", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the ch, vw, vh, vmin and vmax units.
+     */
+    @Test
+    public void testCssUnits() throws IOException {
+        assertTrue(vt.runTest("css-units", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

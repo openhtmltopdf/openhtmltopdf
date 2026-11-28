@@ -31,6 +31,17 @@ public interface CSSPrimitiveValue extends CSSValue {
     /** rems unit, not official, added by danfickle. */
     public static final short CSS_REMS = 26;
 
+    /** The advance of "0" in the element's font. */
+    public static final short CSS_CH = 27;
+    /** 1% of the width of the viewport, which is the page area of the first page. */
+    public static final short CSS_VW = 28;
+    /** 1% of the height of the viewport. */
+    public static final short CSS_VH = 29;
+    /** 1% of the smaller of the viewport's width and height. */
+    public static final short CSS_VMIN = 30;
+    /** 1% of the larger of the viewport's width and height. */
+    public static final short CSS_VMAX = 31;
+
     public short getPrimitiveType();
     public float getFloatValue(short unitType);
     public String getStringValue();

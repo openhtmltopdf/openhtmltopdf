@@ -19,6 +19,8 @@
  */
 package com.openhtmltopdf.css.style.derived;
 
+import java.awt.Rectangle;
+
 import java.util.logging.Level;
 
 import com.openhtmltopdf.css.constants.CSSName;
@@ -98,7 +100,8 @@ public class LengthValue extends DerivedValue {
     @Override
     public boolean isDependentOnFontSize() {
         return _lengthPrimitiveType == CSSPrimitiveValue.CSS_EXS ||
-                    _lengthPrimitiveType == CSSPrimitiveValue.CSS_EMS;
+                    _lengthPrimitiveType == CSSPrimitiveValue.CSS_EMS ||
+                    _lengthPrimitiveType == CSSPrimitiveValue.CSS_CH;
     }
 
     public static float calcFloatProportionalValue(CalculatedStyle style,
@@ -160,6 +163,28 @@ public class LengthValue extends DerivedValue {
                    FontSpecification htmlTagFontSpecification = htmlTagStyle.getFont(ctx);
                    absVal = relVal * htmlTagFontSpecification.size;
                 }
+                break;
+            }
+            case CSSPrimitiveValue.CSS_CH: {
+                // The advance of "0"; in font-size it refers to the parent's font, as em does.
+                FontSpecification font = cssName == CSSName.FONT_SIZE ?
+                        style.getParent().getFont(ctx) : style.getFont(ctx);
+                absVal = relVal * ctx.getTextRenderer().getWidth(ctx.getFontContext(), ctx.getFont(font), "0");
+                break;
+            }
+            case CSSPrimitiveValue.CSS_VW:
+            case CSSPrimitiveValue.CSS_VH:
+            case CSSPrimitiveValue.CSS_VMIN:
+            case CSSPrimitiveValue.CSS_VMAX: {
+                // In paged media the viewport is the page area of the first page.
+                Rectangle viewport = ctx.getCss().getViewport();
+                float width = viewport != null ? viewport.width : 0;
+                float height = viewport != null ? viewport.height : 0;
+                float base = primitiveType == CSSPrimitiveValue.CSS_VW ? width :
+                             primitiveType == CSSPrimitiveValue.CSS_VH ? height :
+                             primitiveType == CSSPrimitiveValue.CSS_VMIN ? Math.min(width, height) :
+                             Math.max(width, height);
+                absVal = relVal / 100f * base;
                 break;
             }
             case CSSPrimitiveValue.CSS_EXS:

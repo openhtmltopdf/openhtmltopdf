@@ -1781,6 +1781,22 @@ public class CSSParser {
 //        TIME S* | FREQ S* ]
 //    | STRING S* | IDENT S* | URI S* | hexcolor | function
 //    ;
+    /**
+     * @return the unit of a dimension the tokenizer has no token type for, or
+     * CSS_UNKNOWN.
+     */
+    private static short unitForDimension(String unit) {
+        switch (unit.toLowerCase(Locale.ROOT)) {
+        case "rem": return CSSPrimitiveValue.CSS_REMS;
+        case "ch": return CSSPrimitiveValue.CSS_CH;
+        case "vw": return CSSPrimitiveValue.CSS_VW;
+        case "vh": return CSSPrimitiveValue.CSS_VH;
+        case "vmin": return CSSPrimitiveValue.CSS_VMIN;
+        case "vmax": return CSSPrimitiveValue.CSS_VMAX;
+        default: return CSSPrimitiveValue.CSS_UNKNOWN;
+        }
+    }
+
     private PropertyValue term(boolean literal) throws IOException {
         //System.out.println("term()");
         float sign = 1;
@@ -1798,9 +1814,10 @@ public class CSSParser {
             case Token.DIMENSION:
                 String unitType = extractUnit(t);
 
-                if ("rem".equals(unitType)) {
+                short dimensionUnit = unitForDimension(unitType);
+                if (dimensionUnit != CSSPrimitiveValue.CSS_UNKNOWN) {
                     result = new PropertyValue(
-                            CSSPrimitiveValue.CSS_REMS,
+                            dimensionUnit,
                             sign * Float.parseFloat(extractNumber(t)),
                             sign(sign) + getTokenValue(t));
                     next();

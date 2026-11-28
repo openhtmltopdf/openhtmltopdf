@@ -76,6 +76,23 @@ public class StyleReference {
     /**
      * Gets the style of the root element, should be html tag.
      */
+    private java.awt.Rectangle _viewport;
+
+    /**
+     * Sets the viewport that vw, vh, vmin and vmax refer to: the page area of the
+     * first page.
+     */
+    public void setViewport(java.awt.Rectangle viewport) {
+        _viewport = viewport;
+    }
+
+    /**
+     * @return the viewport set by {@link #setViewport(java.awt.Rectangle)}, or null.
+     */
+    public java.awt.Rectangle getViewport() {
+        return _viewport;
+    }
+
     public CalculatedStyle getRootElementStyle() {
         if (_context != null && _doc != null) {
             return _context.getStyle(_doc.getDocumentElement());
