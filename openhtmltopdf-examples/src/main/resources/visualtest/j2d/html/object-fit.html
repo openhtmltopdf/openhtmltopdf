@@ -1,0 +1,56 @@
+<html>
+<head>
+<style>
+@page {
+  size: 560px 600px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 11px;
+}
+.cell {
+  display: inline-block;
+  width: 130px;
+  margin: 0 4px 6px 0;
+  vertical-align: top;
+}
+img {
+  display: block;
+  width: 120px;
+  height: 60px;
+  padding: 3px;
+  border: 1px solid #c00;
+  background: #ddd;
+}
+img.tall {
+  width: 50px;
+  height: 90px;
+}
+</style>
+</head>
+<body>
+<!-- A 192x160 image in a wide box. -->
+<div class="cell">fill<img src="../../../demos/images/cc0-cat.png" style="object-fit: fill;"/></div>
+<div class="cell">contain<img src="../../../demos/images/cc0-cat.png" style="object-fit: contain;"/></div>
+<div class="cell">cover<img src="../../../demos/images/cc0-cat.png" style="object-fit: cover;"/></div>
+<div class="cell">none<img src="../../../demos/images/cc0-cat.png" style="object-fit: none;"/></div>
+<div class="cell">scale-down<img src="../../../demos/images/cc0-cat.png" style="object-fit: scale-down;"/></div>
+
+<!-- The same in a tall box. -->
+<div class="cell">contain<img class="tall" src="../../../demos/images/cc0-cat.png" style="object-fit: contain;"/></div>
+<div class="cell">cover<img class="tall" src="../../../demos/images/cc0-cat.png" style="object-fit: cover;"/></div>
+
+<!-- scale-down of an image smaller than its box: natural size. -->
+<div class="cell">scale-down, small<img src="../../../demos/images/flyingsaucer.png" style="object-fit: scale-down; width: 120px; height: 140px;"/></div>
+
+<!-- object-position. -->
+<div class="cell">contain left top<img src="../../../demos/images/cc0-cat.png" style="object-fit: contain; object-position: left top;"/></div>
+<div class="cell">contain right<img src="../../../demos/images/cc0-cat.png" style="object-fit: contain; object-position: right;"/></div>
+<div class="cell">cover bottom<img src="../../../demos/images/cc0-cat.png" style="object-fit: cover; object-position: bottom;"/></div>
+<div class="cell">none 10px 20px<img src="../../../demos/images/cc0-cat.png" style="object-fit: none; object-position: 10px 20px;"/></div>
+<div class="cell">none 0% 100%<img src="../../../demos/images/cc0-cat.png" style="object-fit: none; object-position: 0% 100%;"/></div>
+
+</body>
+</html>

@@ -1983,6 +1983,18 @@ public class PrimitivePropertyBuilders {
         }
     }
 
+    public static class ObjectFitBuilder extends SingleIdent {
+        // fill | contain | cover | none | scale-down
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.FILL, IdentValue.CONTAIN, IdentValue.COVER,
+                                   IdentValue.NONE, IdentValue.SCALE_DOWN });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
     public static class BoxSizing extends SingleIdent {
         // border-box | content-box
         private static final BitSet ALLOWED = setFor(

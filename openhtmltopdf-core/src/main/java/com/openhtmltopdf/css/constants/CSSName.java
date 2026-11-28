@@ -1634,6 +1634,32 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS3 property.
      */
+    /**
+     * How the content of a replaced element (an image, a PDF page) is sized within
+     * its content box.
+     */
+    public final static CSSName OBJECT_FIT =
+            addProperty(
+                    "object-fit",
+                    PRIMITIVE,
+                    "fill",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.ObjectFitBuilder()
+            );
+
+    /**
+     * Where the content of a replaced element sits within its content box, written
+     * like a single background-position.
+     */
+    public final static CSSName OBJECT_POSITION =
+            addProperty(
+                    "object-position",
+                    PRIMITIVE,
+                    "50% 50%",
+                    NOT_INHERITED,
+                    new PrimitiveBackgroundPropertyBuilders.BackgroundPosition()
+            );
+
     public final static CSSName IMAGE_ORIENTATION =
             addProperty(
                     "image-orientation",

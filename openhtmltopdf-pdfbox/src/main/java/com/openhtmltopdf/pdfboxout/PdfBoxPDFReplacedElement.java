@@ -19,12 +19,15 @@
  */
 package com.openhtmltopdf.pdfboxout;
 
+import com.openhtmltopdf.css.constants.CSSName;
+import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.layout.LayoutContext;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.pdfboxout.PdfBoxLinkManager.IPdfBoxElementWithShapedLinks;
 import com.openhtmltopdf.render.BlockBox;
 import com.openhtmltopdf.render.Box;
+import com.openhtmltopdf.render.ObjectFit;
 import com.openhtmltopdf.render.RenderingContext;
 import com.openhtmltopdf.swing.ImageMapParser;
 import com.openhtmltopdf.util.LogMessageId;
@@ -41,6 +44,7 @@ import org.w3c.dom.Element;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Level;
@@ -137,7 +141,30 @@ public class PdfBoxPDFReplacedElement implements PdfBoxReplacedElement, IPdfBoxE
     @Override
     public void paint(RenderingContext c, PdfBoxOutputDevice outputDevice, BlockBox box) {
         Rectangle contentBounds = box.getContentAreaEdge(box.getAbsX(), box.getAbsY(), c);
-        outputDevice.drawPdfAsImage(_srcFormObject, contentBounds, getIntrinsicWidth(), getIntrinsicHeight());
+
+        if (box.getStyle().isIdent(CSSName.OBJECT_FIT, IdentValue.FILL)) {
+            // Unlike an image, a PDF page has always kept its aspect ratio in a box of
+            // another shape, at the top left: object-fit: fill (the initial value) keeps
+            // doing so, so that existing documents do not change.
+            outputDevice.drawPdfAsImage(_srcFormObject, contentBounds, getIntrinsicWidth(), getIntrinsicHeight());
+            return;
+        }
+
+        Rectangle2D target = ObjectFit.destination(c, box.getStyle(), contentBounds, _width, _height);
+        boolean clip = ObjectFit.overflows(target, contentBounds);
+
+        if (clip) {
+            outputDevice.pushClip(contentBounds);
+        }
+
+        Rectangle targetBounds = new Rectangle(
+                (int) Math.round(target.getX()), (int) Math.round(target.getY()),
+                (int) Math.round(target.getWidth()), (int) Math.round(target.getHeight()));
+        outputDevice.drawPdfAsImage(_srcFormObject, targetBounds, getIntrinsicWidth(), getIntrinsicHeight());
+
+        if (clip) {
+            outputDevice.popClip();
+        }
     }
 
     @Override

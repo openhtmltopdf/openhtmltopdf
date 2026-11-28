@@ -157,6 +157,15 @@ public class PdfUaTester {
         assertTrue(run("pdfua-structure"));
     }
 
+    /**
+     * object-fit: cover and none clip the image to its content box, inside its Figure.
+     */
+    @Test
+    public void testObjectFitPdfUa1() throws Exception {
+        assertTrue(run("pdfua-object-fit"));
+        assertMarkedContentReferencesResolve("pdfua-object-fit", false);
+    }
+
     @Test
     public void testDescriptionListsPdfUa1() throws Exception {
         assertTrue(run("pdfua-description-lists"));
