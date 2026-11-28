@@ -110,6 +110,11 @@ public final class ValueConstants {
             case CSSPrimitiveValue.CSS_EMS:
             case CSSPrimitiveValue.CSS_REMS:
             case CSSPrimitiveValue.CSS_EXS:
+            case CSSPrimitiveValue.CSS_CH:
+            case CSSPrimitiveValue.CSS_VW:
+            case CSSPrimitiveValue.CSS_VH:
+            case CSSPrimitiveValue.CSS_VMIN:
+            case CSSPrimitiveValue.CSS_VMAX:
                 // length
             case CSSPrimitiveValue.CSS_IN:
             case CSSPrimitiveValue.CSS_CM:
@@ -198,5 +203,11 @@ public final class ValueConstants {
         sacTypesStrings.put(CSSPrimitiveValue.CSS_MM, "mm");
         sacTypesStrings.put(CSSPrimitiveValue.CSS_PT, "pt");
         sacTypesStrings.put(CSSPrimitiveValue.CSS_PC, "pc");
+        sacTypesStrings.put(CSSPrimitiveValue.CSS_REMS, "rem");
+        sacTypesStrings.put(CSSPrimitiveValue.CSS_CH, "ch");
+        sacTypesStrings.put(CSSPrimitiveValue.CSS_VW, "vw");
+        sacTypesStrings.put(CSSPrimitiveValue.CSS_VH, "vh");
+        sacTypesStrings.put(CSSPrimitiveValue.CSS_VMIN, "vmin");
+        sacTypesStrings.put(CSSPrimitiveValue.CSS_VMAX, "vmax");
     }
 }

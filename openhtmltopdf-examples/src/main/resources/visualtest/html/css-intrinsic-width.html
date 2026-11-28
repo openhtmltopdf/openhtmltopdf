@@ -1,0 +1,41 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 500px 440px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+div {
+  background: #9cf;
+  margin-bottom: 6px;
+  padding: 2px 4px;
+}
+</style>
+</head>
+<body>
+<div>auto: as wide as the page</div>
+<div style="width: fit-content">fit-content</div>
+<div style="width: max-content">max-content</div>
+<div style="width: min-content">min-content: as wide as the longest word</div>
+<div style="width: fit-content">fit-content with a lot of text that does not fit on one line, so it wraps at the width of the page like auto</div>
+<div style="width: max-content; max-width: 200px">max-content, but max-width 200px with longer text that wraps</div>
+<div style="width: fit-content; margin: 0 auto 6px auto">centered with margin: 0 auto</div>
+<div style="width: fit-content; margin-left: auto; margin-bottom: 6px">margin-left: auto</div>
+<div dir="rtl" style="background: none; padding: 0"><div style="width: fit-content">fit-content in rtl</div></div>
+<div style="width: fit-content; border: 3px solid #036; padding: 6px">with border and padding</div>
+<div style="width: fit-content; box-sizing: border-box; padding: 6px">box-sizing: border-box</div>
+<div style="width: fit-content"><div style="background: #fc0; margin: 0">nested block</div><span>and a line</span></div>
+</body>
+</html>

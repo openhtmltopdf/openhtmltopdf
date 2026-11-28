@@ -7,6 +7,7 @@ import com.openhtmltopdf.css.parser.CSSPrimitiveValue;
 import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.parser.FSFunction;
 import com.openhtmltopdf.css.parser.PropertyValue;
+import com.openhtmltopdf.css.parser.Token;
 import com.openhtmltopdf.css.parser.property.Conversions;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
@@ -64,9 +65,11 @@ public class FSLinearGradient {
 
     public FSLinearGradient(CalculatedStyle style, FSFunction function, int boxWidth, int boxHeight, CssContext ctx) {
         List<PropertyValue> params = function.getParameters();
-        int stopsStartIndex = FSLinearGradientUtil.getStopsStartIndex(params);
+        boolean noDirection = isColor(params.get(0));
+        int stopsStartIndex = noDirection ? 0 : FSLinearGradientUtil.getStopsStartIndex(params);
 
-        float prelimAngle = FSLinearGradientUtil.calculateAngle(params, stopsStartIndex);
+        // Without a direction the gradient runs to the bottom.
+        float prelimAngle = noDirection ? 180f : FSLinearGradientUtil.calculateAngle(params, stopsStartIndex);
         prelimAngle = prelimAngle % 360f;
         if (prelimAngle < 0) {
             prelimAngle += 360f;
@@ -76,7 +79,59 @@ public class FSLinearGradient {
         endPointsFromAngle(_angle, boxWidth, boxHeight);
         // Stop points are positioned along the gradient line, so that - rather than
         // the width of the box - is what a percentage is a percentage of.
-        this._stopPoints = calculateStopPoints(params, style, ctx, getGradientLineLength(), stopsStartIndex);
+        List<StopPoint> stops = calculateStopPoints(params, style, ctx, getGradientLineLength(), stopsStartIndex);
+        if (function.getName().startsWith("repeating-")) {
+            stops = repeat(stops, 0, getGradientLineLength());
+        }
+        this._stopPoints = stops;
+    }
+
+    /**
+     * @return whether value is a color, which a gradient's arguments start with when
+     * they give no direction, shape or position.
+     */
+    static boolean isColor(PropertyValue value) {
+        if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_RGBCOLOR) {
+            return true;
+        }
+        return value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT &&
+               value.getStringValue() != null &&
+               Conversions.getColor(value.getStringValue()) != null;
+    }
+
+    /**
+     * The most repetitions of the stops of a repeating gradient; a gradient with
+     * more, a period of a hair's width in a large box, is drawn without repeating.
+     */
+    private static final int MAX_REPEATED_STOPS = 4096;
+
+    /**
+     * For a repeating gradient: the stops repeated, period after period, so that
+     * they cover the gradient line from from to to.
+     */
+    static List<StopPoint> repeat(List<StopPoint> stops, float from, float to) {
+        if (stops.size() < 2) {
+            return stops;
+        }
+        float first = stops.get(0).getLength();
+        float period = stops.get(stops.size() - 1).getLength() - first;
+        if (period <= 0) {
+            return stops;
+        }
+
+        int startRepeat = (int) Math.floor((from - first) / period);
+        int endRepeat = (int) Math.ceil((to - first) / period);
+        if ((long) (endRepeat - startRepeat) * stops.size() > MAX_REPEATED_STOPS) {
+            return stops;
+        }
+
+        List<StopPoint> result = new ArrayList<>();
+        for (int k = startRepeat; k < endRepeat; k++) {
+            for (StopPoint stop : stops) {
+                result.add(new StopPoint(stop.getColor(), stop.getLength() + k * period));
+            }
+        }
+        return result;
     }
 
     // Compute the endpoints so that a gradient of the given angle
@@ -163,7 +218,11 @@ public class FSLinearGradient {
         y1 = (int) (halfHeight + endY);
     }
 
-    private List<StopPoint> calculateStopPoints(
+    /**
+     * The color stops of a gradient from its arguments, starting at stopsStartIndex,
+     * positioned along a gradient line (or ray) of the given length.
+     */
+    static List<StopPoint> calculateStopPoints(
         List<PropertyValue> params, CalculatedStyle style, CssContext ctx, float gradientLineLength, int stopsStartIndex) {
 
         List<IntermediateStopPoint> points = new ArrayList<>();
@@ -181,10 +240,19 @@ public class FSLinearGradient {
             if (i + 1 < params.size() && FSLinearGradientUtil.isLengthOrPercentage(params.get(i + 1))) {
 
                 PropertyValue lengthValue = params.get(i + 1);
-                float length = LengthValue.calcFloatProportionalValue(style, CSSName.BACKGROUND_IMAGE, "",
+                float length = LengthValue.calcFloatProportionalValue(style, CSSName.BACKGROUND_IMAGE, lengthValue.getCssText(),
                         lengthValue.getFloatValue(), lengthValue.getPrimitiveType(), gradientLineLength, ctx);
                 points.add(new StopPoint(color, length));
                 i += 2;
+
+                if (i < params.size() && params.get(i).getOperator() != Token.TK_COMMA &&
+                    FSLinearGradientUtil.isLengthOrPercentage(params.get(i))) {
+                    // A color with two positions is two stops of that color.
+                    PropertyValue second = params.get(i);
+                    points.add(new StopPoint(color, LengthValue.calcFloatProportionalValue(style, CSSName.BACKGROUND_IMAGE,
+                            second.getCssText(), second.getFloatValue(), second.getPrimitiveType(), gradientLineLength, ctx)));
+                    i += 1;
+                }
             } else {
                 points.add(new IntermediateStopPoint(color));
                 i += 1;
@@ -252,7 +320,7 @@ public class FSLinearGradient {
         return ret;
     }
 
-    private int getPrevStopPointWithLengthIndex(List<IntermediateStopPoint> points, int maxIndex) {
+    private static int getPrevStopPointWithLengthIndex(List<IntermediateStopPoint> points, int maxIndex) {
         for (int i = maxIndex; i >= 0; i--) {
             if (isStopPointWithLength(points.get(i))) {
                 return i;
@@ -261,11 +329,11 @@ public class FSLinearGradient {
         return -1;
     }
 
-    private boolean isStopPointWithLength(IntermediateStopPoint pt) {
+    private static boolean isStopPointWithLength(IntermediateStopPoint pt) {
         return pt.getClass() == StopPoint.class;
     }
 
-    private int getNextStopPointWithLengthIndex(List<IntermediateStopPoint> points, int startIndex) {
+    private static int getNextStopPointWithLengthIndex(List<IntermediateStopPoint> points, int startIndex) {
         for (int i = startIndex; i < points.size(); i++) {
             if (isStopPointWithLength(points.get(i))) {
                 return i;
@@ -298,8 +366,32 @@ public class FSLinearGradient {
      * position of the first stop point. Whatever comes before takes its colour.
      */
     public float getAxisStart() {
-        return _stopPoints.get(0).getLength();
+        return axisStart(_stopPoints);
     }
+
+    /**
+     * The position of the first stop, a little before it when the color changes
+     * right there (two stops at the same position), so that the first color shows
+     * before it.
+     */
+    static float axisStart(List<StopPoint> stops) {
+        float first = stops.get(0).getLength();
+        return stops.size() > 1 && stops.get(1).getLength() <= first ? first - HARD_STOP_PAD : first;
+    }
+
+    /**
+     * The position of the last stop, a little after it when the color changes right
+     * there, so that the last color shows after it.
+     */
+    static float axisEnd(List<StopPoint> stops, float start) {
+        float last = stops.get(stops.size() - 1).getLength();
+        if (stops.size() > 1 && stops.get(stops.size() - 2).getLength() >= last) {
+            last += HARD_STOP_PAD;
+        }
+        return Math.max(last, start + MIN_AXIS_LENGTH);
+    }
+
+    private static final float HARD_STOP_PAD = 0.01f;
 
     /**
      * Where the ramp of colours ends, as a distance along the gradient line: the
@@ -307,8 +399,7 @@ public class FSLinearGradient {
      * that the axis cannot collapse to a point. Whatever follows takes its colour.
      */
     public float getAxisEnd() {
-        float start = getAxisStart();
-        return Math.max(_stopPoints.get(_stopPoints.size() - 1).getLength(), start + MIN_AXIS_LENGTH);
+        return axisEnd(_stopPoints, getAxisStart());
     }
 
     public int getX1() {

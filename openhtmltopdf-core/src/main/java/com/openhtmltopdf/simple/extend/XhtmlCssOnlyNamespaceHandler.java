@@ -325,34 +325,37 @@ public class XhtmlCssOnlyNamespaceHandler extends NoNamespaceHandler {
         //get the processing-instructions (actually for XmlDocuments)
         result.addAll(Arrays.asList(super.getStylesheets(doc)));
 
-        //get the link elements
-        Element html = doc.getDocumentElement();
-        Element head = findFirstChild(html, "head");
-        if (head != null) { // March 2024: HTML spec disallows HTMLStyleElement outside HTMLHeadElement because it is "Metadata content"
-            Node current = head.getFirstChild();
-            while (current != null) {
-                if (current.getNodeType() == Node.ELEMENT_NODE) {
-                    Element elem = (Element) current;
-                    StylesheetInfo info = null;
-                    String elemName = elem.getLocalName();
-                    if (elemName == null) {
-                        elemName = elem.getTagName();
-                    }
-
-                    if (elemName.equals("link")) {
-                        info = readLinkElement(elem);
-                    } else if (elemName.equals("style")) {
-                        info = readStyleElement(elem);
-                    }
-                    if (info != null) {
-                        result.add(info);
-                    }
-                }
-                current = current.getNextSibling();
-            }
-        }
+        // The link and style elements, in document order. The HTML specification
+        // puts them in the head, but browsers also apply those in the body.
+        collectStylesheets(doc.getDocumentElement(), result);
 
         return result.toArray(new StylesheetInfo[result.size()]);
+    }
+
+    private void collectStylesheets(Element parent, List<StylesheetInfo> result) {
+        for (Node current = parent.getFirstChild(); current != null; current = current.getNextSibling()) {
+            if (current.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
+            Element elem = (Element) current;
+            String elemName = elem.getLocalName();
+            if (elemName == null) {
+                elemName = elem.getTagName();
+            }
+
+            StylesheetInfo info = null;
+            if (elemName.equals("link")) {
+                info = readLinkElement(elem);
+            } else if (elemName.equals("style")) {
+                info = readStyleElement(elem);
+            } else if (!elemName.equals("svg") && !elemName.equals("math")) {
+                // The styles inside SVG and MathML are their plugins' own.
+                collectStylesheets(elem, result);
+            }
+            if (info != null) {
+                result.add(info);
+            }
+        }
     }
 
     @Override

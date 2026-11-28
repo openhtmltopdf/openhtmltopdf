@@ -55,6 +55,7 @@ import com.openhtmltopdf.render.InlineText;
 import com.openhtmltopdf.render.LineBox;
 import com.openhtmltopdf.render.MarkerData;
 import com.openhtmltopdf.render.StrutMetrics;
+import com.openhtmltopdf.render.FSFont;
 import com.openhtmltopdf.render.TextDecoration;
 import com.openhtmltopdf.util.XRLog;
 
@@ -609,11 +610,20 @@ public class InlineBoxing {
 
         lbContext.saveEnd();
         CalculatedStyle style = inlineBox.getStyle();
+
+        // Between nowrap text and the content before it on the line there is no
+        // place to wrap when the block is nowrap too: whether the boundary of two
+        // elements may wrap is up to their common ancestor (CSS Text 3, 5.1). The
+        // text stays on this line rather than moving to the next.
+        boolean noWrapBefore = style.getWhitespace() == IdentValue.NOWRAP &&
+                current.line.isContainsContent() &&
+                current.line.getParent() != null &&
+                current.line.getParent().getStyle().getWhitespace() == IdentValue.NOWRAP;
         
         // Layout the text into the remaining width on this line. Will only go to the end of the line (at most)
         // and will produce one InlineText object.
         InlineText inlineText = layoutText(
-                c, style, space.remainingWidth - fit, lbContext, false, inlineBox.getTextDirection(), tryToBreakAnywhere, space.maxAvailableWidth - fit, forceOutput);
+                c, style, space.remainingWidth - fit, lbContext, false, inlineBox.getTextDirection(), tryToBreakAnywhere, space.maxAvailableWidth - fit, forceOutput || noWrapBefore);
         
         inlineText.setTextSpacing(TextSpacing.from(style, c));
         inlineText.setBidiLevel(inlineBox.getBidiLevel());
@@ -1099,6 +1109,26 @@ public class InlineBoxing {
         return result;
     }
 
+    /**
+     * @return the thickness text-decoration-thickness asks for, or 0 for that of the
+     * font (auto, from-font). A percentage is of 1em.
+     */
+    private static int textDecorationThickness(CssContext c, CalculatedStyle style) {
+        FSDerivedValue value = style.valueByName(CSSName.TEXT_DECORATION_THICKNESS);
+        if (value.isIdent()) {
+            return 0;
+        }
+        return Math.round(style.getFloatPropertyProportionalTo(
+                CSSName.TEXT_DECORATION_THICKNESS, style.getFSFont(c).getSize2D(), c));
+    }
+
+    private static void decorate(TextDecoration decoration, IdentValue lineStyle, int thickness) {
+        if (thickness > 0) {
+            decoration.setThickness(thickness);
+        }
+        decoration.setStyle(lineStyle);
+    }
+
     public static List<TextDecoration> calculateTextDecorations(CssContext c, Box box, int baseline,
             FSFontMetrics fm) {
         List<TextDecoration> result = null;
@@ -1108,6 +1138,8 @@ public class InlineBoxing {
         if (idents != null) {
             result = new ArrayList<>(idents.size());
             FSColor decorationColor = style.getTextDecorationColor();
+            IdentValue lineStyle = style.getIdent(CSSName.TEXT_DECORATION_STYLE);
+            int thickness = textDecorationThickness(c, style);
 
             if (idents.contains(IdentValue.UNDERLINE)) {
                 TextDecoration decoration = new TextDecoration(IdentValue.UNDERLINE);
@@ -1145,6 +1177,7 @@ public class InlineBoxing {
 
                 decoration.setOffset(offset);
                 decoration.setColor(decorationColor);
+                decorate(decoration, lineStyle, thickness);
                 result.add(decoration);
             }
 
@@ -1153,6 +1186,7 @@ public class InlineBoxing {
                 decoration.setOffset(Math.round(baseline + fm.getStrikethroughOffset()));
                 decoration.setThickness(Math.round(fm.getStrikethroughThickness()));
                 decoration.setColor(decorationColor);
+                decorate(decoration, lineStyle, thickness);
                 result.add(decoration);
             }
 
@@ -1161,6 +1195,7 @@ public class InlineBoxing {
                 decoration.setOffset(0);
                 decoration.setThickness(Math.round(fm.getUnderlineThickness()));
                 decoration.setColor(decorationColor);
+                decorate(decoration, lineStyle, thickness);
                 result.add(decoration);
             }
         }
@@ -1270,6 +1305,10 @@ public class InlineBoxing {
         }
         else {
             totalLineWidth = positionHorizontally(c, current, 0);
+
+            if (totalLineWidth > maxAvailableWidth && isTextOverflowEllipsis(block)) {
+                totalLineWidth = applyEllipsis(c, current, maxAvailableWidth);
+            }
         }
         
         current.setContentWidth(totalLineWidth);
@@ -1306,6 +1345,87 @@ public class InlineBoxing {
                 current.addNonFlowContent(layoutResult.getBlock());
             }
             pendingFloats.clear();
+        }
+    }
+
+    private static boolean isTextOverflowEllipsis(BlockBox block) {
+        return block.getStyle().isIdent(CSSName.TEXT_OVERFLOW, IdentValue.ELLIPSIS) &&
+               !block.getStyle().isIdent(CSSName.OVERFLOW, IdentValue.VISIBLE);
+    }
+
+    private static final String ELLIPSIS = "\u2026";
+
+    /**
+     * text-overflow: ellipsis. Cuts the text of a line that is wider than the block,
+     * so that the text up to the cut and an ellipsis fit; the text after it is not
+     * drawn. Atomic inlines after the cut are left to overflow, which clips them.
+     *
+     * @return the width of the line up to the end of the ellipsis.
+     */
+    private static int applyEllipsis(LayoutContext c, LineBox line, int limit) {
+        List<InlineText> texts = new ArrayList<>();
+        List<Integer> starts = new ArrayList<>();
+        for (int i = 0; i < line.getChildCount(); i++) {
+            Box child = line.getChild(i);
+            if (child instanceof InlineLayoutBox) {
+                collectTexts((InlineLayoutBox) child, child.getX(), texts, starts);
+            }
+        }
+
+        int end = 0;
+        boolean cut = false;
+        for (int i = 0; i < texts.size(); i++) {
+            InlineText text = texts.get(i);
+            int start = starts.get(i);
+            if (cut) {
+                text.setSubstring(text.getStart(), text.getStart());
+                text.setWidth(0);
+                continue;
+            }
+
+            FSFont font = text.getParent().getStyle().getFSFont(c);
+            int ellipsisWidth = c.getTextRenderer().getWidth(c.getFontContext(), font, ELLIPSIS);
+            if (start + text.getWidth() + (i == texts.size() - 1 ? 0 : ellipsisWidth) <= limit &&
+                start + text.getWidth() <= limit) {
+                end = start + text.getWidth();
+                continue;
+            }
+
+            // Keep as many characters as fit before the ellipsis.
+            String s = text.getSubstring();
+            int keep = s.length();
+            int width = text.getWidth();
+            while (keep > 0) {
+                width = c.getTextRenderer().getWidth(c.getFontContext(), font, s.substring(0, keep));
+                if (start + width + ellipsisWidth <= limit) {
+                    break;
+                }
+                keep--;
+            }
+            if (keep == 0) {
+                width = 0;
+            }
+
+            String shown = s.substring(0, keep) + ELLIPSIS;
+            text.setMasterText(shown);
+            text.setSubstring(0, shown.length());
+            text.setWidth(width + ellipsisWidth);
+            end = start + width + ellipsisWidth;
+            cut = true;
+        }
+
+        return cut ? end : line.getContentWidth();
+    }
+
+    private static void collectTexts(InlineLayoutBox box, int offset, List<InlineText> texts, List<Integer> starts) {
+        for (int i = 0; i < box.getInlineChildCount(); i++) {
+            Object child = box.getInlineChild(i);
+            if (child instanceof InlineText) {
+                texts.add((InlineText) child);
+                starts.add(offset + ((InlineText) child).getX());
+            } else if (child instanceof InlineLayoutBox) {
+                collectTexts((InlineLayoutBox) child, offset + ((InlineLayoutBox) child).getX(), texts, starts);
+            }
         }
     }
 

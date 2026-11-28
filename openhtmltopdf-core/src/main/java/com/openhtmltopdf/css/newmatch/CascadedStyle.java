@@ -380,10 +380,9 @@ public class CascadedStyle {
             }
             // A logical property and the physical ones it can map to share a value,
             // the later in the cascade winning, so their order matters too.
-            appendLogicalOrder(sb, CSSName.PADDING_INLINE_START, CSSName.PADDING_LEFT, CSSName.PADDING_RIGHT);
-            appendLogicalOrder(sb, CSSName.PADDING_INLINE_END, CSSName.PADDING_LEFT, CSSName.PADDING_RIGHT);
-            appendLogicalOrder(sb, CSSName.MARGIN_INLINE_START, CSSName.MARGIN_LEFT, CSSName.MARGIN_RIGHT);
-            appendLogicalOrder(sb, CSSName.MARGIN_INLINE_END, CSSName.MARGIN_LEFT, CSSName.MARGIN_RIGHT);
+            for (CSSName[] row : com.openhtmltopdf.css.style.CalculatedStyle.getLogicalInlineProperties()) {
+                appendLogicalOrder(sb, row[0], row[1], row[2]);
+            }
             this.fingerprint = sb.toString();
         }
         return this.fingerprint;

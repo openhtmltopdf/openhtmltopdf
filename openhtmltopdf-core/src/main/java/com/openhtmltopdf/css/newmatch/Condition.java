@@ -162,6 +162,10 @@ abstract class Condition {
      * @param number PARAM
      * @return Returns
      */
+    static Condition createNthChildCondition(String number, List<ComplexSelector> of) {
+        return NthChildCondition.fromString(number).withOf(of);
+    }
+
     static Condition createNthChildCondition(String number) {
         return NthChildCondition.fromString(number);
     }
@@ -202,6 +206,81 @@ abstract class Condition {
         return new UnsupportedCondition();
     }
     
+    /**
+     * :is(), :where() (the same, but adding no specificity) and :not().
+     */
+    static Condition createSelectorListCondition(String name, List<ComplexSelector> selectors, boolean negate) {
+        return new SelectorListCondition(name, selectors, negate);
+    }
+
+    /**
+     * :has() with relative selectors.
+     */
+    static Condition createHasCondition(List<ComplexSelector> selectors) {
+        return new HasCondition(selectors);
+    }
+
+    private static void selectorsToCSS(StringBuilder sb, String name, List<ComplexSelector> selectors) {
+        sb.append(':').append(name).append('(');
+        for (int i = 0; i < selectors.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            selectors.get(i).toCSS(sb);
+        }
+        sb.append(')');
+    }
+
+    private static class SelectorListCondition extends Condition {
+        private final String name;
+        private final List<ComplexSelector> selectors;
+        private final boolean negate;
+
+        SelectorListCondition(String name, List<ComplexSelector> selectors, boolean negate) {
+            this.name = name;
+            this.selectors = selectors;
+            this.negate = negate;
+        }
+
+        @Override
+        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            for (ComplexSelector selector : selectors) {
+                if (selector.matches(e, attRes, treeRes)) {
+                    return !negate;
+                }
+            }
+            return negate;
+        }
+
+        @Override
+        void toCSS(StringBuilder sb) {
+            selectorsToCSS(sb, name, selectors);
+        }
+    }
+
+    private static class HasCondition extends Condition {
+        private final List<ComplexSelector> selectors;
+
+        HasCondition(List<ComplexSelector> selectors) {
+            this.selectors = selectors;
+        }
+
+        @Override
+        boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            for (ComplexSelector selector : selectors) {
+                if (selector.matchesRelativeTo(e, attRes, treeRes)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        void toCSS(StringBuilder sb) {
+            selectorsToCSS(sb, "has", selectors);
+        }
+    }
+
     private static abstract class AttributeCompareCondition extends Condition {
         protected String _namespaceURI;
         protected String _name;
@@ -539,17 +618,50 @@ abstract class Condition {
         private final int a;
         private final int b;
         private final String input;
+        /** For :nth-child(An+B of S): only siblings matching one of these count. */
+        private final List<ComplexSelector> of;
 
         NthChildCondition(int a, int b, String input) {
+            this(a, b, input, null);
+        }
+
+        NthChildCondition(int a, int b, String input, List<ComplexSelector> of) {
             this.a = a;
             this.b = b;
             this.input = input;
+            this.of = of;
+        }
+
+        NthChildCondition withOf(List<ComplexSelector> selectors) {
+            return new NthChildCondition(a, b, input, selectors);
+        }
+
+        private boolean matchesOf(Object e, AttributeResolver attRes, TreeResolver treeRes) {
+            for (ComplexSelector selector : of) {
+                if (selector.matches(e, attRes, treeRes)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override
         boolean matches(Object e, AttributeResolver attRes, TreeResolver treeRes) {
-            // getPositionOfElement() starts at 0, CSS spec starts at 1
-            int position = treeRes.getPositionOfElement(e)+1;
+            int position;
+            if (of == null) {
+                // getPositionOfElement() starts at 0, CSS spec starts at 1
+                position = treeRes.getPositionOfElement(e)+1;
+            } else {
+                if (!matchesOf(e, attRes, treeRes)) {
+                    return false;
+                }
+                position = 1;
+                for (Object s = treeRes.getPreviousSiblingElement(e); s != null; s = treeRes.getPreviousSiblingElement(s)) {
+                    if (matchesOf(s, attRes, treeRes)) {
+                        position++;
+                    }
+                }
+            }
 
             position -= b;
 
@@ -576,6 +688,12 @@ abstract class Condition {
         void toCSS(StringBuilder sb) {
             sb.append(":nth-child(");
             sb.append(input);
+            if (of != null) {
+                StringBuilder list = new StringBuilder();
+                selectorsToCSS(list, "", of);
+                // ":(" ... ")" around the list
+                sb.append(" of ").append(list, 2, list.length() - 1);
+            }
             sb.append(')');
         }
 

@@ -107,6 +107,14 @@ public class Java2DManualTest {
         run("object-fit");
     }
 
+    /**
+     * Tests radial and repeating gradients.
+     */
+    @Test
+    public void testCssGradients() throws IOException {
+        run("css-gradients");
+    }
+
     @Test
     public void testFootnotes() throws IOException {
         run("footnotes");

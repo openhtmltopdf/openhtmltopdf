@@ -27,6 +27,18 @@ public class TextDecoration {
     private int _offset;
     private int _thickness;
     private FSColor _color;
+    private IdentValue _style = IdentValue.SOLID;
+
+    /**
+     * @return the line style: solid, double, dotted, dashed or wavy.
+     */
+    public IdentValue getStyle() {
+        return _style;
+    }
+
+    public void setStyle(IdentValue style) {
+        _style = style;
+    }
     
     public TextDecoration(IdentValue identValue) {
         _identValue = identValue;

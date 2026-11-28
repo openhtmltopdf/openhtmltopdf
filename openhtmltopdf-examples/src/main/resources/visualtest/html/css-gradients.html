@@ -1,0 +1,47 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 470px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 10px;
+}
+div {
+  display: inline-block;
+  width: 136px;
+  height: 80px;
+  margin: 0 4px 14px 0;
+  vertical-align: top;
+}
+</style>
+</head>
+<body>
+<div style="background-image: linear-gradient(#c00, #00c)">no direction</div>
+<div style="background-image: repeating-linear-gradient(90deg, #c00 0 10px, #00c 10px 20px)">repeating stripes</div>
+<div style="background-image: repeating-linear-gradient(45deg, #fc0, #fc0 8px, #333 8px, #333 16px)">repeating 45deg</div>
+<div style="background-image: linear-gradient(to right, #c00 0 30%, #0a0 30% 60%, #00c 60%)">two-position stops</div>
+<div style="background-image: radial-gradient(#c00, #00c)">radial</div>
+<div style="background-image: radial-gradient(circle, #c00, #00c)">circle</div>
+<div style="background-image: radial-gradient(circle at top left, #c00, #fc0, #00c)">circle at top left</div>
+<div style="background-image: radial-gradient(closest-side, #c00, #00c)">closest-side</div>
+<div style="background-image: radial-gradient(circle closest-side at 30% 40%, #fff, #0a0)">circle closest-side at</div>
+<div style="background-image: radial-gradient(farthest-side at right, #c00 20%, #00c 80%)">farthest-side at right</div>
+<div style="background-image: radial-gradient(40px 20px, #c00, #00c)">40px 20px</div>
+<div style="background-image: radial-gradient(circle 30px at 20px 20px, #c00, #fc0 50%, #00c)">circle 30px</div>
+<div style="background-image: repeating-radial-gradient(circle, #c00 0 6px, #fff 6px 12px)">repeating circle</div>
+<div style="background-image: repeating-radial-gradient(#00c, #fff 10%, #00c 20%)">repeating ellipse</div>
+<div style="background-image: radial-gradient(closest-corner at 25% 75%, #fc0, #c00)">closest-corner</div>
+<div style="background-image: radial-gradient(circle, #0a0 40%, #c00 40%)">hard stop</div>
+</body>
+</html>

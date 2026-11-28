@@ -19,11 +19,14 @@
  */
 package com.openhtmltopdf.css.parser;
 
+import com.openhtmltopdf.css.parser.property.AbstractPropertyBuilder;
+
 import com.openhtmltopdf.css.constants.CSSName;
 import com.openhtmltopdf.css.constants.IdentValue;
 import com.openhtmltopdf.css.constants.MarginBoxName;
 import com.openhtmltopdf.css.constants.SVGProperty;
 import com.openhtmltopdf.css.extend.TreeResolver;
+import com.openhtmltopdf.css.newmatch.ComplexSelector;
 import com.openhtmltopdf.css.newmatch.Selector;
 import com.openhtmltopdf.css.parser.property.PropertyBuilder;
 import com.openhtmltopdf.css.sheet.*;
@@ -863,6 +866,13 @@ public class CSSParser {
     private Token combinator() throws IOException {
         //System.out.println("combinator()");
         Token t = next();
+        if (t == Token.TK_S && isTilde(nextWithSave())) {
+            t = next();
+        }
+        if (isTilde(t)) {
+            skip_whitespace();
+            return TK_TILDE;
+        }
         if (t == Token.TK_PLUS || t == Token.TK_GREATER) {
             skip_whitespace();
         } else if (t != Token.TK_S) {
@@ -1007,7 +1017,7 @@ public class CSSParser {
         LOOP:
         while (true) {
             Token t = nextWithSave();
-            switch (t.getType()) {
+            switch (isTilde(t) ? Token.PLUS : t.getType()) {
                 case Token.PLUS:
                 case Token.GREATER:
                 case Token.S:
@@ -1033,6 +1043,91 @@ public class CSSParser {
             }
         }
         ruleset.addFSSelector(mergeSimpleSelectors(selectors, combinators));
+    }
+
+    /** The subsequent-sibling combinator ~, which the tokenizer gives as an OTHER token. */
+    private static final Token TK_TILDE = Token.createOtherToken("~");
+
+    private boolean isTilde(Token t) {
+        return t == TK_TILDE || (t.getType() == Token.OTHER && "~".equals(getTokenValue(t)));
+    }
+
+    /**
+     * A comma separated list of complex selectors, the argument of :is(), :where(),
+     * :not(), :has() or the S of :nth-child(An+B of S). Leaves the closing
+     * parenthesis.
+     */
+    private List<ComplexSelector> complexSelectorList(Ruleset ruleset, boolean relative) throws IOException {
+        List<ComplexSelector> result = new ArrayList<>();
+        skip_whitespace();
+        result.add(complexSelector(ruleset, relative));
+        while (nextWithSave() == Token.TK_COMMA) {
+            next();
+            skip_whitespace();
+            result.add(complexSelector(ruleset, relative));
+        }
+        return result;
+    }
+
+    private ComplexSelector complexSelector(Ruleset ruleset, boolean relative) throws IOException {
+        int leading = -1;
+        if (relative) {
+            leading = ComplexSelector.DESCENDANT;
+            int c = combinatorType(nextWithSave());
+            if (c >= 0) {
+                next();
+                skip_whitespace();
+                leading = c;
+            }
+        }
+
+        List<Selector> compounds = new ArrayList<>();
+        List<Integer> combinators = new ArrayList<>();
+        compounds.add(simple_selector(ruleset));
+
+        while (true) {
+            Token t = nextWithSave();
+            int c;
+            if (t == Token.TK_S) {
+                next();
+                t = nextWithSave();
+                if (t == Token.TK_COMMA || t == Token.TK_RPAREN) {
+                    break;
+                }
+                c = combinatorType(t);
+                if (c >= 0) {
+                    next();
+                    skip_whitespace();
+                } else {
+                    c = ComplexSelector.DESCENDANT;
+                }
+            } else {
+                c = combinatorType(t);
+                if (c < 0) {
+                    break;
+                }
+                next();
+                skip_whitespace();
+            }
+            combinators.add(c);
+            compounds.add(simple_selector(ruleset));
+        }
+
+        return new ComplexSelector(compounds, combinators, leading);
+    }
+
+    /**
+     * @return the combinator t is (but whitespace), see {@link ComplexSelector}, or -1.
+     */
+    private int combinatorType(Token t) {
+        if (t == Token.TK_GREATER) {
+            return ComplexSelector.CHILD;
+        } else if (t == Token.TK_PLUS) {
+            return ComplexSelector.NEXT_SIBLING;
+        } else if (isTilde(t)) {
+            return ComplexSelector.SUBSEQUENT_SIBLING;
+        }
+        return -1;
     }
 
     private Selector mergeSimpleSelectors(List<Selector> selectors, List<Token> combinators) {
@@ -1063,6 +1158,9 @@ public class CSSParser {
                 lastDescendantOrChildAxis = Selector.CHILD_AXIS;
             } else if (combinator == Token.TK_PLUS) {
                 first.setAxis(Selector.IMMEDIATE_SIBLING_AXIS);
+                sibling = true;
+            } else if (combinator == TK_TILDE) {
+                first.setAxis(Selector.SUBSEQUENT_SIBLING_AXIS);
                 sibling = true;
             }
 
@@ -1407,14 +1505,33 @@ public class CSSParser {
                 save(t);
                 throw new CSSParseException(t, Token.TK_IDENT, getCurrentLine());
             }
+        } else if (f.equals("is") || f.equals("matches") || f.equals("where") || f.equals("not")) {
+            List<ComplexSelector> selectors = complexSelectorList(selector.getRuleset(), false);
+            selector.addSelectorListCondition(f.equals("matches") ? "is" : f, selectors);
+            t = next();
+        } else if (f.equals("has")) {
+            List<ComplexSelector> selectors = complexSelectorList(selector.getRuleset(), true);
+            selector.addHasCondition(selectors);
+            t = next();
         } else if (f.equals("nth-child")) {
             StringBuilder number = new StringBuilder();
+            List<ComplexSelector> of = null;
             while ((t = next()) != null && (t == Token.TK_IDENT || t == Token.TK_S || t == Token.TK_NUMBER || t == Token.TK_DIMENSION || t == Token.TK_PLUS || t == Token.TK_MINUS)) {
+                if (t == Token.TK_IDENT && "of".equalsIgnoreCase(getTokenValue(t))) {
+                    // :nth-child(An+B of S)
+                    of = complexSelectorList(selector.getRuleset(), false);
+                    t = next();
+                    break;
+                }
                 number.append(getTokenValue(t));
             }
 
             try {
-                selector.addNthChildCondition(number.toString());
+                if (of != null) {
+                    selector.addNthChildCondition(number.toString(), of);
+                } else {
+                    selector.addNthChildCondition(number.toString());
+                }
             } catch (CSSParseException e) {
                 e.setLine(getCurrentLine());
                 save(t);
@@ -1781,6 +1898,22 @@ public class CSSParser {
 //        TIME S* | FREQ S* ]
 //    | STRING S* | IDENT S* | URI S* | hexcolor | function
 //    ;
+    /**
+     * @return the unit of a dimension the tokenizer has no token type for, or
+     * CSS_UNKNOWN.
+     */
+    private static short unitForDimension(String unit) {
+        switch (unit.toLowerCase(Locale.ROOT)) {
+        case "rem": return CSSPrimitiveValue.CSS_REMS;
+        case "ch": return CSSPrimitiveValue.CSS_CH;
+        case "vw": return CSSPrimitiveValue.CSS_VW;
+        case "vh": return CSSPrimitiveValue.CSS_VH;
+        case "vmin": return CSSPrimitiveValue.CSS_VMIN;
+        case "vmax": return CSSPrimitiveValue.CSS_VMAX;
+        default: return CSSPrimitiveValue.CSS_UNKNOWN;
+        }
+    }
+
     private PropertyValue term(boolean literal) throws IOException {
         //System.out.println("term()");
         float sign = 1;
@@ -1798,9 +1931,10 @@ public class CSSParser {
             case Token.DIMENSION:
                 String unitType = extractUnit(t);
 
-                if ("rem".equals(unitType)) {
+                short dimensionUnit = unitForDimension(unitType);
+                if (dimensionUnit != CSSPrimitiveValue.CSS_UNKNOWN) {
                     result = new PropertyValue(
-                            CSSPrimitiveValue.CSS_REMS,
+                            dimensionUnit,
                             sign * Float.parseFloat(extractNumber(t)),
                             sign(sign) + getTokenValue(t));
                     next();
@@ -1970,6 +2104,14 @@ public class CSSParser {
         if (t == Token.TK_FUNCTION) {
             String f = getTokenValue(t);
             skip_whitespace();
+
+            if (CalcExpression.isMathFunction(f)) {
+                // Parsed with its own grammar, up to and including the closing parenthesis.
+                result = mathFunction(f);
+                skip_whitespace();
+                return result;
+            }
+
             List<PropertyValue> params = expr(false);
             t = next();
             if (t != Token.TK_RPAREN) {
@@ -1987,6 +2129,8 @@ public class CSSParser {
                 result = new PropertyValue(createRGBColorFromFunction(params));
             } else if (f.equals("hsl(") || f.equals("hsla(")) {
                 result = new PropertyValue(createRGBColorFromHSLFunction(params));
+            } else if (f.equalsIgnoreCase("color-mix(")) {
+                result = new PropertyValue(ColorMix.mix(params, getCurrentLine()));
             } else if (f.equals("cmyk(")) {
                 if (!isSupportCMYKColors()) {
                     throw new CSSParseException(
@@ -2005,6 +2149,119 @@ public class CSSParser {
         }
 
         return result;
+    }
+
+    /**
+     * Parses the arguments of calc(), min(), max() or clamp() and the closing
+     * parenthesis (CSS Values 4, 10. Mathematical Expressions).
+     */
+    private PropertyValue mathFunction(String functionToken) throws IOException {
+        String name = functionToken.substring(0, functionToken.length() - 1).toLowerCase(Locale.ROOT);
+
+        CalcExpression expression;
+        if (name.equals("calc")) {
+            expression = new CalcExpression.Calc(mathSum());
+        } else {
+            List<CalcExpression> arguments = new ArrayList<>();
+            arguments.add(mathSum());
+            while (nextWithSave() == Token.TK_COMMA) {
+                next();
+                skip_whitespace();
+                arguments.add(mathSum());
+            }
+            if (name.equals("clamp") && arguments.size() != 3) {
+                throw new CSSParseException("clamp() takes three arguments", getCurrentLine());
+            }
+            expression = new CalcExpression.Comparison(name, arguments);
+        }
+
+        Token t = next();
+        if (t != Token.TK_RPAREN) {
+            save(t);
+            throw new CSSParseException(t, Token.TK_RPAREN, getCurrentLine());
+        }
+
+        if (expression.varReferences().isEmpty()) {
+            String error = CalcExpression.typeError(expression);
+            if (error != null) {
+                throw new CSSParseException(error + " in " + expression.toCSS(), getCurrentLine());
+            }
+        }
+
+        return new PropertyValue(expression);
+    }
+
+    private CalcExpression mathSum() throws IOException {
+        List<CalcExpression> terms = new ArrayList<>();
+        List<Boolean> subtract = new ArrayList<>();
+        terms.add(mathProduct());
+
+        while (true) {
+            Token t = nextWithSave();
+            if (t != Token.TK_PLUS && t != Token.TK_MINUS) {
+                break;
+            }
+            next();
+            skip_whitespace();
+            subtract.add(t == Token.TK_MINUS);
+            terms.add(mathProduct());
+        }
+
+        return terms.size() == 1 ? terms.get(0) : new CalcExpression.Sum(terms, subtract);
+    }
+
+    private CalcExpression mathProduct() throws IOException {
+        CalcExpression left = mathValue();
+
+        while (true) {
+            Token t = nextWithSave();
+            if (t != Token.TK_ASTERISK && t != Token.TK_VIRGULE) {
+                break;
+            }
+            next();
+            skip_whitespace();
+            left = new CalcExpression.Product(left, mathValue(), t == Token.TK_VIRGULE);
+        }
+
+        return left;
+    }
+
+    private CalcExpression mathValue() throws IOException {
+        Token t = nextWithSave();
+        if (t.getType() == Token.OTHER && "(".equals(getTokenValue(t))) {
+            next();
+            skip_whitespace();
+            CalcExpression inner = mathSum();
+            Token close = next();
+            if (close != Token.TK_RPAREN) {
+                save(close);
+                throw new CSSParseException(close, Token.TK_RPAREN, getCurrentLine());
+            }
+            skip_whitespace();
+            return inner;
+        }
+
+        PropertyValue value = term(false);
+
+        if (value.getCalc() != null) {
+            // A nested calc(), min(), max() or clamp().
+            return value.getCalc();
+        }
+
+        if (value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
+            value.getFunction() != null && "var".equalsIgnoreCase(value.getFunction().getName())) {
+            return new CalcExpression.VarReference(value);
+        }
+
+        short type = value.getPrimitiveType();
+        if (type == CSSPrimitiveValue.CSS_NUMBER) {
+            return new CalcExpression.Leaf(value, CalcExpression.Kind.NUMBER);
+        } else if (type == CSSPrimitiveValue.CSS_PERCENTAGE ||
+                   AbstractPropertyBuilder.isLengthHelper(value)) {
+            return new CalcExpression.Leaf(value, CalcExpression.Kind.LENGTH);
+        }
+
+        throw new CSSParseException(value.getCssText() + " is not allowed in a math function", getCurrentLine());
     }
 
     private FSCMYKColor createCMYKColorFromFunction(List<PropertyValue> params) {
@@ -2191,21 +2448,27 @@ public class CSSParser {
         Token t = next();
         if (t == Token.TK_HASH) {
             String s = getTokenValue(t);
-            if ((s.length() != 3 && s.length() != 6) || !isHexString(s)) {
+            int len = s.length();
+            if ((len != 3 && len != 4 && len != 6 && len != 8) || !isHexString(s)) {
                 save(t);
                 throw new CSSParseException('#' + s + " is not a valid color definition", getCurrentLine());
             }
             FSRGBColor color = null;
-            if (s.length() == 3) {
+            if (len == 3 || len == 4) {
+                // #rgb, #rgba: each digit doubled.
+                int alpha = len == 4 ? convertToInteger(s.charAt(3), s.charAt(3)) : 255;
                 color = new FSRGBColor(
                         convertToInteger(s.charAt(0), s.charAt(0)),
                         convertToInteger(s.charAt(1), s.charAt(1)),
-                        convertToInteger(s.charAt(2), s.charAt(2)));
-            } else { /* s.length == 6 */
+                        convertToInteger(s.charAt(2), s.charAt(2)),
+                        alpha / 255f);
+            } else { /* #rrggbb, #rrggbbaa */
+                int alpha = len == 8 ? convertToInteger(s.charAt(6), s.charAt(7)) : 255;
                 color = new FSRGBColor(
                         convertToInteger(s.charAt(0), s.charAt(1)),
                         convertToInteger(s.charAt(2), s.charAt(3)),
-                        convertToInteger(s.charAt(4), s.charAt(5)));
+                        convertToInteger(s.charAt(4), s.charAt(5)),
+                        alpha / 255f);
             }
             result = new PropertyValue(color);
             skip_whitespace();

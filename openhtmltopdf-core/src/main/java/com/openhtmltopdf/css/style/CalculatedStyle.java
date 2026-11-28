@@ -56,6 +56,7 @@ import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.CountersValue;
 import com.openhtmltopdf.css.style.derived.DerivedValueFactory;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.style.derived.FunctionValue;
 import com.openhtmltopdf.css.style.derived.LengthValue;
 import com.openhtmltopdf.css.style.derived.ListValue;
@@ -439,6 +440,18 @@ public class CalculatedStyle {
         return getBorderProperty(this, ctx);
     }
 
+    private List<BoxShadow> _textShadows;
+
+    /**
+     * @return the shadows of text-shadow, the first painted on top.
+     */
+    public List<BoxShadow> getTextShadows(CssContext ctx) {
+        if (_textShadows == null) {
+            _textShadows = BoxShadow.fromStyle(this, ctx, CSSName.TEXT_SHADOW);
+        }
+        return _textShadows;
+    }
+
     public List<BoxShadow> getBoxShadows(CssContext ctx) {
         if (_boxShadows == null) {
             _boxShadows = BoxShadow.fromStyle(this, ctx);
@@ -716,23 +729,58 @@ public class CalculatedStyle {
     }
 
     /**
-     * Applies padding-inline-start/end and margin-inline-start/end to the left or
-     * right side, by the direction of this element: start is left in left-to-right
-     * text, right in right-to-left text. A logical property and the physical one it
-     * maps to share a value, so whichever comes later in the cascade wins.
+     * The logical properties of the inline direction, each with the physical
+     * property it applies to in left-to-right and in right-to-left text.
+     */
+    private static CSSName[][] logicalInlineProperties;
+
+    public static CSSName[][] getLogicalInlineProperties() {
+        if (logicalInlineProperties == null) {
+            logicalInlineProperties = new CSSName[][] {
+                { CSSName.PADDING_INLINE_START, CSSName.PADDING_LEFT, CSSName.PADDING_RIGHT },
+                { CSSName.PADDING_INLINE_END, CSSName.PADDING_RIGHT, CSSName.PADDING_LEFT },
+                { CSSName.MARGIN_INLINE_START, CSSName.MARGIN_LEFT, CSSName.MARGIN_RIGHT },
+                { CSSName.MARGIN_INLINE_END, CSSName.MARGIN_RIGHT, CSSName.MARGIN_LEFT },
+                { CSSName.INSET_INLINE_START, CSSName.LEFT, CSSName.RIGHT },
+                { CSSName.INSET_INLINE_END, CSSName.RIGHT, CSSName.LEFT },
+                { CSSName.BORDER_INLINE_START_WIDTH, CSSName.BORDER_LEFT_WIDTH, CSSName.BORDER_RIGHT_WIDTH },
+                { CSSName.BORDER_INLINE_START_STYLE, CSSName.BORDER_LEFT_STYLE, CSSName.BORDER_RIGHT_STYLE },
+                { CSSName.BORDER_INLINE_START_COLOR, CSSName.BORDER_LEFT_COLOR, CSSName.BORDER_RIGHT_COLOR },
+                { CSSName.BORDER_INLINE_END_WIDTH, CSSName.BORDER_RIGHT_WIDTH, CSSName.BORDER_LEFT_WIDTH },
+                { CSSName.BORDER_INLINE_END_STYLE, CSSName.BORDER_RIGHT_STYLE, CSSName.BORDER_LEFT_STYLE },
+                { CSSName.BORDER_INLINE_END_COLOR, CSSName.BORDER_RIGHT_COLOR, CSSName.BORDER_LEFT_COLOR },
+            };
+        }
+        return logicalInlineProperties;
+    }
+
+    /**
+     * Applies the logical properties of the inline direction (padding-inline-start,
+     * margin-inline-end, inset-inline-start, border-inline-start-width, ...) to the
+     * left or right side, by the direction of this element: start is left in
+     * left-to-right text, right in right-to-left text. A logical property and the
+     * physical one it maps to share a value, so whichever comes later in the cascade
+     * wins.
      */
     private void applyLogicalProperties(CascadedStyle matched) {
-        if (!(matched.hasProperty(CSSName.PADDING_INLINE_START) || matched.hasProperty(CSSName.PADDING_INLINE_END) ||
-              matched.hasProperty(CSSName.MARGIN_INLINE_START) || matched.hasProperty(CSSName.MARGIN_INLINE_END))) {
+        CSSName[][] table = getLogicalInlineProperties();
+
+        boolean any = false;
+        for (CSSName[] row : table) {
+            if (matched.hasProperty(row[0])) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) {
             return;
         }
 
         boolean rtl = valueByName(CSSName.DIRECTION) == IdentValue.RTL;
 
-        applyLogicalProperty(matched, CSSName.PADDING_INLINE_START, rtl ? CSSName.PADDING_RIGHT : CSSName.PADDING_LEFT);
-        applyLogicalProperty(matched, CSSName.PADDING_INLINE_END, rtl ? CSSName.PADDING_LEFT : CSSName.PADDING_RIGHT);
-        applyLogicalProperty(matched, CSSName.MARGIN_INLINE_START, rtl ? CSSName.MARGIN_RIGHT : CSSName.MARGIN_LEFT);
-        applyLogicalProperty(matched, CSSName.MARGIN_INLINE_END, rtl ? CSSName.MARGIN_LEFT : CSSName.MARGIN_RIGHT);
+        for (CSSName[] row : table) {
+            applyLogicalProperty(matched, row[0], rtl ? row[2] : row[1]);
+        }
     }
 
     private void applyLogicalProperty(CascadedStyle matched, CSSName logical, CSSName physical) {
@@ -1181,8 +1229,25 @@ public class CalculatedStyle {
         return isAbsolute() || isFixed() || isRelative();
     }
 
+    /**
+     * @return whether the width is auto, or one of the keywords fit-content,
+     * min-content and max-content, which start out as auto and are then shrunk to
+     * the content, see {@link #getIntrinsicWidth()}.
+     */
     public boolean isAutoWidth() {
-        return isIdent(CSSName.WIDTH, IdentValue.AUTO);
+        FSDerivedValue width = valueByName(CSSName.WIDTH);
+        return width == IdentValue.AUTO || width == IdentValue.FIT_CONTENT ||
+               width == IdentValue.MIN_CONTENT || width == IdentValue.MAX_CONTENT;
+    }
+
+    /**
+     * @return fit-content, min-content or max-content when the width is one of
+     * them, else null.
+     */
+    public IdentValue getIntrinsicWidth() {
+        FSDerivedValue width = valueByName(CSSName.WIDTH);
+        return width == IdentValue.FIT_CONTENT || width == IdentValue.MIN_CONTENT ||
+               width == IdentValue.MAX_CONTENT ? (IdentValue) width : null;
     }
 
     public boolean isAbsoluteWidth() {
@@ -1225,6 +1290,31 @@ public class CalculatedStyle {
         }
     }
 
+    /**
+     * @return whether transform or one of translate, rotate and scale is set.
+     */
+    public boolean hasTransform() {
+        return !isIdent(CSSName.TRANSFORM, IdentValue.NONE) ||
+               !isIdent(CSSName.TRANSLATE, IdentValue.NONE) ||
+               !isIdent(CSSName.ROTATE, IdentValue.NONE) ||
+               !isIdent(CSSName.SCALE, IdentValue.NONE);
+    }
+
+    /**
+     * @return the transform functions to apply, in order: translate, rotate, scale and
+     * then those of transform.
+     */
+    public List<PropertyValue> getTransformFunctions() {
+        List<PropertyValue> result = new ArrayList<>();
+        for (CSSName name : new CSSName[] { CSSName.TRANSLATE, CSSName.ROTATE, CSSName.SCALE, CSSName.TRANSFORM }) {
+            FSDerivedValue value = valueByName(name);
+            if (value instanceof ListValue) {
+                result.addAll(((ListValue) value).getValues());
+            }
+        }
+        return result;
+    }
+
     public boolean requiresLayer() {
         if (isIdent(CSSName.DISPLAY, IdentValue.INLINE)) {
             // Layers must be block or block derived (including inline-block)
@@ -1232,7 +1322,7 @@ public class CalculatedStyle {
             return false;
         }
 
-        if (!isIdent(CSSName.TRANSFORM, IdentValue.NONE)) {
+        if (hasTransform()) {
             return true;
         }
 
@@ -1455,6 +1545,15 @@ public class CalculatedStyle {
      * @return whether images keep the orientation they are stored in, ignoring the one
      * in their EXIF data (image-orientation: none).
      */
+    /**
+     * @return the preferred ratio of width to height from aspect-ratio: 0 for auto,
+     * negative for "auto ratio", whose ratio an image's own ratio overrides.
+     */
+    public float getAspectRatio() {
+        FSDerivedValue value = valueByName(CSSName.ASPECT_RATIO);
+        return value instanceof IdentValue ? 0 : value.asFloat();
+    }
+
     public boolean isImageOrientationNone() {
         return isIdent(CSSName.IMAGE_ORIENTATION, IdentValue.NONE);
     }
@@ -1515,6 +1614,12 @@ public class CalculatedStyle {
         Length result = new Length();
 
         FSDerivedValue value = valueByName(cssName);
+        if (value instanceof LengthValue && ((LengthValue) value).getCalc() != null &&
+            ((LengthValue) value).getCalc().hasPercentage()) {
+            // Neither a fixed length nor a plain percentage: left as auto.
+            return result;
+        }
+
         if (value instanceof LengthValue || value instanceof NumberValue) {
             if (value.hasAbsoluteUnit()) {
                 result.setValue((int) value.getFloatProportionalTo(cssName, 0, c));
@@ -1761,7 +1866,30 @@ public class CalculatedStyle {
 
     public boolean isLinearGradient(PropertyValue value) {
         return value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
-               Objects.equals(value.getFunction().getName(), "linear-gradient");
+               (Objects.equals(value.getFunction().getName(), "linear-gradient") ||
+                Objects.equals(value.getFunction().getName(), "repeating-linear-gradient"));
+    }
+
+    public boolean isRadialGradient(PropertyValue value) {
+        return value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
+               (Objects.equals(value.getFunction().getName(), "radial-gradient") ||
+                Objects.equals(value.getFunction().getName(), "repeating-radial-gradient"));
+    }
+
+    /**
+     * @return whether name is one of the gradient functions supported as an image.
+     */
+    public static boolean isGradientFunction(String name) {
+        return "linear-gradient".equals(name) || "repeating-linear-gradient".equals(name) ||
+               "radial-gradient".equals(name) || "repeating-radial-gradient".equals(name);
+    }
+
+    public FSRadialGradient getRadialGradient(
+            PropertyValue value, CssContext cssContext, int boxWidth, int boxHeight) {
+        if (!isRadialGradient(value)) {
+            return null;
+        }
+        return new FSRadialGradient(this, value.getFunction(), boxWidth, boxHeight, cssContext);
     }
 
     public FSLinearGradient getLinearGradient(
@@ -1804,7 +1932,7 @@ public class CalculatedStyle {
             BackgroundContainer bg = new BackgroundContainer();
             PropertyValue img = images.get(i);
 
-            if (isLinearGradient(img)) {
+            if (isLinearGradient(img) || isRadialGradient(img)) {
                 bg.type = BackgroundImageType.GRADIENT;
             } else if (img.getIdentValue() == IdentValue.NONE) {
                 bg.type = BackgroundImageType.NONE;

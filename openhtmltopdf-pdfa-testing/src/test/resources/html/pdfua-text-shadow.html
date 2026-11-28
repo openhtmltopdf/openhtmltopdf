@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="EN-US">
+<head>
+  <title>PDF/UA text-shadow Test</title>
+  <meta name="subject" content="PDF/UA text-shadow validation"/>
+  <meta name="author" content="openhtmltopdf.com team"/>
+  <meta name="description" content="Tests that the copies of text drawn for text-shadow are artifacts"/>
+  <style>
+  body {
+    margin: 0;
+    font-family: 'TestFont';
+    font-size: 15px;
+  }
+  </style>
+</head>
+<body>
+  <h1 style="text-shadow: 2px 2px 0 #c00, -1px -1px 0 #0a0">Shadowed heading</h1>
+  <p style="text-shadow: 1px 1px #999">Shadowed paragraph.</p>
+</body>
+</html>

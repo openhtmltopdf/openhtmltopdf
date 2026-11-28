@@ -23,6 +23,7 @@ import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.render.*;
 import com.openhtmltopdf.util.LogMessageId;
 import com.openhtmltopdf.util.XRLog;
@@ -71,6 +72,18 @@ public interface OutputDevice {
     public void drawBorderLine(Shape bounds, int side, int width, boolean solid);
     
     public void drawImage(FSImage image, int x, int y, boolean interpolate);
+
+    /**
+     * Draws a radial gradient in bounds, the box its center and radii are relative to.
+     */
+    default public void drawRadialGradient(FSRadialGradient gradient, Shape bounds) {
+    }
+
+    /**
+     * Draws the shadows of text-shadow of the text, below where the text goes.
+     */
+    default public void drawTextShadows(RenderingContext c, InlineText inlineText) {
+    }
 
     default public void drawLinearGradient(FSLinearGradient backgroundLinearGradient, Shape bounds) {
     	XRLog.log(Level.WARNING, LogMessageId.LogMessageId0Param.RENDER_LINEAR_GRADIENT_IS_NOT_SUPPORTED);

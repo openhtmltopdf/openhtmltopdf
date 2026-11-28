@@ -29,6 +29,7 @@ import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.CalculatedStyle;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.value.FontSpecification;
 import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.extend.OutputDevice;
@@ -1083,6 +1084,17 @@ public class PdfBoxFastOutputDevice extends AbstractOutputDevice implements Outp
 
         PDShading shading = GradientHelper.createLinearGradient(this, getTransform(), backgroundLinearGradient, bounds);
         _cp.paintGradient(shading);
+    }
+
+    @Override
+    public void drawRadialGradient(FSRadialGradient gradient, Shape bounds) {
+        PDShading shading = GradientHelper.createRadialGradient(gradient);
+        AffineTransform matrix = GradientHelper.radialGradientMatrix(this, getTransform(), gradient, bounds);
+
+        _cp.saveGraphics();
+        _cp.applyPdfMatrix(matrix);
+        _cp.paintGradient(shading);
+        _cp.restoreGraphics();
     }
 
     @Override

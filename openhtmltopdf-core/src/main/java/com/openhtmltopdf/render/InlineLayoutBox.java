@@ -284,6 +284,11 @@ public class InlineLayoutBox extends Box implements InlinePaintable {
         for (int i = 0; i < getInlineChildCount(); i++) {
             Object child = getInlineChild(i);
             if (child instanceof InlineText) {
+                if (!getStyle().getTextShadows(c).isEmpty()) {
+                    Object tokenShadow = c.getOutputDevice().startStructure(StructureType.TEXT_SHADOW, this);
+                    c.getOutputDevice().drawTextShadows(c, (InlineText) child);
+                    c.getOutputDevice().endStructure(tokenShadow);
+                }
                 Object tokenText = c.getOutputDevice().startStructure(StructureType.TEXT, this);
                 ((InlineText)child).paint(c);
                 c.getOutputDevice().endStructure(tokenText);

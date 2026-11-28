@@ -1466,6 +1466,10 @@ public class PrimitivePropertyBuilders {
                     inherited.add(new PropertyDeclaration(cssName, value, important, origin));
                     inherited.add(new PropertyDeclaration(
                             CSSName.TEXT_DECORATION_COLOR, value, important, origin));
+                    inherited.add(new PropertyDeclaration(
+                            CSSName.TEXT_DECORATION_STYLE, value, important, origin));
+                    inherited.add(new PropertyDeclaration(
+                            CSSName.TEXT_DECORATION_THICKNESS, value, important, origin));
                     return inherited;
                 }
 
@@ -1486,6 +1490,8 @@ public class PrimitivePropertyBuilders {
 
             List<PropertyValue> lines = new ArrayList<>(values.size());
             PropertyValue color = null;
+            PropertyValue lineStyle = null;
+            PropertyValue thickness = null;
 
             for (Iterator<PropertyValue> i = values.iterator(); i.hasNext(); ) {
                 PropertyValue value = i.next();
@@ -1506,10 +1512,25 @@ public class PrimitivePropertyBuilders {
                     continue;
                 }
 
+                if (value.getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT &&
+                    (isLength(value) || value.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE)) {
+                    // text-decoration-thickness
+                    thickness = value;
+                    continue;
+                }
+
                 checkIdentType(cssName, value);
                 IdentValue ident = checkIdent(cssName, value);
                 if (ident == IdentValue.NONE) {
                     throw new CSSParseException("Value none may not be used in this position", -1);
+                }
+                if (TextDecorationStyle.ALLOWED.get(ident.FS_ID)) {
+                    lineStyle = value;
+                    continue;
+                }
+                if (ident == IdentValue.FROM_FONT) {
+                    thickness = value;
+                    continue;
                 }
                 checkValidity(cssName, getAllowed(), ident);
                 lines.add(value);
@@ -1521,10 +1542,15 @@ public class PrimitivePropertyBuilders {
                     ? color
                     : new PropertyValue(IdentValue.CURRENT_COLOR);
 
-            List<PropertyDeclaration> result = new ArrayList<>(2);
+            List<PropertyDeclaration> result = new ArrayList<>(4);
             result.add(new PropertyDeclaration(cssName, new PropertyValue(lines), important, origin));
             result.add(new PropertyDeclaration(
                     CSSName.TEXT_DECORATION_COLOR, colorValue, important, origin));
+            // ... and the style and thickness longhands.
+            result.add(new PropertyDeclaration(CSSName.TEXT_DECORATION_STYLE,
+                    lineStyle != null ? lineStyle : new PropertyValue(IdentValue.SOLID), important, origin));
+            result.add(new PropertyDeclaration(CSSName.TEXT_DECORATION_THICKNESS,
+                    thickness != null ? thickness : new PropertyValue(IdentValue.AUTO), important, origin));
 
             return result;
         }
@@ -1574,6 +1600,45 @@ public class PrimitivePropertyBuilders {
         // auto | under
         private static final BitSet ALLOWED = setFor(
                 new IdentValue[] { IdentValue.AUTO, IdentValue.UNDER });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
+    public static class TextDecorationStyle extends SingleIdent {
+        // solid | double | dotted | dashed | wavy
+        static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.SOLID, IdentValue.DOUBLE, IdentValue.DOTTED,
+                                   IdentValue.DASHED, IdentValue.WAVY });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+    }
+
+    public static class TextDecorationThickness extends LengthLikeWithIdent {
+        // auto | from-font | <length> | <percentage>
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.FROM_FONT });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+
+        @Override
+        protected boolean isNegativeValuesAllowed() {
+            return false;
+        }
+    }
+
+    public static class TextOverflow extends SingleIdent {
+        // clip | ellipsis
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.CLIP, IdentValue.ELLIPSIS });
 
         @Override
         protected BitSet getAllowed() {
@@ -1660,7 +1725,17 @@ public class PrimitivePropertyBuilders {
         }
     }
 
-    public static class Width extends LengthLikeWithAuto {
+    public static class Width extends LengthLikeWithIdent {
+        // auto | fit-content | min-content | max-content | <length> | <percentage>
+        private static final BitSet ALLOWED = setFor(
+                new IdentValue[] { IdentValue.AUTO, IdentValue.FIT_CONTENT,
+                                   IdentValue.MIN_CONTENT, IdentValue.MAX_CONTENT });
+
+        @Override
+        protected BitSet getAllowed() {
+            return ALLOWED;
+        }
+
         @Override
         protected boolean isNegativeValuesAllowed() {
             return false;
@@ -1817,7 +1892,8 @@ public class PrimitivePropertyBuilders {
             			checkNumberType(cssName, (CSSPrimitiveValue) p);
             		}
             	} else if (fName.equalsIgnoreCase("translate")) {
-            		expected = 2;
+            		// translate(x) or translate(x, y)
+            		expected = value.getFunction().getParameters().size() == 1 ? 1 : 2;
             		for (Object p : value.getFunction().getParameters()) {
             			checkLengthOrPercentType(cssName, (CSSPrimitiveValue) p);
             		}
@@ -1980,6 +2056,125 @@ public class PrimitivePropertyBuilders {
         @Override
         protected BitSet getAllowed() {
             return ALLOWED;
+        }
+    }
+
+    /**
+     * aspect-ratio: auto | ratio | auto ratio, where ratio is a number or two numbers
+     * separated by a slash. Built as the ident auto, or as the number width / height,
+     * negative for "auto ratio" (the natural ratio of an image wins over it).
+     */
+    public static class AspectRatioBuilder extends AbstractPropertyBuilder {
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, 4, values.size());
+
+            boolean auto = false;
+            List<PropertyValue> numbers = new ArrayList<>(2);
+            for (PropertyValue value : values) {
+                if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT) {
+                    checkInheritAllowed(value, inheritAllowed);
+                    if (value.getCssValueType() == CSSValue.CSS_INHERIT) {
+                        return Collections.singletonList(new PropertyDeclaration(cssName, value, important, origin));
+                    }
+                    if (auto || checkIdent(cssName, value) != IdentValue.AUTO) {
+                        throw new CSSParseException("Invalid aspect-ratio", -1);
+                    }
+                    auto = true;
+                } else if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_NUMBER && value.getFloatValue() >= 0) {
+                    numbers.add(value);
+                } else {
+                    throw new CSSParseException("Value for aspect-ratio must be auto or a ratio", -1);
+                }
+            }
+
+            if (numbers.size() > 2 || (numbers.size() == 2 && numbers.get(1).getOperator() != Token.TK_VIRGULE)) {
+                throw new CSSParseException("Invalid ratio for aspect-ratio", -1);
+            }
+
+            float ratio = 0;
+            if (numbers.size() == 1) {
+                ratio = numbers.get(0).getFloatValue();
+            } else if (numbers.size() == 2 && numbers.get(1).getFloatValue() > 0) {
+                ratio = numbers.get(0).getFloatValue() / numbers.get(1).getFloatValue();
+            }
+
+            if (ratio <= 0 || java.lang.Float.isInfinite(ratio)) {
+                // auto, or a degenerate ratio, which behaves as auto.
+                return Collections.singletonList(
+                        new PropertyDeclaration(cssName, new PropertyValue(IdentValue.AUTO), important, origin));
+            }
+
+            float stored = auto ? -ratio : ratio;
+            return Collections.singletonList(new PropertyDeclaration(cssName,
+                    new PropertyValue(CSSPrimitiveValue.CSS_NUMBER, stored, java.lang.Float.toString(stored)), important, origin));
+        }
+    }
+
+    /**
+     * The individual transform properties translate, rotate and scale (CSS Transforms 2),
+     * built as the transform function they stand for, in a list like transform.
+     */
+    public static class IndividualTransformBuilder extends AbstractPropertyBuilder {
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, 4, values.size());
+            PropertyValue first = values.get(0);
+            checkInheritAllowed(first, inheritAllowed);
+
+            if (values.size() == 1 && first.getCssValueType() == CSSValue.CSS_INHERIT) {
+                return Collections.singletonList(new PropertyDeclaration(cssName, first, important, origin));
+            }
+            if (values.size() == 1 && first.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT &&
+                checkIdent(cssName, first) == IdentValue.NONE) {
+                return Collections.singletonList(new PropertyDeclaration(cssName, first, important, origin));
+            }
+
+            List<PropertyValue> params = new ArrayList<>();
+            String function;
+            if (cssName == CSSName.TRANSLATE) {
+                // x [y [z]]; z is ignored, as there are no 3D transforms.
+                checkValueCount(cssName, 1, 3, values.size());
+                for (int i = 0; i < Math.min(2, values.size()); i++) {
+                    checkLengthOrPercentType(cssName, values.get(i));
+                    params.add(values.get(i));
+                }
+                function = "translate";
+            } else if (cssName == CSSName.SCALE) {
+                // x [y [z]], numbers or percentages.
+                checkValueCount(cssName, 1, 3, values.size());
+                for (int i = 0; i < Math.min(2, values.size()); i++) {
+                    PropertyValue v = values.get(i);
+                    if (v.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE) {
+                        params.add(new PropertyValue(CSSPrimitiveValue.CSS_NUMBER, v.getFloatValue() / 100f,
+                                java.lang.Float.toString(v.getFloatValue() / 100f)));
+                    } else {
+                        checkNumberType(cssName, v);
+                        params.add(v);
+                    }
+                }
+                function = "scale";
+            } else {
+                // angle, or z angle: only turning in the plane of the page.
+                PropertyValue angle = values.get(values.size() - 1);
+                if (values.size() == 2) {
+                    if (first.getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT ||
+                        !"z".equalsIgnoreCase(first.getStringValue())) {
+                        throw new CSSParseException("Only rotate: z <angle> is supported for " + cssName, -1);
+                    }
+                } else if (values.size() != 1) {
+                    throw new CSSParseException("Only rotation around the z axis is supported for " + cssName, -1);
+                }
+                checkAngleType(cssName, angle);
+                params.add(angle);
+                function = "rotate";
+            }
+
+            PropertyValue fn = new PropertyValue(new FSFunction(function, params));
+            return Collections.singletonList(new PropertyDeclaration(cssName,
+                    new PropertyValue(Collections.singletonList(fn)), important, origin));
         }
     }
 

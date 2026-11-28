@@ -1,0 +1,31 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 400px 120px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+<p class="a">Before the style element: green too, as in browsers.</p>
+<!-- A style element in the body applies to the whole document and is not shown. -->
+<style>
+p.a, p.b { color: #090; }
+</style>
+<p class="b">After the style element: green.</p>
+<div><style>p.c { background: #9cf; }</style><p class="c">Nested style element: blue background.</p></div>
+</body>
+</html>

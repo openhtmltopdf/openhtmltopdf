@@ -36,6 +36,7 @@ import com.openhtmltopdf.css.style.CalculatedStyle.BackgroundImageType;
 import com.openhtmltopdf.css.style.CssContext;
 import com.openhtmltopdf.css.style.derived.BorderPropertySet;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.style.derived.LengthValue;
 import com.openhtmltopdf.css.value.FontSpecification;
 import com.openhtmltopdf.extend.FSImage;
@@ -63,6 +64,27 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
     @Override
     public void drawText(RenderingContext c, InlineText inlineText) {
+        drawText(c, inlineText, null);
+
+        if (c.debugDrawFontMetrics()) {
+            drawFontMetrics(c, inlineText);
+        }
+    }
+
+    @Override
+    public void drawTextShadows(RenderingContext c, InlineText inlineText) {
+        List<BoxShadow> shadows = inlineText.getParent().getStyle().getTextShadows(c);
+        // The first shadow is on top, so it is painted last.
+        for (int i = shadows.size() - 1; i >= 0; i--) {
+            drawText(c, inlineText, shadows.get(i));
+        }
+    }
+
+    /**
+     * Draws the text, or with shadow given, a copy of it moved by the shadow's offset
+     * in the shadow's color.
+     */
+    private void drawText(RenderingContext c, InlineText inlineText, BoxShadow shadow) {
         InlineLayoutBox iB = inlineText.getParent();
         String text = inlineText.isEndsOnSoftHyphen() ? inlineText.getSubstring() + '-' : inlineText.getSubstring();
 
@@ -77,17 +99,16 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         }
 
         if (text != null && text.length() > 0) {
-            setColor(iB.getStyle().getColor());
+            setColor(shadow != null ? shadow.getColor() : iB.getStyle().getColor());
             setFontSpecification(iB.getStyle().getFontSpecification());
             setFont(iB.getStyle().getFSFont(c));
             JustificationInfo info = createSpacingInfo(inlineText);
 
-            drawInlineTextString(c, inlineText, text,
-                    iB.getAbsX() + inlineText.getX(), iB.getAbsY() + iB.getBaseline(), info);
-        }
+            float dx = shadow != null ? shadow.getOffsetX() : 0;
+            float dy = shadow != null ? shadow.getOffsetY() : 0;
 
-        if (c.debugDrawFontMetrics()) {
-            drawFontMetrics(c, inlineText);
+            drawInlineTextString(c, inlineText, text,
+                    iB.getAbsX() + inlineText.getX() + dx, iB.getAbsY() + iB.getBaseline() + dy, info);
         }
     }
 
@@ -189,8 +210,49 @@ public abstract class AbstractOutputDevice implements OutputDevice {
 
         Rectangle edge = iB.getContentAreaEdge(iB.getAbsX(), iB.getAbsY(), c);
 
-        fillRect(edge.x, iB.getAbsY() + decoration.getOffset(),
-                    edge.width, decoration.getThickness());
+        drawDecorationLine(c, decoration, edge.x, iB.getAbsY() + decoration.getOffset(), edge.width);
+    }
+
+    /**
+     * Draws a line of text-decoration in its style, from x along width, with its top
+     * at y.
+     */
+    private void drawDecorationLine(RenderingContext c, TextDecoration decoration, int x, int y, int width) {
+        int t = Math.max(1, decoration.getThickness());
+        IdentValue style = decoration.getStyle();
+
+        if (style == IdentValue.DOUBLE) {
+            // Two lines with a gap as wide as one between them.
+            fillRect(x, y, width, t);
+            fillRect(x, y + 2 * t, width, t);
+        } else if (style == IdentValue.DOTTED || style == IdentValue.DASHED) {
+            int on = style == IdentValue.DOTTED ? t : 3 * t;
+            int off = style == IdentValue.DOTTED ? t : 2 * t;
+            for (int pos = 0; pos < width; pos += on + off) {
+                fillRect(x + pos, y, Math.min(on, width - pos), t);
+            }
+        } else if (style == IdentValue.WAVY) {
+            // Waves about as big as Chrome's: per unit of the thickness, at least one
+            // pixel, half a wave 5.5 long and 6 high from crest to trough.
+            float unit = Math.max(t, c.getDotsPerPixel());
+            float half = 5.5f * unit;
+            float amplitude = 3f * unit;
+            float mid = y + t / 2f;
+            java.awt.geom.GeneralPath path = new java.awt.geom.GeneralPath();
+            path.moveTo(x, mid);
+            boolean up = true;
+            for (float pos = 0; pos < width; pos += half) {
+                float end = Math.min(pos + half, width);
+                path.quadTo(x + (pos + end) / 2, mid + (up ? -2 * amplitude : 2 * amplitude), x + end, mid);
+                up = !up;
+            }
+            java.awt.Stroke oldStroke = getStroke();
+            setStroke(new java.awt.BasicStroke(t));
+            draw(path);
+            setStroke(oldStroke);
+        } else {
+            fillRect(x, y, width, t);
+        }
     }
 
     @Override
@@ -203,16 +265,14 @@ public abstract class AbstractOutputDevice implements OutputDevice {
             setColor(decorationColor != null ? decorationColor : lineBox.getStyle().getColor());
             if (parent.getStyle().isIdent(
                     CSSName.FS_TEXT_DECORATION_EXTENT, IdentValue.BLOCK)) {
-                fillRect(
+                drawDecorationLine(c, textDecoration,
                     lineBox.getAbsX(),
                     lineBox.getAbsY() + textDecoration.getOffset(),
-                    parent.getAbsX() + parent.getTx() + parent.getContentWidth() - lineBox.getAbsX(),
-                    textDecoration.getThickness());
+                    parent.getAbsX() + parent.getTx() + parent.getContentWidth() - lineBox.getAbsX());
             } else {
-                fillRect(
+                drawDecorationLine(c, textDecoration,
                     lineBox.getAbsX(), lineBox.getAbsY() + textDecoration.getOffset(),
-                    lineBox.getContentWidth(),
-                    textDecoration.getThickness());
+                    lineBox.getContentWidth());
             }
         }
     }
@@ -366,13 +426,21 @@ public abstract class AbstractOutputDevice implements OutputDevice {
                 FSLinearGradient backgroundLinearGradient =
                         style.getLinearGradient(bgImage.imageGradientOrNone, c, (int) (bgImageContainer.width - border.width()), (int) (bgImageContainer.height - border.height()));
 
-                if (backgroundLinearGradient != null) {
+                FSRadialGradient backgroundRadialGradient =
+                        style.getRadialGradient(bgImage.imageGradientOrNone, c, (int) (bgImageContainer.width - border.width()), (int) (bgImageContainer.height - border.height()));
+
+                if (backgroundLinearGradient != null || backgroundRadialGradient != null) {
                     Dimension xyoff = calcInitialXYOff(bgImage, bgImageContainer, border, style, c);
 
                     int xoff = xyoff.width;
                     int yoff = xyoff.height;
 
-                    drawLinearGradient(backgroundLinearGradient, new Rectangle(xoff, yoff, bgImageContainer.width, bgImageContainer.height));
+                    Rectangle bounds = new Rectangle(xoff, yoff, bgImageContainer.width, bgImageContainer.height);
+                    if (backgroundLinearGradient != null) {
+                        drawLinearGradient(backgroundLinearGradient, bounds);
+                    } else if (backgroundRadialGradient.isDrawable()) {
+                        drawRadialGradient(backgroundRadialGradient, bounds);
+                    }
                 }
             } else if (bgImage.type == BackgroundImageType.NONE) {
                 // Do nothing...
@@ -526,14 +594,14 @@ public abstract class AbstractOutputDevice implements OutputDevice {
         if (value.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE) {
             float percent = value.getFloatValue() / 100.0f;
             return Math.round(boundsDim*percent - imageDim*percent);
-        } else { /* it's a <length> */
+        } else { /* it's a <length>, or a calc() whose percentages are of the free space */
             return (int)LengthValue.calcFloatProportionalValue(
                     style,
                     CSSName.BACKGROUND_POSITION,
                     value.getCssText(),
                     value.getFloatValue(),
                     value.getPrimitiveType(),
-                    0,
+                    boundsDim - imageDim,
                     c);
         }
     }

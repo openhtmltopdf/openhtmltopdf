@@ -278,7 +278,9 @@ public class Java2DRenderer implements Closeable {
     private Rectangle getInitialExtents(LayoutContext c) {
         PageBox first = Layer.createPageBox(c, "first");
 
-        return new Rectangle(0, 0, first.getContentWidth(c), first.getContentHeight(c));
+        Rectangle extents = new Rectangle(0, 0, first.getContentWidth(c), first.getContentHeight(c));
+        c.getCss().setViewport(extents);
+        return extents;
     }
     
     private RenderingContext newRenderingContext() {

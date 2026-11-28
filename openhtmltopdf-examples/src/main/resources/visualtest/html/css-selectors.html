@@ -1,0 +1,77 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 520px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+p, li {
+  margin: 0 0 3px 0;
+  padding: 1px 4px;
+  background: #eee;
+}
+ul {
+  margin: 0 0 6px 0;
+  padding: 0;
+  list-style: none;
+}
+section {
+  margin: 0 0 6px 0;
+  padding: 3px;
+}
+
+/* Each rule below should make its target green. */
+:is(.a1, .nope) > .t1 { background: #6c6; }
+:where(.a2) .t2 { background: #6c6; }
+p.t3:not(.x, .y) { background: #6c6; }
+p.t4:not(.x, .t4) { background: #c66; }
+p.t4 { background: #6c6; }
+.a5:has(> .t5) { background: #6c6; }
+.a6:has(.deep) { background: #6c6; }
+.a7:has(+ .b7) { background: #6c6; }
+.a8:has(~ .b8) { background: #6c6; }
+.a9:not(:has(p)) { background: #6c6; }
+.t10 ~ .u10 { background: #6c6; }
+li:nth-child(2 of .k) { background: #6c6; }
+li:nth-child(odd of .m) { background: #6c6; }
+
+/* Specificity: :is() takes its most specific argument, :where() none. */
+#s1 :is(#s1x, .c) { background: #6c6; }
+#s1 .c { background: #c66; }
+:where(#s2) .c { background: #c66; }
+.c.c2 { background: #6c6; }
+</style>
+</head>
+<body>
+<section class="a1"><p class="t1">:is(.a1, .nope) &gt; .t1</p></section>
+<section class="a2"><div><p class="t2">:where(.a2) .t2</p></div></section>
+<p class="t3">p.t3:not(.x, .y)</p>
+<p class="t4">p.t4:not(.x, .t4) does not match</p>
+<section class="a5"><p class="t5">.a5:has(&gt; .t5): the section is green</p></section>
+<section class="a6"><div><p><span class="deep">.a6:has(.deep): the section is green</span></p></div></section>
+<p class="a7">.a7:has(+ .b7)</p><p class="b7">next sibling</p>
+<p class="a8">.a8:has(~ .b8)</p><p>between</p><p class="b8">later sibling</p>
+<section class="a9"><div>.a9:not(:has(p)): green, no p inside</div></section>
+<p class="t10">.t10 ~ .u10</p><p>not this</p><p class="u10">this one</p>
+<ul>
+  <li class="k">k 1</li><li>plain</li><li class="k">k 2: nth-child(2 of .k)</li><li class="k">k 3</li>
+</ul>
+<ul>
+  <li class="m">m 1: odd of .m</li><li>plain</li><li class="m">m 2</li><li class="m">m 3: odd of .m</li>
+</ul>
+<section id="s1"><p id="s1x" class="c">#s1 :is(#s1x, .c) beats #s1 .c</p></section>
+<section id="s2"><p class="c c2">.c.c2 beats :where(#s2) .c</p></section>
+</body>
+</html>

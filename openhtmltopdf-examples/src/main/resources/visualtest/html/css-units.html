@@ -1,0 +1,37 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 300px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 12px;
+}
+div {
+  background: #9cf;
+  margin-bottom: 4px;
+  height: 14px;
+}
+</style>
+</head>
+<body>
+<!-- ch: the advance of "0"; vw/vh/vmin/vmax: the page area of the first page (580 x 280). -->
+<div style="width: 20ch">20ch</div>
+<div style="width: 10ch; font-size: 24px; height: 28px">10ch at 24px</div>
+<div style="width: 30vw">30vw</div>
+<div style="width: 10vh">10vh</div>
+<div style="width: 10vmin">10vmin</div>
+<div style="width: 10vmax">10vmax</div>
+<div style="width: 50vw; height: 10vh">50vw x 10vh</div>
+</body>
+</html>

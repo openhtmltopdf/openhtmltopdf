@@ -88,7 +88,7 @@ public class PrimitiveBackgroundPropertyBuilders {
         @Override
         protected List<PropertyValue> processValue(CSSName cssName, PropertyValue value) {
             if (value.getPropertyValueType() == PropertyValue.VALUE_TYPE_FUNCTION &&
-                Objects.equals(value.getFunction().getName(), "linear-gradient")) {
+                com.openhtmltopdf.css.style.CalculatedStyle.isGradientFunction(value.getFunction().getName())) {
                 // TODO: Validation of linear-gradient args.
                 return Collections.singletonList(value);
             } else {

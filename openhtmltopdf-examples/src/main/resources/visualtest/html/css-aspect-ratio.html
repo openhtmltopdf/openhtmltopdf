@@ -1,0 +1,62 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 620px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 11px;
+}
+.b {
+  background: #9cf;
+  margin: 0 6px 6px 0;
+  float: left;
+}
+img {
+  display: block;
+  float: left;
+  margin: 0 6px 6px 0;
+  background: #eee;
+}
+.clear {
+  clear: both;
+}
+</style>
+</head>
+<body>
+<!-- Blocks: the height follows the width. -->
+<div class="b" style="width: 120px; aspect-ratio: 2 / 1">2 / 1</div>
+<div class="b" style="width: 120px; aspect-ratio: 16 / 9">16 / 9</div>
+<div class="b" style="width: 60px; aspect-ratio: 1">1</div>
+<div class="b" style="width: 60px; aspect-ratio: 0.5">0.5</div>
+<div class="b" style="width: 120px; aspect-ratio: auto 3 / 1">auto 3 / 1</div>
+<div class="clear"></div>
+<!-- Content taller than the ratio asks for makes the box taller. -->
+<div class="b" style="width: 80px; aspect-ratio: 4 / 1">4 / 1 with more content than fits in its height</div>
+<!-- The ratio is of the box box-sizing names. -->
+<div class="b" style="width: 120px; padding: 10px; aspect-ratio: 2 / 1">content-box</div>
+<div class="b" style="width: 120px; padding: 10px; box-sizing: border-box; aspect-ratio: 2 / 1">border-box</div>
+<!-- A set height wins. -->
+<div class="b" style="width: 120px; height: 20px; aspect-ratio: 1">height wins</div>
+<div class="clear"></div>
+<!-- Percentage width, in a 300px wide container. -->
+<div style="width: 300px"><div class="b" style="width: 50%; aspect-ratio: 3 / 2">50%, 3 / 2</div></div>
+<div class="clear"></div>
+<!-- Images (192 x 160): a ratio replaces the natural one; "auto ratio" keeps it. -->
+<img src="../../demos/images/cc0-cat.png" style="width: 120px; aspect-ratio: 2 / 1"/>
+<img src="../../demos/images/cc0-cat.png" style="width: 120px; aspect-ratio: 2 / 1; object-fit: cover"/>
+<img src="../../demos/images/cc0-cat.png" style="height: 60px; aspect-ratio: 1"/>
+<img src="../../demos/images/cc0-cat.png" style="width: 120px; aspect-ratio: auto 2 / 1"/>
+<img src="../../demos/images/cc0-cat.png" style="width: 60px; height: 60px; aspect-ratio: 3"/>
+</body>
+</html>

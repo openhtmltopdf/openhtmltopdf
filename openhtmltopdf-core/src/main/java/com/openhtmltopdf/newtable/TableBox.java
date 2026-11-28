@@ -712,7 +712,7 @@ public class TableBox extends BlockBox {
     private void calcWidth() {
         if (getMinWidth() > getWidth()) {
             setContentWidth(getContentWidth() + getMinWidth() - getWidth());
-        } else if (getStyle().isIdent(CSSName.WIDTH, IdentValue.AUTO) &&
+        } else if (getStyle().isAutoWidth() &&
                     getMaxWidth() < getWidth()) {
             setContentWidth(getContentWidth() - (getWidth() - getMaxWidth()));
         }

@@ -1,0 +1,35 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 500px 300px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 22px;
+}
+p {
+  margin: 0 0 8px 0;
+}
+</style>
+</head>
+<body>
+<p style="text-shadow: 2px 2px 0 #c00">Red shadow 2px 2px</p>
+<p style="color: #06c; text-shadow: 3px 3px">Color defaults to currentColor</p>
+<p style="text-shadow: -2px -2px 0 #0a0, 2px 2px 0 #c00">Two shadows, the first on top</p>
+<p style="text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3)">Semi-transparent shadow</p>
+<div style="text-shadow: 2px 2px 0 #fa0">Inherited <b>into children</b></div>
+<p style="text-shadow: 2px 2px 0 #fa0"><span style="text-shadow: none">none on a child</span></p>
+<!-- Blur is not supported: the shadow is drawn sharp. -->
+<p style="text-shadow: 2px 2px 3px #c00">Blurred shadow, drawn sharp</p>
+</body>
+</html>

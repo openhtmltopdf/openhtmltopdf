@@ -76,6 +76,14 @@ public class ListStylePropertyBuilder extends AbstractPropertyBuilder {
                     listStyleType = new PropertyDeclaration(
                             CSSName.LIST_STYLE_TYPE, value, important, origin);
                 }
+            } else if (type == CSSPrimitiveValue.CSS_STRING) {
+                // A string marker, such as list-style: "- ".
+                if (listStyleType != null) {
+                    throw new CSSParseException("A list-style-type value cannot be set twice", -1);
+                }
+
+                listStyleType = new PropertyDeclaration(
+                        CSSName.LIST_STYLE_TYPE, value, important, origin);
             } else if (type == CSSPrimitiveValue.CSS_URI) {
                 if (listStyleImage != null) {
                     throw new CSSParseException("A list-style-image value cannot be set twice", -1);

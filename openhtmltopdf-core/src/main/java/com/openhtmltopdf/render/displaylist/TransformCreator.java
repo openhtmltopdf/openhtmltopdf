@@ -42,12 +42,12 @@ public class TransformCreator {
 	}
 	
 	public static AffineTransform createPageMarginCoordinatesTransform(RenderingContext c, Box box, PageBox page, int xTranslate, int yTranslate) {
-        FSDerivedValue transforms = box.getStyle().valueByName(CSSName.TRANSFORM);
-
-        float relOriginX = box.getStyle().getFloatPropertyProportionalWidth(CSSName.FS_TRANSFORM_ORIGIN_X,
-                box.getWidth(), c);
-        float relOriginY = box.getStyle().getFloatPropertyProportionalHeight(CSSName.FS_TRANSFORM_ORIGIN_Y,
-                box.getHeight(), c);
+        // transform-origin and percentages in translations are of the border box.
+        Rectangle borderBox = box.getBorderEdge(0, 0, c);
+        float relOriginX = borderBox.x + box.getStyle().getFloatPropertyProportionalWidth(CSSName.FS_TRANSFORM_ORIGIN_X,
+        		borderBox.width, c);
+        float relOriginY = borderBox.y + box.getStyle().getFloatPropertyProportionalHeight(CSSName.FS_TRANSFORM_ORIGIN_Y,
+        		borderBox.height, c);
 
         float flipFactor = c.getOutputDevice().isPDF() ? -1 : 1;
 
@@ -72,7 +72,7 @@ public class TransformCreator {
         AffineTransform translateBackFromOrigin = AffineTransform.getTranslateInstance(-pageTranslateX,
                 -pageTranslateY);
 
-        List<PropertyValue> transformList = ((ListValue) transforms).getValues();
+        List<PropertyValue> transformList = box.getStyle().getTransformFunctions();
 
         AffineTransform result = new AffineTransform();
         result.concatenate(translateToOrigin);
@@ -111,12 +111,12 @@ public class TransformCreator {
 	 */
 	private static void createTransform(CssContext c, Box box, PageBox page, AffineTransform result, TransformYOrigin transformYOrigin, int shadowPageNumber) {
 	
-		FSDerivedValue transforms = box.getStyle().valueByName(CSSName.TRANSFORM);
-
-		float relOriginX = box.getStyle().getFloatPropertyProportionalWidth(CSSName.FS_TRANSFORM_ORIGIN_X,
-				box.getWidth(), c);
-		float relOriginY = box.getStyle().getFloatPropertyProportionalHeight(CSSName.FS_TRANSFORM_ORIGIN_Y,
-				box.getHeight(), c);
+		// transform-origin and percentages in translations are of the border box.
+		Rectangle borderBox = box.getBorderEdge(0, 0, c);
+		float relOriginX = borderBox.x + box.getStyle().getFloatPropertyProportionalWidth(CSSName.FS_TRANSFORM_ORIGIN_X,
+				borderBox.width, c);
+		float relOriginY = borderBox.y + box.getStyle().getFloatPropertyProportionalHeight(CSSName.FS_TRANSFORM_ORIGIN_Y,
+				borderBox.height, c);
 
 		float flipFactor = transformYOrigin == TransformYOrigin.PAGE_BOTTOM ? -1 : 1;
 
@@ -148,7 +148,7 @@ public class TransformCreator {
 			translateBackFromOrigin = AffineTransform.getTranslateInstance(-absTranslateX, -absTranslateY);
 		}
 		
-		List<PropertyValue> transformList = ((ListValue) transforms).getValues();
+		List<PropertyValue> transformList = box.getStyle().getTransformFunctions();
 
 		result.concatenate(translateToOrigin);
 		applyTransformFunctions(flipFactor, transformList, result, box, c);
@@ -193,21 +193,22 @@ public class TransformCreator {
 								params.get(4).getFloatValue(), params.get(5).getFloatValue()));
 			} else if ("translate".equalsIgnoreCase(fName)) {
 				float translateX = LengthValue.calcFloatProportionalValue(box.getStyle(), null, null,
-						params.get(0).getFloatValue(), params.get(0).getPrimitiveType(), box.getWidth(), ctx);
+						params.get(0).getFloatValue(), params.get(0).getPrimitiveType(), box.getBorderEdge(0, 0, ctx).width, ctx);
 				
-				float translateY = params.size() > 1 ? 
+				// translate(x) moves along x only; a percentage of y is of the height.
+				float translateY = params.size() > 1 ?
 						LengthValue.calcFloatProportionalValue(box.getStyle(), null, null,
-						    params.get(1).getFloatValue(), params.get(0).getPrimitiveType(), box.getWidth(), ctx) : translateX;
+						    params.get(1).getFloatValue(), params.get(1).getPrimitiveType(), box.getBorderEdge(0, 0, ctx).height, ctx) : 0;
 						
 				result.concatenate(AffineTransform.getTranslateInstance(translateX, flipFactor * translateY));	
 			} else if ("translateX".equalsIgnoreCase(fName)) {
 				float translateX = LengthValue.calcFloatProportionalValue(box.getStyle(), null, null,
-						params.get(0).getFloatValue(), params.get(0).getPrimitiveType(), box.getWidth(), ctx);
+						params.get(0).getFloatValue(), params.get(0).getPrimitiveType(), box.getBorderEdge(0, 0, ctx).width, ctx);
 
 				result.concatenate(AffineTransform.getTranslateInstance(translateX, 0));
 			} else if ("translateY".equalsIgnoreCase(fName)) {
 				float translateY = LengthValue.calcFloatProportionalValue(box.getStyle(), null, null,
-						params.get(0).getFloatValue(), params.get(0).getPrimitiveType(), box.getHeight(), ctx);
+						params.get(0).getFloatValue(), params.get(0).getPrimitiveType(), box.getBorderEdge(0, 0, ctx).height, ctx);
 
 				result.concatenate(AffineTransform.getTranslateInstance(0, flipFactor * translateY));
 			}

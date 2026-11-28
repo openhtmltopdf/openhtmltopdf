@@ -2269,6 +2269,126 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("object-fit", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the ch, vw, vh, vmin and vmax units.
+     */
+    @Test
+    public void testCssUnits() throws IOException {
+        assertTrue(vt.runTest("css-units", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests calc(), min(), max() and clamp() in lengths, with percentages, var() and
+     * nesting.
+     */
+    @Test
+    public void testCssCalc() throws IOException {
+        assertTrue(vt.runTest("css-calc", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the :is(), :where(), :not(), :has() and :nth-child(An+B of S) selectors,
+     * their specificity, and the ~ combinator.
+     */
+    @Test
+    public void testCssSelectors() throws IOException {
+        assertTrue(vt.runTest("css-selectors", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests that style elements in the body apply, as in browsers, and are not shown.
+     */
+    @Test
+    public void testCssStyleInBody() throws IOException {
+        assertTrue(vt.runTest("css-style-in-body", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the logical margin, padding, inset and border properties of the inline
+     * (left to right and right to left) and block directions.
+     */
+    @Test
+    public void testCssLogicalProperties() throws IOException {
+        assertTrue(vt.runTest("css-logical-properties", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests aspect-ratio for blocks and images.
+     */
+    @Test
+    public void testCssAspectRatio() throws IOException {
+        assertTrue(vt.runTest("css-aspect-ratio", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests text-shadow: offsets, colors, several shadows and inheritance.
+     */
+    @Test
+    public void testCssTextShadow() throws IOException {
+        assertTrue(vt.runTest("css-text-shadow", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests radial-gradient, the repeating gradients, linear-gradient without a
+     * direction and color stops with two positions.
+     */
+    @Test
+    public void testCssGradients() throws IOException {
+        assertTrue(vt.runTest("css-gradients", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests color-mix() in the srgb, srgb-linear, oklab and oklch color spaces.
+     */
+    @Test
+    public void testCssColorMix() throws IOException {
+        assertTrue(vt.runTest("css-color-mix", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests the translate, rotate and scale properties, their order with transform,
+     * and translate() with one value.
+     */
+    @Test
+    public void testCssIndividualTransforms() throws IOException {
+        assertTrue(vt.runTest("css-individual-transforms", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests strings as list-style-type, which are the marker as they are.
+     */
+    @Test
+    public void testCssListStyleString() throws IOException {
+        assertTrue(vt.runTest("css-list-style-string", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests text-decoration-style and text-decoration-thickness, also in the
+     * text-decoration shorthand.
+     */
+    @Test
+    public void testCssTextDecorationStyle() throws IOException {
+        assertTrue(vt.runTest("css-text-decoration-style", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests width: fit-content, min-content and max-content, with auto margins and
+     * in right-to-left text.
+     */
+    @Test
+    public void testCssIntrinsicWidth() throws IOException {
+        assertTrue(vt.runTest("css-intrinsic-width", TestSupport.WITH_FONT));
+    }
+
+    /**
+     * Tests text-overflow: ellipsis on lines that overflow a block with overflow
+     * hidden.
+     */
+    @Test
+    public void testCssTextOverflow() throws IOException {
+        assertTrue(vt.runTest("css-text-overflow", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)

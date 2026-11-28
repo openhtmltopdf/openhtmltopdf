@@ -57,7 +57,14 @@ public class BoxShadow {
     }
 
     public static List<BoxShadow> fromStyle(CalculatedStyle style, CssContext ctx) {
-        FSDerivedValue value = style.valueByName(CSSName.BOX_SHADOW);
+        return fromStyle(style, ctx, CSSName.BOX_SHADOW);
+    }
+
+    /**
+     * @param property box-shadow or text-shadow.
+     */
+    public static List<BoxShadow> fromStyle(CalculatedStyle style, CssContext ctx, CSSName property) {
+        FSDerivedValue value = style.valueByName(property);
 
         if (!(value instanceof ListValue)) {
             return Collections.emptyList();
@@ -69,11 +76,13 @@ public class BoxShadow {
 
         for (int i = 0; i + BoxShadowPropertyBuilder.VALUES_PER_SHADOW <= tokens.size(); i += BoxShadowPropertyBuilder.VALUES_PER_SHADOW) {
             boolean inset = tokens.get(i).getIdentValue() == IdentValue.INSET;
-            float offsetX = resolveLength(style, tokens.get(i + 1), ctx);
-            float offsetY = resolveLength(style, tokens.get(i + 2), ctx);
-            float blurRadius = resolveLength(style, tokens.get(i + 3), ctx);
-            float spreadRadius = resolveLength(style, tokens.get(i + 4), ctx);
-            FSColor color = tokens.get(i + 5).getFSColor();
+            float offsetX = resolveLength(style, property, tokens.get(i + 1), ctx);
+            float offsetY = resolveLength(style, property, tokens.get(i + 2), ctx);
+            float blurRadius = resolveLength(style, property, tokens.get(i + 3), ctx);
+            float spreadRadius = resolveLength(style, property, tokens.get(i + 4), ctx);
+            PropertyValue colorValue = tokens.get(i + 5);
+            FSColor color = colorValue.getIdentValue() == IdentValue.CURRENT_COLOR ?
+                    style.getColor() : colorValue.getFSColor();
 
             result.add(new BoxShadow(inset, offsetX, offsetY, blurRadius, spreadRadius, color));
         }
@@ -81,10 +90,10 @@ public class BoxShadow {
         return result;
     }
 
-    private static float resolveLength(CalculatedStyle style, PropertyValue value, CssContext ctx) {
+    private static float resolveLength(CalculatedStyle style, CSSName property, PropertyValue value, CssContext ctx) {
         return LengthValue.calcFloatProportionalValue(
                 style,
-                CSSName.BOX_SHADOW,
+                property,
                 value.getCssText(),
                 value.getFloatValue(),
                 value.getPrimitiveType(),

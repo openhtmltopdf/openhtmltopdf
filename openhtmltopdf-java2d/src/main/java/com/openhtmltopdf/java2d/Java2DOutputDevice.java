@@ -23,6 +23,7 @@ import com.openhtmltopdf.bidi.BidiReorderer;
 import com.openhtmltopdf.css.parser.FSColor;
 import com.openhtmltopdf.css.parser.FSRGBColor;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient;
+import com.openhtmltopdf.css.style.derived.FSRadialGradient;
 import com.openhtmltopdf.css.style.derived.FSLinearGradient.StopPoint;
 import com.openhtmltopdf.extend.FSImage;
 import com.openhtmltopdf.extend.OutputDevice;
@@ -420,6 +421,80 @@ public class Java2DOutputDevice extends AbstractOutputDevice implements OutputDe
                 pt1, pt2, fractionArray, colors.toArray(new Color[0])));
         _graphics.fill(bounds);
         _graphics.setPaint(oldPaint);
+    }
+
+    @Override
+    public void drawRadialGradient(FSRadialGradient rg, Shape bounds) {
+        List<StopPoint> stopPoints = rg.getStopPoints();
+        float end = rg.getAxisEnd();
+        if (stopPoints.size() < 2 || end <= 0) {
+            return;
+        }
+
+        // RadialGradientPaint takes fractions of its radius from the center, from 0;
+        // the stops of a repeating gradient may start before the center, so the color
+        // at the center is interpolated.
+        List<Float> fractions = new ArrayList<>();
+        List<Color> colors = new ArrayList<>();
+        for (int i = 0; i < stopPoints.size(); i++) {
+            StopPoint sp = stopPoints.get(i);
+            float pos = sp.getLength();
+            if (pos < 0) {
+                StopPoint next = i + 1 < stopPoints.size() ? stopPoints.get(i + 1) : null;
+                if (next != null && next.getLength() > 0) {
+                    float t = -pos / (next.getLength() - pos);
+                    fractions.add(0f);
+                    colors.add(mix((FSRGBColor) sp.getColor(), (FSRGBColor) next.getColor(), t));
+                }
+                continue;
+            }
+            float fraction = pos / end;
+            if (!fractions.isEmpty()) {
+                fraction = Math.max(fraction, Math.nextUp(fractions.get(fractions.size() - 1)));
+                if (fraction > 1f) {
+                    break;
+                }
+            }
+            fractions.add(fraction);
+            colors.add(awtColor((FSRGBColor) sp.getColor()));
+        }
+
+        if (fractions.size() < 2) {
+            return;
+        }
+
+        float[] fractionArray = new float[fractions.size()];
+        for (int i = 0; i < fractionArray.length; i++) {
+            fractionArray[i] = fractions.get(i);
+        }
+
+        Rectangle rect = bounds.getBounds();
+        double cx = rect.getMinX() + rg.getCenterX();
+        double cy = rect.getMinY() + rg.getCenterY();
+        AffineTransform ellipse = new AffineTransform();
+        ellipse.translate(cx, cy);
+        ellipse.scale(1, rg.getRadiusY() / rg.getRadiusX());
+        ellipse.translate(-cx, -cy);
+
+        Paint oldPaint = _graphics.getPaint();
+        _graphics.setPaint(new RadialGradientPaint(
+                new Point2D.Double(cx, cy), end, new Point2D.Double(cx, cy),
+                fractionArray, colors.toArray(new Color[0]),
+                MultipleGradientPaint.CycleMethod.NO_CYCLE,
+                MultipleGradientPaint.ColorSpaceType.SRGB, ellipse));
+        _graphics.fill(bounds);
+        _graphics.setPaint(oldPaint);
+    }
+
+    private static Color awtColor(FSRGBColor col) {
+        return new Color(col.getRed() / 255f, col.getGreen() / 255f, col.getBlue() / 255f);
+    }
+
+    private static Color mix(FSRGBColor a, FSRGBColor b, float t) {
+        return new Color(
+                (a.getRed() + (b.getRed() - a.getRed()) * t) / 255f,
+                (a.getGreen() + (b.getGreen() - a.getGreen()) * t) / 255f,
+                (a.getBlue() + (b.getBlue() - a.getBlue()) * t) / 255f);
     }
 
     /**

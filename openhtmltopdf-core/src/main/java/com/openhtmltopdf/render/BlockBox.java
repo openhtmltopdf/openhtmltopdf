@@ -377,8 +377,11 @@ public class BlockBox extends Box {
         if (markerStyle != null && markerStyle.hasProperty(CSSName.CONTENT)) {
             result.setTextMarker(makeTextMarker(c, markerStyle));
         } else if ((listStyle != IdentValue.NONE || listStyleType!=null)  && ! imageMarker) {
-            if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
-                    listStyle == IdentValue.DISC || listStyleType!=null) {
+            if (listStyleType != null) {
+                // A string, such as list-style-type: "→ ", is the marker as it is.
+                result.setTextMarker(makeStringMarker(c, listStyleType));
+            } else if (listStyle == IdentValue.CIRCLE || listStyle == IdentValue.SQUARE ||
+                    listStyle == IdentValue.DISC) {
                 result.setGlyphMarker(makeGlyphMarker(strutMetrics));
             } else {
                 result.setTextMarker(makeTextMarker(c, listStyle));
@@ -415,6 +418,14 @@ public class BlockBox extends Box {
             }
         }
         return null;
+    }
+
+    private MarkerData.TextMarker makeStringMarker(LayoutContext c, String text) {
+        MarkerData.TextMarker result = new MarkerData.TextMarker();
+        result.setAlignment(IdentValue.END);
+        result.setLayoutWidth(c.getTextRenderer().getWidth(c.getFontContext(), getStyle().getFSFont(c), text));
+        result.setText(text);
+        return result;
     }
 
     private MarkerData.TextMarker makeTextMarker(LayoutContext c, IdentValue listStyle) {
@@ -901,6 +912,18 @@ public class BlockBox extends Box {
         
         int intrinsicWidth = re.getIntrinsicWidth();
         int intrinsicHeight = re.getIntrinsicHeight();
+
+        // aspect-ratio: a ratio replaces the natural one; with "auto ratio" the
+        // natural ratio wins, and the given one is used only without it.
+        float aspectRatio = getStyle().getAspectRatio();
+        if (aspectRatio > 0 || (aspectRatio < 0 && (intrinsicWidth <= 0 || intrinsicHeight <= 0))) {
+            float ratio = Math.abs(aspectRatio);
+            if (intrinsicWidth > 0) {
+                intrinsicHeight = Math.round(intrinsicWidth / ratio);
+            } else if (intrinsicHeight > 0) {
+                intrinsicWidth = Math.round(intrinsicHeight * ratio);
+            }
+        }
         
         int minWidth = getCSSMinWidth(c);
         int minHeight = getCSSMinHeight(c);
@@ -1081,7 +1104,7 @@ public class BlockBox extends Box {
                 if (re != null) {
 
                 } else if (cssWidth == -1 && pinnedContentWidth == -1 &&
-                        style.isCanBeShrunkToFit()) {
+                        (style.isCanBeShrunkToFit() || (style.getIntrinsicWidth() != null && !isAnonymous()))) {
                     setNeedShrinkToFitCalculation(true);
                 }
 
@@ -1237,6 +1260,8 @@ public class BlockBox extends Box {
                 if (delta > 0 || isAllowHeightToShrink()) {
                     setHeight(originalHeight);
                 }
+            } else {
+                applyAspectRatioHeight(c, border, padding);
             }
 
             applyCSSMinMaxHeight(c);
@@ -1347,6 +1372,21 @@ public class BlockBox extends Box {
             setContentWidth(calcShrinkToFitWidth(c) - getLeftMBP() - getRightMBP());
             applyCSSMinMaxWidth(c);
             setNeedShrinkToFitCalculation(false);
+
+            if (getStyle().getIntrinsicWidth() != null && getStyle().isNeedAutoMarginResolution()) {
+                // A block in the flow sized by fit-content, min-content or
+                // max-content: auto margins (centering, as with margin: 0 auto) and
+                // right-to-left alignment follow the width it shrank to.
+                RectPropertySet padding = getPadding(c);
+                BorderPropertySet border = getBorder(c);
+                if (getStyle().isAutoLeftMargin() || getStyle().isAutoRightMargin()) {
+                    resolveAutoMargins(c, getContentWidth(), padding, border);
+                }
+                RectPropertySet margin = getMargin(c);
+                setLeftMBP((int) margin.left() + (int) border.left() + (int) padding.left());
+                setRightMBP((int) padding.right() + (int) border.right() + (int) margin.right());
+                alignToStartInRtl(c, padding, border);
+            }
         }
     }
 
@@ -1955,6 +1995,29 @@ public class BlockBox extends Box {
         return -1;
     }
 
+    /**
+     * With an auto height, aspect-ratio makes the box as high as its width asks for,
+     * but no less high than its content. The ratio is of the box box-sizing names.
+     */
+    private void applyAspectRatioHeight(LayoutContext c, BorderPropertySet border, RectPropertySet padding) {
+        float ratio = Math.abs(getStyle().getAspectRatio());
+        if (ratio <= 0) {
+            return;
+        }
+
+        int height;
+        if (getStyle().isBorderBox()) {
+            float borderBoxWidth = getContentWidth() + border.width() + padding.width();
+            height = Math.round(borderBoxWidth / ratio - border.height() - padding.height());
+        } else {
+            height = Math.round(getContentWidth() / ratio);
+        }
+
+        if (height > getHeight()) {
+            setHeight(height);
+        }
+    }
+
     public boolean isAutoHeight() {
         if (getStyle().isAutoHeight()) {
             return true;
@@ -2004,6 +2067,13 @@ public class BlockBox extends Box {
 
     private int calcShrinkToFitWidth(LayoutContext c) {
         calcMinMaxWidth(c);
+
+        IdentValue intrinsic = getStyle().getIntrinsicWidth();
+        if (intrinsic == IdentValue.MIN_CONTENT) {
+            return getMinWidth();
+        } else if (intrinsic == IdentValue.MAX_CONTENT) {
+            return getMaxWidth();
+        }
 
         return Math.min(Math.max(getMinWidth(), getAvailableWidth(c)), getMaxWidth());
     }
