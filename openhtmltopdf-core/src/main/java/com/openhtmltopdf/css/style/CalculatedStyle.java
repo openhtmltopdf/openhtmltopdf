@@ -1273,6 +1273,31 @@ public class CalculatedStyle {
         }
     }
 
+    /**
+     * @return whether transform or one of translate, rotate and scale is set.
+     */
+    public boolean hasTransform() {
+        return !isIdent(CSSName.TRANSFORM, IdentValue.NONE) ||
+               !isIdent(CSSName.TRANSLATE, IdentValue.NONE) ||
+               !isIdent(CSSName.ROTATE, IdentValue.NONE) ||
+               !isIdent(CSSName.SCALE, IdentValue.NONE);
+    }
+
+    /**
+     * @return the transform functions to apply, in order: translate, rotate, scale and
+     * then those of transform.
+     */
+    public List<PropertyValue> getTransformFunctions() {
+        List<PropertyValue> result = new ArrayList<>();
+        for (CSSName name : new CSSName[] { CSSName.TRANSLATE, CSSName.ROTATE, CSSName.SCALE, CSSName.TRANSFORM }) {
+            FSDerivedValue value = valueByName(name);
+            if (value instanceof ListValue) {
+                result.addAll(((ListValue) value).getValues());
+            }
+        }
+        return result;
+    }
+
     public boolean requiresLayer() {
         if (isIdent(CSSName.DISPLAY, IdentValue.INLINE)) {
             // Layers must be block or block derived (including inline-block)
@@ -1280,7 +1305,7 @@ public class CalculatedStyle {
             return false;
         }
 
-        if (!isIdent(CSSName.TRANSFORM, IdentValue.NONE)) {
+        if (hasTransform()) {
             return true;
         }
 

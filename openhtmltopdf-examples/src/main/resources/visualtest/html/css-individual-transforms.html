@@ -1,0 +1,51 @@
+<html>
+<head>
+<style>
+/* UNCOMMENT BELOW TO VIEW IN BROWSER FOR COMPARISON */
+/*
+@font-face {
+  src: url(fonts/Karla-Bold.ttf);
+  font-family: 'TestFont';
+}
+*/
+@page {
+  size: 600px 360px;
+  margin: 10px;
+}
+body {
+  margin: 0;
+  font-family: 'TestFont';
+  font-size: 10px;
+}
+.cell {
+  display: inline-block;
+  width: 130px;
+  height: 90px;
+  margin: 0 6px 6px 0;
+  background: #eee;
+  vertical-align: top;
+}
+.b {
+  width: 60px;
+  height: 30px;
+  margin: 30px 0 0 35px;
+  background: #9cf;
+}
+</style>
+</head>
+<body>
+<div class="cell"><div class="b" style="translate: 20px 10px">translate: 20px 10px</div></div>
+<div class="cell"><div class="b" style="translate: 50%">translate: 50%</div></div>
+<div class="cell"><div class="b" style="rotate: 30deg">rotate: 30deg</div></div>
+<div class="cell"><div class="b" style="rotate: z -20deg">rotate: z -20deg</div></div>
+<div class="cell"><div class="b" style="scale: 1.5">scale: 1.5</div></div>
+<div class="cell"><div class="b" style="scale: 50% 150%">scale: 50% 150%</div></div>
+<!-- Applied in the order translate, rotate, scale, transform. -->
+<div class="cell"><div class="b" style="translate: 20px; rotate: 45deg; scale: 0.8">translate rotate scale</div></div>
+<div class="cell"><div class="b" style="rotate: 45deg; transform: translateX(30px)">rotate, then transform</div></div>
+<!-- The transform function translate() with one value moves along x only. -->
+<div class="cell"><div class="b" style="transform: translate(30px)">translate(30px)</div></div>
+<div class="cell"><div class="b" style="transform: translate(10px, 50%)">translate(10px, 50%)</div></div>
+<div class="cell"><div class="b" style="translate: none; rotate: none; scale: none">none</div></div>
+</body>
+</html>

@@ -1817,7 +1817,8 @@ public class PrimitivePropertyBuilders {
             			checkNumberType(cssName, (CSSPrimitiveValue) p);
             		}
             	} else if (fName.equalsIgnoreCase("translate")) {
-            		expected = 2;
+            		// translate(x) or translate(x, y)
+            		expected = value.getFunction().getParameters().size() == 1 ? 1 : 2;
             		for (Object p : value.getFunction().getParameters()) {
             			checkLengthOrPercentType(cssName, (CSSPrimitiveValue) p);
             		}
@@ -2033,6 +2034,72 @@ public class PrimitivePropertyBuilders {
             float stored = auto ? -ratio : ratio;
             return Collections.singletonList(new PropertyDeclaration(cssName,
                     new PropertyValue(CSSPrimitiveValue.CSS_NUMBER, stored, java.lang.Float.toString(stored)), important, origin));
+        }
+    }
+
+    /**
+     * The individual transform properties translate, rotate and scale (CSS Transforms 2),
+     * built as the transform function they stand for, in a list like transform.
+     */
+    public static class IndividualTransformBuilder extends AbstractPropertyBuilder {
+        @Override
+        public List<PropertyDeclaration> buildDeclarations(
+                CSSName cssName, List<PropertyValue> values, int origin, boolean important, boolean inheritAllowed) {
+            checkValueCount(cssName, 1, 4, values.size());
+            PropertyValue first = values.get(0);
+            checkInheritAllowed(first, inheritAllowed);
+
+            if (values.size() == 1 && first.getCssValueType() == CSSValue.CSS_INHERIT) {
+                return Collections.singletonList(new PropertyDeclaration(cssName, first, important, origin));
+            }
+            if (values.size() == 1 && first.getPrimitiveType() == CSSPrimitiveValue.CSS_IDENT &&
+                checkIdent(cssName, first) == IdentValue.NONE) {
+                return Collections.singletonList(new PropertyDeclaration(cssName, first, important, origin));
+            }
+
+            List<PropertyValue> params = new ArrayList<>();
+            String function;
+            if (cssName == CSSName.TRANSLATE) {
+                // x [y [z]]; z is ignored, as there are no 3D transforms.
+                checkValueCount(cssName, 1, 3, values.size());
+                for (int i = 0; i < Math.min(2, values.size()); i++) {
+                    checkLengthOrPercentType(cssName, values.get(i));
+                    params.add(values.get(i));
+                }
+                function = "translate";
+            } else if (cssName == CSSName.SCALE) {
+                // x [y [z]], numbers or percentages.
+                checkValueCount(cssName, 1, 3, values.size());
+                for (int i = 0; i < Math.min(2, values.size()); i++) {
+                    PropertyValue v = values.get(i);
+                    if (v.getPrimitiveType() == CSSPrimitiveValue.CSS_PERCENTAGE) {
+                        params.add(new PropertyValue(CSSPrimitiveValue.CSS_NUMBER, v.getFloatValue() / 100f,
+                                java.lang.Float.toString(v.getFloatValue() / 100f)));
+                    } else {
+                        checkNumberType(cssName, v);
+                        params.add(v);
+                    }
+                }
+                function = "scale";
+            } else {
+                // angle, or z angle: only turning in the plane of the page.
+                PropertyValue angle = values.get(values.size() - 1);
+                if (values.size() == 2) {
+                    if (first.getPrimitiveType() != CSSPrimitiveValue.CSS_IDENT ||
+                        !"z".equalsIgnoreCase(first.getStringValue())) {
+                        throw new CSSParseException("Only rotate: z <angle> is supported for " + cssName, -1);
+                    }
+                } else if (values.size() != 1) {
+                    throw new CSSParseException("Only rotation around the z axis is supported for " + cssName, -1);
+                }
+                checkAngleType(cssName, angle);
+                params.add(angle);
+                function = "rotate";
+            }
+
+            PropertyValue fn = new PropertyValue(new FSFunction(function, params));
+            return Collections.singletonList(new PropertyDeclaration(cssName,
+                    new PropertyValue(Collections.singletonList(fn)), important, origin));
         }
     }
 

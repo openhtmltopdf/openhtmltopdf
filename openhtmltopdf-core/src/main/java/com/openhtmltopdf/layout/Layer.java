@@ -114,11 +114,11 @@ public class Layer {
         _master = master;
         setStackingContext(
                 (master.getStyle().isPositioned() && !master.getStyle().isAutoZIndex()) ||
-                (!master.getStyle().isIdent(CSSName.TRANSFORM, IdentValue.NONE)) ||
+                master.getStyle().hasTransform() ||
                 hasOpacity(master));
         master.setLayer(this);
         master.setContainingLayer(this);
-        _hasLocalTransform = !master.getStyle().isIdent(CSSName.TRANSFORM, IdentValue.NONE);
+        _hasLocalTransform = master.getStyle().hasTransform();
         _hasFixedAncester = (parent != null && parent._hasFixedAncester) || master.getStyle().isFixed();
     }
     

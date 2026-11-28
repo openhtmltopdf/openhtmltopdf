@@ -1236,6 +1236,36 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS3 property.
      */
+    /**
+     * The individual transform properties, applied before transform, in this order.
+     */
+    public final static CSSName TRANSLATE =
+            addProperty(
+                    "translate",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.IndividualTransformBuilder()
+            );
+
+    public final static CSSName ROTATE =
+            addProperty(
+                    "rotate",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.IndividualTransformBuilder()
+            );
+
+    public final static CSSName SCALE =
+            addProperty(
+                    "scale",
+                    PRIMITIVE,
+                    "none",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.IndividualTransformBuilder()
+            );
+
     public final static CSSName TRANSFORM =
             addProperty(
                     "transform",

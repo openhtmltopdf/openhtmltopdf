@@ -2345,6 +2345,15 @@ public class VisualRegressionTest {
         assertTrue(vt.runTest("css-color-mix", TestSupport.WITH_FONT));
     }
 
+    /**
+     * Tests the translate, rotate and scale properties, their order with transform,
+     * and translate() with one value.
+     */
+    @Test
+    public void testCssIndividualTransforms() throws IOException {
+        assertTrue(vt.runTest("css-individual-transforms", TestSupport.WITH_FONT));
+    }
+
     // TODO:
     // + Elements that appear just on generated overflow pages.
     // + content property (page counters, etc)
