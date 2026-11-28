@@ -1569,6 +1569,47 @@ public final class CSSName implements Comparable<CSSName> {
     /**
      * Unique CSSName instance for CSS2 property.
      */
+    /**
+     * Logical properties: applied to padding-left or padding-right (margin-left or
+     * margin-right) by the direction of the element, see
+     * CalculatedStyle#applyLogicalProperties.
+     */
+    public final static CSSName PADDING_INLINE_START =
+            addProperty(
+                    "padding-inline-start",
+                    PRIMITIVE,
+                    "0",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.PaddingLeft()
+            );
+
+    public final static CSSName PADDING_INLINE_END =
+            addProperty(
+                    "padding-inline-end",
+                    PRIMITIVE,
+                    "0",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.PaddingRight()
+            );
+
+    public final static CSSName MARGIN_INLINE_START =
+            addProperty(
+                    "margin-inline-start",
+                    PRIMITIVE,
+                    "0",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.MarginLeft()
+            );
+
+    public final static CSSName MARGIN_INLINE_END =
+            addProperty(
+                    "margin-inline-end",
+                    PRIMITIVE,
+                    "0",
+                    NOT_INHERITED,
+                    new PrimitivePropertyBuilders.MarginRight()
+            );
+
     public final static CSSName PADDING_LEFT =
             addProperty(
                     "padding-left",
